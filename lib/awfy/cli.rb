@@ -25,7 +25,6 @@ module Awfy
 
     class_option :summary, type: :boolean, desc: "Generate a summary of the results", default: true
     class_option :verbose, type: :boolean, desc: "Verbose output", default: false
-    class_option :quiet, type: :boolean, desc: "Silence output", default: false
 
     class_option :ips_warmup, type: :numeric, default: 1, desc: "Number of seconds to warmup the benchmark"
     class_option :ips_time, type: :numeric, default: 3, desc: "Number of seconds to run the benchmark"
@@ -48,33 +47,34 @@ module Awfy
 
       run_pref_test(group) { run_ips(_1, report, test) }
     end
-    #
-    # desc "memory [GROUP] [REPORT] [TEST]", "Run memory profiling"
-    # def memory(group = nil, report = nil, test = nil)
-    #   say "Running memory profiling for:"
-    #   say "> #{requested_tests(group, report, test)}..."
-    #
-    #   run_pref_test(group) { run_memory(_1, report, test) }
-    # end
-    #
-    # desc "flamegraph GROUP REPORT TEST", "Run flamegraph profiling"
-    # def flamegraph(group, report, test)
-    #   say "Creating flamegraph for:"
-    #   say "> #{[group, report, test].join("/")}..."
-    #   configure_benchmark_run
-    #   run_group(group) { run_flamegraph(_1, report, test) }
-    # end
-    #
+
+    desc "memory [GROUP] [REPORT] [TEST]", "Run memory profiling"
+    def memory(group = nil, report = nil, test = nil)
+      say "Running memory profiling for:"
+      say "> #{requested_tests(group, report, test)}..."
+
+      run_pref_test(group) { run_memory(_1, report, test) }
+    end
+
+    desc "flamegraph GROUP REPORT TEST", "Run flamegraph profiling"
+    def flamegraph(group, report, test)
+      say "Creating flamegraph for:"
+      say "> #{[group, report, test].join("/")}..."
+
+      configure_benchmark_run
+      run_group(group) { run_flamegraph(_1, report, test) }
+    end
+
     # # TODO: also YJIT stats output?
-    # desc "profile [GROUP] [REPORT] [TEST]", "Run CPU profiling"
-    # option :iterations, type: :numeric, default: 1_000_000, desc: "Number of iterations to run the test"
-    # def profile(group = nil, report = nil, test = nil)
-    #   say "Run profiling of:"
-    #   say "> #{requested_tests(group, report, test)}..."
-    #
-    #   configure_benchmark_run
-    #   run_group(group) { run_profiling(_1, report, test) }
-    # end
+    desc "profile [GROUP] [REPORT] [TEST]", "Run CPU profiling"
+    option :iterations, type: :numeric, default: 1_000_000, desc: "Number of iterations to run the test"
+    def profile(group = nil, report = nil, test = nil)
+      say "Run profiling of:"
+      say "> #{requested_tests(group, report, test)}..."
+
+      configure_benchmark_run
+      run_group(group) { run_profiling(_1, report, test) }
+    end
 
     private
 
@@ -147,7 +147,7 @@ module Awfy
       prepare_output_directory_for_ips
 
       execute_report(group, report_name) do |report, runtime|
-        Benchmark.ips(time: options[:ips_time], warmup: options[:ips_warmup], quiet: quiet_steps?) do |bm|
+        Benchmark.ips(time: options[:ips_time], warmup: options[:ips_warmup], quiet: show_summary? || verbose?) do |bm|
           execute_tests(report, test_name, output: false) do |test, _|
             test_label = "[#{runtime}] #{test[:control] ? CONTROL_MARKER : TEST_MARKER} #{test[:name]}"
             bm.item(test_label, &test[:block])
@@ -158,50 +158,56 @@ module Awfy
             bm.save!(file_name)
           end
 
-          bm.compare! if verbose?
+          bm.compare! if verbose? || !show_summary?
         end
       end
 
       generate_ips_summary if options[:summary]
     end
-    #
-    # def run_memory(group, report_name, test_name)
-    #   say "> Memory profiling for #{group[:name]}...", :cyan if verbose?
-    #   execute_report(group, report_name) do |report, runtime|
-    #     execute_tests(report, test_name) do |test, _|
-    #       MemoryProfiler.report do
-    #         test[:block].call
-    #       end.pretty_print
-    #     end
-    #   end
-    # end
-    #
-    # def run_flamegraph(group, report_name, test_name)
-    #   execute_report(group, report_name)  do |report, runtime|
-    #     execute_tests(report, test_name) do |test, _|
-    #       label = "report-#{group[:name]}-#{report[:name]}-#{test[:name]}".gsub(/[^A-Za-z0-9_\-]/, "_")
-    #       generate_flamegraph(label) do
-    #         test[:block].call
-    #       end
-    #     end
-    #   end
-    # end
-    #
-    # def run_profiling(group, report_name, test_name)
-    #   say "> Profiling for #{group[:name]} (iterations: #{options[:iterations]})..." if verbose?
-    #   execute_report(group, report_name) do |report, runtime|
-    #     execute_tests(report, test_name) do |test, iterations|
-    #       data = StackProf.run(mode: :cpu, interval: 100) do
-    #         i = 0
-    #         while i < iterations
-    #           test[:block].call
-    #           i += 1
-    #         end
-    #       end
-    #       StackProf::Report.new(data).print_text
-    #     end
-    #   end
-    # end
+
+    def run_memory(group, report_name, test_name)
+      if verbose?
+        say "> Memory profiling for:"
+        say "> #{group[:name]}...", :cyan
+      end
+      execute_report(group, report_name) do |report, runtime|
+        execute_tests(report, test_name) do |test, _|
+          MemoryProfiler.report do
+            test[:block].call
+          end.pretty_print
+        end
+      end
+    end
+
+    def run_flamegraph(group, report_name, test_name)
+      execute_report(group, report_name) do |report, runtime|
+        execute_tests(report, test_name) do |test, _|
+          label = "report-#{group[:name]}-#{report[:name]}-#{test[:name]}".gsub(/[^A-Za-z0-9_\-]/, "_")
+          generate_flamegraph(label) do
+            test[:block].call
+          end
+        end
+      end
+    end
+
+    def run_profiling(group, report_name, test_name)
+      if verbose?
+        say "> Profiling for:"
+        say "> #{group[:name]} (iterations: #{options[:iterations]})...", :cyan
+      end
+      execute_report(group, report_name) do |report, runtime|
+        execute_tests(report, test_name) do |test, iterations|
+          data = StackProf.run(mode: :cpu, interval: 100) do
+            i = 0
+            while i < iterations
+              test[:block].call
+              i += 1
+            end
+          end
+          StackProf::Report.new(data).print_text
+        end
+      end
+    end
 
     def execute_report(group, report_name, &)
       runtime = options[:runtime]
@@ -242,7 +248,7 @@ module Awfy
 
         say if verbose?
         say "> --------------------------" if verbose?
-        say "> Report (#{runtime} - branch '#{git_current_branch_name}'): #{report[:name]}"
+        say "> Report (#{runtime} - branch '#{git_current_branch_name}'): #{report[:name]}", :magenta
         say "> --------------------------" if verbose?
         say if verbose?
         yield run_report, runtime
@@ -403,7 +409,8 @@ module Awfy
     ensure
       say "Switching back to branch '#{previous_branch}'" if verbose?
       git_client.checkout(previous_branch)
-      git_client.lib.stash_apply(0)
+      # Git client does not have a pop method so send our own command
+      git_client.lib.send(:command, "stash", "pop")
     end
 
     def git_current_branch_name = git_client.current_branch
@@ -416,6 +423,6 @@ module Awfy
 
     def verbose? = options[:verbose]
 
-    def quiet_steps? = options[:quiet] || options[:summary]
+    def show_summary? = options[:summary]
   end
 end
