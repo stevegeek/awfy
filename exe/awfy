@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+
+require "awfy"
+Awfy::CLI.start(ARGV)
