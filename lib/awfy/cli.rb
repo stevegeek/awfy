@@ -172,9 +172,13 @@ module Awfy
       end
       execute_report(group, report_name) do |report, runtime|
         execute_tests(report, test_name) do |test, _|
-          MemoryProfiler.report do
+          results = MemoryProfiler.report do
             test[:block].call
-          end.pretty_print
+          end
+          save_to(:memory, group, report, runtime) do |file_name|
+            save_memory_profile_results_to_file(results, file_name)
+          end
+          results.pretty_print if verbose?
         end
       end
     end
@@ -288,6 +292,31 @@ module Awfy
     def prepare_output_directory_for_ips
       FileUtils.mkdir_p(temp_dir) unless Dir.exist?(temp_dir)
       Dir.glob("#{temp_dir}/*.json").each { |file| File.delete(file) }
+    end
+
+    def save_memory_profile_results_to_file(results, file_name)
+      data = {
+        total_allocated_memory: results.total_allocated_memsize,
+        total_retained_memory: results.total_retained_memsize,
+        # Individual results, arrays of objects {count: numeric, data: string}
+        allocated_memory_by_gem: results.allocated_memory_by_gem,
+        retained_memory_by_gem: results.retained_memory_by_gem,
+        allocated_memory_by_file: results.allocated_memory_by_file,
+        retained_memory_by_file: results.retained_memory_by_file,
+        allocated_memory_by_location: results.allocated_memory_by_location,
+        retained_memory_by_location: results.retained_memory_by_location,
+        allocated_memory_by_class: results.allocated_memory_by_class,
+        retained_memory_by_class: results.retained_memory_by_class,
+        allocated_objects_by_gem: results.allocated_objects_by_gem,
+        retained_objects_by_gem: results.retained_objects_by_gem,
+        allocated_objects_by_file: results.allocated_objects_by_file,
+        retained_objects_by_file: results.retained_objects_by_file,
+        allocated_objects_by_location: results.allocated_objects_by_location,
+        retained_objects_by_location: results.retained_objects_by_location,
+        allocated_objects_by_class: results.allocated_objects_by_class,
+        retained_objects_by_class: results.retained_objects_by_class
+      }
+      File.write(file_name, data.to_json)
     end
 
     def save_to(type, group, report, runtime)
