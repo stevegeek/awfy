@@ -11,7 +11,7 @@ Supports running:
 - CPU profiling (with [stackprof](https://rubygems.org/gems/stackprof))
 - Flamegraph profiling (with [singed](https://rubygems.org/gems/singed))
 
-Awfy can also create summary reports of the results which can be useful for comparing the performance of different implementations **(currently only supported for IPS benchmarks)**.
+Awfy can also create summary reports of the results which can be useful for comparing the performance of different implementations **(supported for IPS and memory benchmarks)**.
 
 ## Installation
 
