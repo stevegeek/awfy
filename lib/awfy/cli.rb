@@ -41,7 +41,7 @@ module Awfy
       run_pref_test(group) { list_group(_1) }
     end
 
-    desc "ips [GROUP] [REPORT] [TEST]", "Run IPS benchmarks"
+    desc "ips [GROUP] [REPORT] [TEST]", "Run IPS benchmarks. Can generate summary across implementations, runtimes and branches."
     def ips(group = nil, report = nil, test = nil)
       say "Running IPS for:"
       say "> #{requested_tests(group, report, test)}..."
@@ -49,7 +49,7 @@ module Awfy
       run_pref_test(group) { run_ips(_1, report, test) }
     end
 
-    desc "memory [GROUP] [REPORT] [TEST]", "Run memory profiling"
+    desc "memory [GROUP] [REPORT] [TEST]", "Run memory profiling. Can generate summary across implementations, runtimes and branches."
     def memory(group = nil, report = nil, test = nil)
       say "Running memory profiling for:"
       say "> #{requested_tests(group, report, test)}..."
