@@ -120,18 +120,47 @@ Running IPS for:
 +--------+---------+----------------------------+-------------+-------------+
 | Branch | Runtime | Name                       | IPS         | Vs baseline |
 +--------+---------+----------------------------+-------------+-------------+
-| perf   | mri     | Ruby Struct                |      3.288M | 2.26 x      |
-| perf   | yjit    | Ruby Struct                |      3.238M | 2.22 x      |
-| perf   | yjit    | MyStruct                   |      2.364M | 1.62 x      |
-| main   | yjit    | MyStruct                   |      2.255M | 1.55 x      |
-| perf   | mri     | (baseline) MyStruct        |      1.455M | -           |
+| perf   | mri     |                 Ruby Struct|      3.288M |      2.26 x |
+| perf   | yjit    |                 Ruby Struct|      3.238M |      2.22 x |
+| perf   | yjit    |                    MyStruct|      2.364M |      1.62 x |
+| main   | yjit    |                    MyStruct|      2.255M |      1.55 x |
+| perf   | mri     |         (baseline) MyStruct|      1.455M |      -      |
 +--------+---------+----------------------------+-------------+-------------+
-| main   | mri     | MyStruct                   |      1.248M | -1.1 x      |
-| perf   | yjit    | Dry::Struct                |      1.213M | -1.2 x      |
-| perf   | mri     | Dry::Struct                |    639.178k | -2.28 x     |
-| perf   | yjit    | ActiveModel::Attributes    |    487.398k | -2.99 x     |
-| perf   | mri     | ActiveModel::Attributes    |    310.554k | -4.69 x     |
+| main   | mri     |                    MyStruct|      1.248M |      -1.1 x |
+| perf   | yjit    |                 Dry::Struct|      1.213M |      -1.2 x |
+| perf   | mri     |                 Dry::Struct|    639.178k |     -2.28 x |
+| perf   | yjit    |     ActiveModel::Attributes|    487.398k |     -2.99 x |
+| perf   | mri     |     ActiveModel::Attributes|    310.554k |     -4.69 x |
 +--------+---------+----------------------------+-------------+-------------+
+```
+
+
+### Memory Profiling
+
+```bash
+bundle exec awfy memory Struct "#some_method"
+```
+
+Produces a report like:
+
+```
++----------------------------------------------------------------------------------------------------------------+
+|                                                  Struct/.new                                                   |
++--------+---------+----------------------------+-------------------+-------------+----------------+-------------+
+| Branch | Runtime | Name                       | Total Allocations | Vs baseline | Total Retained | Vs baseline |
++--------+---------+----------------------------+-------------------+-------------+----------------+-------------+
+| perf   | mri     |    ActiveModel::Attributes |            1.200k |      3.33 x |            640 |           ∞ |
+| perf   | yjit    |    ActiveModel::Attributes |            1.200k |      3.33 x |              0 |        same |
+| perf   | mri     |                Dry::Struct |               360 |       1.0 x |            160 |           ∞ |
+| perf   | mri     | (baseline) Literal::Struct |               360 |           - |              0 |           - |
++--------+---------+----------------------------+-------------------+-------------+----------------+-------------+
+| perf   | yjit    |                Dry::Struct |               360 |        same |              0 |        same |
+| perf   | yjit    |            Literal::Struct |               360 |        same |              0 |        same |
+| perf   | mri     |                Ruby Struct |               200 |     -0.56 x |              0 |        same |
+| perf   | mri     |                  Ruby Data |               200 |     -0.56 x |              0 |        same |
+| perf   | yjit    |                Ruby Struct |               200 |     -0.56 x |              0 |        same |
+| perf   | yjit    |                  Ruby Data |               200 |     -0.56 x |              0 |        same |
++--------+---------+----------------------------+-------------------+-------------+----------------+-------------+
 ```
 
 ## CLI Options

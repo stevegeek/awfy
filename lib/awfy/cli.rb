@@ -24,6 +24,7 @@ module Awfy
     class_option :compare_control, type: :boolean, desc: "When comparing branches, also re-run all control blocks too", default: false
 
     class_option :summary, type: :boolean, desc: "Generate a summary of the results", default: true
+    class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
     class_option :verbose, type: :boolean, desc: "Verbose output", default: false
 
     class_option :ips_warmup, type: :numeric, default: 1, desc: "Number of seconds to warmup the benchmark"
@@ -105,6 +106,7 @@ module Awfy
 
     def run_pref_test(group, &)
       configure_benchmark_run
+      prepare_output_directory
       if group
         run_group(group, &)
       else
@@ -144,12 +146,10 @@ module Awfy
         say "> #{group[:name]}...", :cyan
       end
 
-      prepare_output_directory_for_ips
-
       execute_report(group, report_name) do |report, runtime|
         Benchmark.ips(time: options[:ips_time], warmup: options[:ips_warmup], quiet: show_summary? || verbose?) do |bm|
           execute_tests(report, test_name, output: false) do |test, _|
-            test_label = "[#{runtime}] #{test[:control] ? CONTROL_MARKER : TEST_MARKER} #{test[:name]}"
+            test_label = generate_test_label(test, runtime)
             bm.item(test_label, &test[:block])
           end
 
@@ -165,22 +165,35 @@ module Awfy
       generate_ips_summary if options[:summary]
     end
 
+    def generate_test_label(test, runtime)
+      "[#{runtime}] #{test[:control] ? CONTROL_MARKER : TEST_MARKER} #{test[:name]}"
+    end
+
     def run_memory(group, report_name, test_name)
       if verbose?
         say "> Memory profiling for:"
         say "> #{group[:name]}...", :cyan
       end
       execute_report(group, report_name) do |report, runtime|
+        results = []
         execute_tests(report, test_name) do |test, _|
-          results = MemoryProfiler.report do
+          data = MemoryProfiler.report do
             test[:block].call
           end
-          save_to(:memory, group, report, runtime) do |file_name|
-            save_memory_profile_results_to_file(results, file_name)
-          end
-          results.pretty_print if verbose?
+          test_label = generate_test_label(test, runtime)
+          results << {
+            label: test_label,
+            data: data
+          }
+          data.pretty_print if verbose?
+        end
+
+        save_to(:memory, group, report, runtime) do |file_name|
+          save_memory_profile_report_to_file(file_name, results)
         end
       end
+
+      generate_memory_summary if options[:summary]
     end
 
     def run_flamegraph(group, report_name, test_name)
@@ -289,33 +302,37 @@ module Awfy
       result
     end
 
-    def prepare_output_directory_for_ips
+    def prepare_output_directory
       FileUtils.mkdir_p(temp_dir) unless Dir.exist?(temp_dir)
       Dir.glob("#{temp_dir}/*.json").each { |file| File.delete(file) }
     end
 
-    def save_memory_profile_results_to_file(results, file_name)
-      data = {
-        total_allocated_memory: results.total_allocated_memsize,
-        total_retained_memory: results.total_retained_memsize,
-        # Individual results, arrays of objects {count: numeric, data: string}
-        allocated_memory_by_gem: results.allocated_memory_by_gem,
-        retained_memory_by_gem: results.retained_memory_by_gem,
-        allocated_memory_by_file: results.allocated_memory_by_file,
-        retained_memory_by_file: results.retained_memory_by_file,
-        allocated_memory_by_location: results.allocated_memory_by_location,
-        retained_memory_by_location: results.retained_memory_by_location,
-        allocated_memory_by_class: results.allocated_memory_by_class,
-        retained_memory_by_class: results.retained_memory_by_class,
-        allocated_objects_by_gem: results.allocated_objects_by_gem,
-        retained_objects_by_gem: results.retained_objects_by_gem,
-        allocated_objects_by_file: results.allocated_objects_by_file,
-        retained_objects_by_file: results.retained_objects_by_file,
-        allocated_objects_by_location: results.allocated_objects_by_location,
-        retained_objects_by_location: results.retained_objects_by_location,
-        allocated_objects_by_class: results.allocated_objects_by_class,
-        retained_objects_by_class: results.retained_objects_by_class
-      }
+    def save_memory_profile_report_to_file(file_name, results)
+      data = results.map do |label_and_data|
+        result = label_and_data[:data]
+        {
+          label: label_and_data[:label],
+          total_allocated_memory: result.total_allocated_memsize,
+          total_retained_memory: result.total_retained_memsize,
+          # Individual results, arrays of objects {count: numeric, data: string}
+          allocated_memory_by_gem: result.allocated_memory_by_gem,
+          retained_memory_by_gem: result.retained_memory_by_gem,
+          allocated_memory_by_file: result.allocated_memory_by_file,
+          retained_memory_by_file: result.retained_memory_by_file,
+          allocated_memory_by_location: result.allocated_memory_by_location,
+          retained_memory_by_location: result.retained_memory_by_location,
+          allocated_memory_by_class: result.allocated_memory_by_class,
+          retained_memory_by_class: result.retained_memory_by_class,
+          allocated_objects_by_gem: result.allocated_objects_by_gem,
+          retained_objects_by_gem: result.retained_objects_by_gem,
+          allocated_objects_by_file: result.allocated_objects_by_file,
+          retained_objects_by_file: result.retained_objects_by_file,
+          allocated_objects_by_location: result.allocated_objects_by_location,
+          retained_objects_by_location: result.retained_objects_by_location,
+          allocated_objects_by_class: result.allocated_objects_by_class,
+          retained_objects_by_class: result.retained_objects_by_class
+        }
+      end
       File.write(file_name, data.to_json)
     end
 
@@ -333,7 +350,18 @@ module Awfy
       yield file_name
     end
 
-    def load_json(file_name)
+    def load_results_json(type, file_name)
+      case type
+      when "ips"
+        load_ips_results_json(file_name)
+      when "memory"
+        load_memory_results_json(file_name)
+      else
+        raise "Unknown test type"
+      end
+    end
+
+    def load_ips_results_json(file_name)
       JSON.parse(File.read(file_name)).map do |result|
         {
           label: result["item"],
@@ -345,14 +373,121 @@ module Awfy
       end
     end
 
-    def generate_ips_summary
-      awfy_report_result_files = Dir.glob("#{temp_dir}/awfy-ips-*.json").map do |file_name|
+    def load_memory_results_json(file_name)
+      JSON.parse(File.read(file_name)).map { _1.transform_keys(&:to_sym) }
+    end
+
+    def choose_baseline_test(results)
+      base_branch = git_current_branch_name
+      baseline = results.find do |r|
+        r[:branch] == base_branch && r[:label].include?(TEST_MARKER) && r[:runtime] == (yjit_only? ? "yjit" : "mri") # Baseline is mri baseline unless yjit only
+      end
+      unless baseline
+        say_error "Could not work out which result is considered the 'baseline' (ie the `test` case)"
+        exit(1)
+      end
+      baseline[:is_baseline] = true
+      say "> Chosen baseline: #{baseline[:label]}" if verbose?
+      baseline
+    end
+
+    def generate_memory_summary
+      read_reports_for_summary("memory") do |report, results, baseline|
+        result_diffs = results.map do |result|
+          overlaps = result[:total_allocated_memory] == baseline[:total_allocated_memory] && result[:total_retained_memory] == baseline[:total_retained_memory]
+          diff_x = if baseline[:total_allocated_memory].zero? && !result[:total_allocated_memory].zero?
+            Float::INFINITY
+          elsif baseline[:total_allocated_memory].zero?
+            0.0
+          elsif baseline[:total_allocated_memory] > result[:total_allocated_memory]
+            -1.0 * result[:total_allocated_memory] / baseline[:total_allocated_memory]
+          else
+            result[:total_allocated_memory].to_f / baseline[:total_allocated_memory]
+          end
+          retained_diff_x = if baseline[:total_retained_memory].zero? && !result[:total_retained_memory].zero?
+            Float::INFINITY
+          elsif baseline[:total_retained_memory].zero?
+            0.0
+          elsif baseline[:total_retained_memory] > result[:total_retained_memory]
+            -1.0 * result[:total_retained_memory] / baseline[:total_retained_memory]
+          else
+            result[:total_retained_memory].to_f / baseline[:total_retained_memory]
+          end
+          result.merge(
+            overlaps: overlaps,
+            diff_times: diff_x.round(2),
+            retained_diff_times: retained_diff_x.round(2)
+          )
+        end
+
+        result_diffs.sort_by! { |result| -1 * result[:diff_times] }
+
+        rows = result_diffs.map do |result|
+          diff_message = result_diff_message(result)
+          retained_message = result_diff_message(result, :retained_diff_times)
+          test_name = result[:is_baseline] ? "(baseline) #{result[:test_name]}" : result[:test_name]
+          [result[:branch], result[:runtime], test_name, humanize_scale(result[:total_allocated_memory]), diff_message, humanize_scale(result[:total_retained_memory]), retained_message]
+        end
+
+        output_summary_table(report, rows, "Branch", "Runtime", "Name", "Total Allocations", "Vs baseline", "Total Retained", "Vs baseline")
+      end
+    end
+
+    def output_summary_table(report, rows, *headings)
+      group_data = report.first
+      table = ::Terminal::Table.new(title: requested_tests(group_data[:group], group_data[:report]), headings: headings)
+
+      rows.each do |row|
+        table.add_row(row)
+        if row[4] == "-" # FIXME: this is finding the baseline...
+          table.add_separator(border_type: :dot3)
+        end
+      end
+
+      (2...headings.size).each { table.align_column(_1, :right) }
+
+      if options[:quiet] && options[:summary]
+        puts table
+      else
+        say table
+      end
+    end
+
+    def result_diff_message(result, diff_key = :diff_times)
+      if result[:is_baseline]
+        "-"
+      elsif result[:overlaps] || result[diff_key].zero?
+        "same"
+      elsif result[diff_key] == Float::INFINITY
+        "∞"
+      elsif result[diff_key]
+        "#{result[diff_key]} x"
+      else
+        "?"
+      end
+    end
+
+    SUFFIXES = ["", "k", "M", "B", "T", "Q"].freeze
+
+    def humanize_scale(number, round_to: 0)
+      return 0 if number.zero?
+      number = number.round(round_to)
+      scale = (Math.log10(number) / 3).to_i
+      scale = 0 if scale < 0 || scale >= SUFFIXES.size
+      suffix = SUFFIXES[scale]
+      scaled_value = number.to_f / (1000**scale)
+      dp = (scale == 0) ? 0 : 3
+      "%10.#{dp}f#{suffix}" % scaled_value
+    end
+
+    def read_reports_for_summary(type)
+      awfy_report_result_files = Dir.glob("#{temp_dir}/awfy-#{type}-*.json").map do |file_name|
         JSON.parse(File.read(file_name)).map { _1.transform_keys(&:to_sym) }
       end
 
       awfy_report_result_files.each do |report|
         results = report.map do |single_run|
-          load_json(single_run[:output_path]).map do |result|
+          load_results_json(type, single_run[:output_path]).map do |result|
             test_name = result[:label].match(/\[.{3,4}\] \[.\] (.*)/)[1]
             result.merge!(
               runtime: single_run[:runtime],
@@ -362,71 +497,39 @@ module Awfy
           end
         end
         results.flatten!(1)
+        baseline = choose_baseline_test(results)
 
-        base_branch = git_current_branch_name
-        baseline = results.find do |r|
-          r[:branch] == base_branch && r[:label].include?(TEST_MARKER) && r[:runtime] == (yjit_only? ? "yjit" : "mri") # Baseline is mri baseline unless yjit only
-        end
-        unless baseline
-          say_error "Could not work out which result is considered the 'baseline' (ie the `test` case)"
-          exit(1)
-        end
-        baseline[:is_baseline] = true
-        say "> Chosen baseline: #{baseline[:label]}" if verbose?
+        yield report, results, baseline
+      end
+    end
 
+    def generate_ips_summary
+      read_reports_for_summary("ips") do |report, results, baseline|
         result_diffs = results.map do |result|
-          if baseline
-            baseline_stats = baseline[:stats]
-            result_stats = result[:stats]
-            overlaps = result_stats.overlaps?(baseline_stats)
-            diff_x = if baseline_stats.central_tendency > result_stats.central_tendency
-              -1.0 * result_stats.speedup(baseline_stats).first
-            else
-              result_stats.slowdown(baseline_stats).first
-            end
+          baseline_stats = baseline[:stats]
+          result_stats = result[:stats]
+          overlaps = result_stats.overlaps?(baseline_stats)
+          diff_x = if baseline_stats.central_tendency > result_stats.central_tendency
+            -1.0 * result_stats.speedup(baseline_stats).first
+          else
+            result_stats.slowdown(baseline_stats).first
           end
-
           result.merge(
             overlaps: overlaps,
-            diff_times: diff_x
+            diff_times: diff_x.round(2)
           )
         end
 
         result_diffs.sort_by! { |result| -1 * result[:iter] }
 
         rows = result_diffs.map do |result|
-          diff_message = if result[:is_baseline]
-            "-"
-          elsif result[:overlaps]
-            "same-ish"
-          elsif result[:diff_times]
-            "#{result[:diff_times].round(2)} x"
-          else
-            "?"
-          end
+          diff_message = result_diff_message(result)
           test_name = result[:is_baseline] ? "(baseline) #{result[:test_name]}" : result[:test_name]
 
-          [result[:branch], result[:runtime], test_name, Benchmark::IPS::Helpers.scale(result[:stats].central_tendency.round), diff_message]
+          [result[:branch], result[:runtime], test_name, humanize_scale(result[:stats].central_tendency), diff_message]
         end
 
-        group_data = report.first
-        table = ::Terminal::Table.new(
-          title: requested_tests(group_data[:group], group_data[:report]),
-          headings: ["Branch", "Runtime", "Name", "IPS", "Vs baseline"]
-        )
-
-        table.align_column(2, :right)
-        table.align_column(3, :right)
-        table.align_column(4, :right)
-
-        rows.each do |row|
-          table.add_row(row)
-          if row[4] == "-"
-            table.add_separator(border_type: :dot3)
-          end
-        end
-
-        say table
+        output_summary_table(report, rows, "Branch", "Runtime", "Name", "IPS", "Vs baseline")
       end
     end
 
