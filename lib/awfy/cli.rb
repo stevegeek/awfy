@@ -248,7 +248,7 @@ module Awfy
 
         say if verbose?
         say "> --------------------------" if verbose?
-        say "> Report (#{runtime} - branch '#{git_current_branch_name}'): #{report[:name]}", :magenta
+        say "> [#{runtime} - branch '#{git_current_branch_name}'] #{group[:name]} / #{report[:name]}", :magenta
         say "> --------------------------" if verbose?
         say if verbose?
         yield run_report, runtime
@@ -375,21 +375,27 @@ module Awfy
           else
             "?"
           end
-          test_name = result[:is_baseline] ? "#{result[:test_name]} (baseline)" : result[:test_name]
+          test_name = result[:is_baseline] ? "(baseline) #{result[:test_name]}" : result[:test_name]
 
-          [result[:branch], result[:runtime], test_name, result[:stats].central_tendency.round, diff_message]
+          [result[:branch], result[:runtime], test_name, Benchmark::IPS::Helpers.scale(result[:stats].central_tendency.round), diff_message]
         end
 
         group_data = report.first
         table = ::Terminal::Table.new(
-          title: "Summary for #{requested_tests(group_data[:group], group_data[:report])}",
-          headings: ["Branch", "Runtime", "Name", "IPS", "Diff v baseline (times)"],
-          rows: rows
+          title: requested_tests(group_data[:group], group_data[:report]),
+          headings: ["Branch", "Runtime", "Name", "IPS", "Vs baseline"]
         )
 
         table.align_column(2, :right)
         table.align_column(3, :right)
         table.align_column(4, :right)
+
+        rows.each do |row|
+          table.add_row(row)
+          if row[4] == "-"
+            table.add_separator(border_type: :dot3)
+          end
+        end
 
         say table
       end

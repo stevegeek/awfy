@@ -1,38 +1,181 @@
 # Awfy (Are We Fast Yet)
 
-TODO: Delete this and the text below, and describe your gem
+CLI tool to help run suites of benchmarks and compare results between control implementations, across branches and with or without YJIT.
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/awfy`. To experiment with that code, run `bin/console` for an interactive prompt.
+The benchmarks are written using a simple DSL in your target project.
+
+Supports running:
+
+- IPS benchmarks (with [benchmark-ips](https://rubygems.org/gems/benchmark-ips))
+- Memory profiling (with [memory_profiler](https://rubygems.org/gems/memory_profiler))
+- CPU profiling (with [stackprof](https://rubygems.org/gems/stackprof))
+- Flamegraph profiling (with [singed](https://rubygems.org/gems/singed))
+
+Awfy can also create summary reports of the results which can be useful for comparing the performance of different implementations **(currently only supported for IPS benchmarks)**.
 
 ## Installation
-
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
 
 Install the gem and add to the application's Gemfile by executing:
 
 ```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+bundle add awfy
 ```
 
 If bundler is not being used to manage dependencies, install the gem by executing:
 
 ```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+gem install awfy
 ```
 
 ## Usage
 
-TODO: Write usage instructions here
+Imagine we have a custom implementation of a Struct class called `MyStruct`. We want to compare the performance of our implementation with the built-in `Struct` class
+and other similar implementations.
+
+First, we need to create a setup file in the `benchmarks/setup.rb` directory. For example:
+
+```ruby
+# setup.rb
+
+require "dry-struct"
+require "active_model"
+
+class DryStruct < Dry::Struct
+  attribute :name, Types::String
+  attribute :age, Types::Integer
+end
+
+class ActiveModelAttributes
+  include ActiveModel::API
+  include ActiveModel::Attributes
+  
+  attribute :name, :string
+  attribute :age, :integer
+end
+
+# ... etc
+```
+
+Then we write benchmarks in files in the `benchmarks/tests` directory. For example:
+
+```ruby
+# benchmarks/tests/struct.rb
+
+# A group is a collection of related reports
+Awfy.group "Struct" do
+  # A report is a collection of tests related to one method or feature we want to benchmark
+  report "#some_method" do
+    # We do not want to the benchmark to include the creation of the object
+    my_struct = MyStruct.new(name: "John", age: 30)
+    ruby_struct = Struct.new(:name, :age).new("John", 30)
+    dry_struct = DryStruct.new(name: "John", age: 30)
+    active_model_attributes = ActiveModelAttributes.new(name: "John", age: 30)
+    
+    # "control" blocks are used to compare the performance to other implementations
+    control "Ruby Struct" do
+      ruby_struct.some_method
+    end
+    
+    control "Dry::Struct" do
+      dry_struct.some_method
+    end
+    
+    control "ActiveModel::Attributes" do
+      active_model_attributes.some_method
+    end
+    
+    # This is our implementation under test
+    test "MyStruct" do
+      my_struct.some_method
+    end  
+  end
+  
+end
+```
+
+### IPS Benchmarks & Summary Reports
+
+Say you are working on performance improvements in a branch called `perf`.
+
+```bash
+git checkout perf
+
+# ... make some changes ... then run the benchmarks
+
+bundle exec awfy ips Struct "#some_method" --compare-with=main --runtime=both
+```
+
+Note the comparison here is with the "baseline" which is the "test" block running on MRI without YJIT enabled, on the
+current branch.
+
+```
+Running IPS for:
+> Struct/#some_method...
+> [mri - branch 'perf'] Struct / #some_method
+> [mri - branch 'main'] Struct / #some_method
+> [yjit - branch 'perf'] Struct / #some_method
+> [yjit - branch 'main'] Struct / #some_method
++---------------------------------------------------------------------------+
+|                           Struct/#some_method                             |
++--------+---------+----------------------------+-------------+-------------+
+| Branch | Runtime | Name                       | IPS         | Vs baseline |
++--------+---------+----------------------------+-------------+-------------+
+| perf   | mri     | Ruby Struct                |      3.288M | 2.26 x      |
+| perf   | yjit    | Ruby Struct                |      3.238M | 2.22 x      |
+| perf   | yjit    | MyStruct                   |      2.364M | 1.62 x      |
+| main   | yjit    | MyStruct                   |      2.255M | 1.55 x      |
+| perf   | mri     | (baseline) MyStruct        |      1.455M | -           |
++--------+---------+----------------------------+-------------+-------------+
+| main   | mri     | MyStruct                   |      1.248M | -1.1 x      |
+| perf   | yjit    | Dry::Struct                |      1.213M | -1.2 x      |
+| perf   | mri     | Dry::Struct                |    639.178k | -2.28 x     |
+| perf   | yjit    | ActiveModel::Attributes    |    487.398k | -2.99 x     |
+| perf   | mri     | ActiveModel::Attributes    |    310.554k | -4.69 x     |
++--------+---------+----------------------------+-------------+-------------+
+```
+
+## CLI Options
+
+```
+bundle exec awfy -h
+Commands:
+  awfy flamegraph GROUP REPORT TEST     # Run flamegraph profiling
+  awfy help [COMMAND]                   # Describe available commands or one specific command
+  awfy ips [GROUP] [REPORT] [TEST]      # Run IPS benchmarks
+  awfy list [GROUP]                     # List all tests in a group
+  awfy memory [GROUP] [REPORT] [TEST]   # Run memory profiling
+  awfy profile [GROUP] [REPORT] [TEST]  # Run CPU profiling
+
+Options:
+  [--runtime=RUNTIME]                                                    # Run with and/or without YJIT enabled
+                                                                         # Default: both
+                                                                         # Possible values: both, yjit, mri
+  [--compare-with=COMPARE_WITH]                                          # Name of branch to compare with results on current branch
+  [--compare-control], [--no-compare-control], [--skip-compare-control]  # When comparing branches, also re-run all control blocks too
+                                                                         # Default: false
+  [--summary], [--no-summary], [--skip-summary]                          # Generate a summary of the results
+                                                                         # Default: true
+  [--verbose], [--no-verbose], [--skip-verbose]                          # Verbose output
+                                                                         # Default: false
+  [--ips-warmup=N]                                                       # Number of seconds to warmup the benchmark
+                                                                         # Default: 1
+  [--ips-time=N]                                                         # Number of seconds to run the benchmark
+                                                                         # Default: 3
+  [--temp-output-directory=TEMP_OUTPUT_DIRECTORY]                        # Directory to store temporary output files
+                                                                         # Default: ./benchmarks/tmp
+  [--setup-file-path=SETUP_FILE_PATH]                                    # Path to the setup file
+                                                                         # Default: ./benchmarks/setup
+  [--tests-path=TESTS_PATH]                                              # Path to the tests files
+                                                                         # Default: ./benchmarks/tests
+```
 
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
-
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/awfy.
+Bug reports and pull requests are welcome on GitHub at https://github.com/stevegeek/awfy.
 
 ## License
 
