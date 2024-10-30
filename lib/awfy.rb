@@ -1,30 +1,48 @@
 # frozen_string_literal: true
 
+require "thor"
+
+require "git"
+require "json"
+require "terminal-table"
+
+require "benchmark/ips"
+require "stackprof"
+require "singed"
+require "memory_profiler"
+
 require_relative "awfy/version"
+require_relative "awfy/suite"
+require_relative "awfy/options"
+require_relative "awfy/runner"
+require_relative "awfy/run"
+require_relative "awfy/list"
 require_relative "awfy/cli"
 
 module Awfy
   class << self
     def group(name, &)
-      @groups ||= {}
-      @groups[name] ||= {name:, reports: []}.freeze
-      @current_group = @groups[name]
-      instance_eval(&)
+      suite.group(name, &)
     end
 
-    attr_reader :groups
+    def groups
+      suite.groups
+    end
 
     def report(name, &)
-      @current_group[:reports] << {name:, tests: []}.freeze
-      instance_eval(&)
+      suite.report(name, &)
     end
 
-    def control(name, &block)
-      @current_group[:reports].last[:tests] << {name:, block:, control: true}.freeze
+    def control(name, &)
+      suite.control(name, &)
     end
 
-    def test(name, &block)
-      @current_group[:reports].last[:tests] << {name:, block:}.freeze
+    def test(name, &)
+      suite.test(name, &)
+    end
+
+    def suite
+      @suite ||= Suite.new
     end
   end
 end

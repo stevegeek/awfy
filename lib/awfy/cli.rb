@@ -1,15 +1,5 @@
 # frozen_string_literal: true
 
-require "fileutils"
-require "thor"
-require "benchmark/ips"
-require "stackprof"
-require "singed"
-require "memory_profiler"
-require "git"
-require "json"
-require "terminal-table"
-
 module Awfy
   class CLI < Thor
     include Thor::Actions
@@ -27,8 +17,8 @@ module Awfy
     class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
     class_option :verbose, type: :boolean, desc: "Verbose output", default: false
 
-    class_option :ips_warmup, type: :numeric, default: 1, desc: "Number of seconds to warmup the benchmark"
-    class_option :ips_time, type: :numeric, default: 3, desc: "Number of seconds to run the benchmark"
+    class_option :ips_warmup, type: :numeric, default: 1, desc: "Number of seconds to warmup the IPS benchmark"
+    class_option :ips_time, type: :numeric, default: 3, desc: "Number of seconds to run the IPS benchmark"
     class_option :temp_output_directory, type: :string, default: "./benchmarks/tmp", desc: "Directory to store temporary output files"
     class_option :setup_file_path, type: :string, default: "./benchmarks/setup", desc: "Path to the setup file"
     class_option :tests_path, type: :string, default: "./benchmarks/tests", desc: "Path to the tests files"
@@ -38,7 +28,7 @@ module Awfy
 
     desc "list [GROUP]", "List all tests in a group"
     def list(group = nil)
-      run_pref_test(group) { list_group(_1) }
+      runner.start(group) { List.perform(_1, shell) }
     end
 
     desc "ips [GROUP] [REPORT] [TEST]", "Run IPS benchmarks. Can generate summary across implementations, runtimes and branches."
@@ -79,23 +69,20 @@ module Awfy
 
     private
 
-    def say_configuration
-      return unless verbose?
-      say
-      say "| on branch '#{git_client.current_branch}', and #{options[:compare_with] ? "compare with branch: '#{options[:compare_with]}', and " : ""}Runtime: #{options[:runtime].upcase} and assertions: #{options[:assert] || "skip"}", :cyan
-      say
+    def awfy_options
+      Options.new(
+        verbose: options[:verbose],
+        temp_output_directory: options[:temp_output_directory],
+        setup_file_path: options[:setup_file_path],
+        tests_path: options[:tests_path],
+        compare_with_branch: options[:compare_with_branch],
+        assert: options[:assert],
+        runtime: options[:runtime]
+      )
     end
 
-    def configure_benchmark_run
-      say_configuration
-
-      Singed.output_directory = options[:temp_output_directory]
-      expanded_setup_file_path = File.expand_path(options[:setup_file_path], Dir.pwd)
-      expanded_tests_path = File.expand_path(options[:tests_path], Dir.pwd)
-      test_files = Dir.glob(File.join(expanded_tests_path, "*.rb"))
-
-      require expanded_setup_file_path
-      test_files.each { |file| require file }
+    def runner
+      @runner ||= Runner.new(Awfy.suite, shell, git_client, awfy_options)
     end
 
     def requested_tests(group, report = nil, test = nil)
