@@ -15,10 +15,12 @@ Awfy can also create summary reports of the results which can be useful for comp
 
 ## Installation
 
-Install the gem and add to the application's Gemfile by executing:
+Add the gem to your application:
 
-```bash
-bundle add awfy
+```ruby
+group :development, :test do
+  gem "awfy", require: false
+end
 ```
 
 If bundler is not being used to manage dependencies, install the gem by executing:
@@ -36,6 +38,9 @@ First, we need to create a setup file in the `benchmarks/setup.rb` directory. Fo
 
 ```ruby
 # setup.rb
+
+# We need to require Awfy to use the DSL in our tests
+require "awfy"
 
 require "dry-struct"
 require "active_model"
