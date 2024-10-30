@@ -1,15 +1,5 @@
 # frozen_string_literal: true
 
-require "fileutils"
-require "thor"
-require "benchmark/ips"
-require "stackprof"
-require "singed"
-require "memory_profiler"
-require "git"
-require "json"
-require "terminal-table"
-
 module Awfy
   class CLI < Thor
     include Thor::Actions
@@ -27,8 +17,8 @@ module Awfy
     class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
     class_option :verbose, type: :boolean, desc: "Verbose output", default: false
 
-    class_option :ips_warmup, type: :numeric, default: 1, desc: "Number of seconds to warmup the benchmark"
-    class_option :ips_time, type: :numeric, default: 3, desc: "Number of seconds to run the benchmark"
+    class_option :ips_warmup, type: :numeric, default: 1, desc: "Number of seconds to warmup the IPS benchmark"
+    class_option :ips_time, type: :numeric, default: 3, desc: "Number of seconds to run the IPS benchmark"
     class_option :temp_output_directory, type: :string, default: "./benchmarks/tmp", desc: "Directory to store temporary output files"
     class_option :setup_file_path, type: :string, default: "./benchmarks/setup", desc: "Path to the setup file"
     class_option :tests_path, type: :string, default: "./benchmarks/tests", desc: "Path to the tests files"
@@ -38,7 +28,7 @@ module Awfy
 
     desc "list [GROUP]", "List all tests in a group"
     def list(group = nil)
-      run_pref_test(group) { list_group(_1) }
+      runner.start(group) { List.new(shell).list(_1) }
     end
 
     desc "ips [GROUP] [REPORT] [TEST]", "Run IPS benchmarks. Can generate summary across implementations, runtimes and branches."
@@ -46,7 +36,7 @@ module Awfy
       say "Running IPS for:"
       say "> #{requested_tests(group, report, test)}..."
 
-      run_pref_test(group) { run_ips(_1, report, test) }
+      runner.start(group) { IPS.new(shell).benchmark(_1, report, test) }
     end
 
     desc "memory [GROUP] [REPORT] [TEST]", "Run memory profiling. Can generate summary across implementations, runtimes and branches."
@@ -54,7 +44,7 @@ module Awfy
       say "Running memory profiling for:"
       say "> #{requested_tests(group, report, test)}..."
 
-      run_pref_test(group) { run_memory(_1, report, test) }
+      runner.start(group) { Memory.new(shell).benchmark(_1, report, test) }
     end
 
     desc "flamegraph GROUP REPORT TEST", "Run flamegraph profiling"
@@ -79,65 +69,28 @@ module Awfy
 
     private
 
-    def say_configuration
-      return unless verbose?
-      say
-      say "| on branch '#{git_client.current_branch}', and #{options[:compare_with] ? "compare with branch: '#{options[:compare_with]}', and " : ""}Runtime: #{options[:runtime].upcase} and assertions: #{options[:assert] || "skip"}", :cyan
-      say
+    def awfy_options
+      Options.new(
+        verbose: options[:verbose],
+        summary: options[:summary],
+        summary_format: "descending", # TODO
+        temp_output_directory: options[:temp_output_directory],
+        setup_file_path: options[:setup_file_path],
+        tests_path: options[:tests_path],
+        compare_with_branch: options[:compare_with_branch],
+        assert: options[:assert],
+        runtime: options[:runtime]
+      )
     end
 
-    def configure_benchmark_run
-      say_configuration
-
-      Singed.output_directory = options[:temp_output_directory]
-      expanded_setup_file_path = File.expand_path(options[:setup_file_path], Dir.pwd)
-      expanded_tests_path = File.expand_path(options[:tests_path], Dir.pwd)
-      test_files = Dir.glob(File.join(expanded_tests_path, "*.rb"))
-
-      require expanded_setup_file_path
-      test_files.each { |file| require file }
+    def runner
+      @runner ||= Runner.new(Awfy.suite, shell, git_client, awfy_options)
     end
 
     def requested_tests(group, report = nil, test = nil)
       tests = [group, report, test].compact
       return "(all)" if tests.empty?
       tests.join("/")
-    end
-
-    def run_pref_test(group, &)
-      configure_benchmark_run
-      prepare_output_directory
-      if group
-        run_group(group, &)
-      else
-        run_groups(&)
-      end
-    end
-
-    def run_groups(&)
-      current_groups.keys.each do |group_name|
-        run_group(group_name, &)
-      end
-    end
-
-    def current_groups
-      @current_groups ||= Awfy.groups.dup.freeze
-    end
-
-    def run_group(group_name)
-      group = current_groups[group_name]
-      raise "Group not found" unless group
-      yield group
-    end
-
-    def list_group(group)
-      say "> #{group[:name]}"
-      group[:reports].each do |report|
-        say "  - #{report[:name]}"
-        report[:tests].each do |test|
-          say "    Test: #{test[:name]}"
-        end
-      end
     end
 
     def run_ips(group, report_name, test_name)
@@ -300,11 +253,6 @@ module Awfy
       fg.save
       fg.open if open
       result
-    end
-
-    def prepare_output_directory
-      FileUtils.mkdir_p(temp_dir) unless Dir.exist?(temp_dir)
-      Dir.glob("#{temp_dir}/*.json").each { |file| File.delete(file) }
     end
 
     def save_memory_profile_report_to_file(file_name, results)
