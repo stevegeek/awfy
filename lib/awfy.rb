@@ -14,9 +14,12 @@ require "memory_profiler"
 require_relative "awfy/version"
 require_relative "awfy/suite"
 require_relative "awfy/options"
+require_relative "awfy/git"
 require_relative "awfy/runner"
-require_relative "awfy/run"
+require_relative "awfy/run_report"
 require_relative "awfy/list"
+require_relative "awfy/ips"
+require_relative "awfy/memory"
 require_relative "awfy/cli"
 
 module Awfy

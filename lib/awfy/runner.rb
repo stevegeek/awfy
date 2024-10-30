@@ -30,7 +30,8 @@ module Awfy
 
     def run_group(group_name, &)
       group = @groups[group_name]
-      Run.new(group, shell, git_client, options).start(&)
+      raise "Group '#{group_name}' not found" unless group
+      yield group
     end
 
     private

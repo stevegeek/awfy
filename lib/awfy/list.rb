@@ -2,21 +2,16 @@
 
 module Awfy
   class List
-    def self.perform(group, shell)
-      new(group, shell).perform
-    end
-
-    def initialize(group, shell)
-      @group = group
+    def initialize(shell)
       @shell = shell
     end
 
-    def perform
-      say "> #{@group[:name]}"
-      @group[:reports].each do |report|
-        say "  - #{report[:name]}"
+    def list(group)
+      say "> \"#{group[:name]}\":"
+      group[:reports].each do |report|
+        say "    \"#{report[:name]}\""
         report[:tests].each do |test|
-          say "    Test: #{test[:name]}"
+          say "      | #{test[:control] ? "Control" : "Test"}: \"#{test[:name]}\""
         end
       end
     end

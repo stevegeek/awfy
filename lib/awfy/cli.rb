@@ -28,7 +28,7 @@ module Awfy
 
     desc "list [GROUP]", "List all tests in a group"
     def list(group = nil)
-      runner.start(group) { List.perform(_1, shell) }
+      runner.start(group) { List.new(shell).list(_1) }
     end
 
     desc "ips [GROUP] [REPORT] [TEST]", "Run IPS benchmarks. Can generate summary across implementations, runtimes and branches."
@@ -36,7 +36,7 @@ module Awfy
       say "Running IPS for:"
       say "> #{requested_tests(group, report, test)}..."
 
-      run_pref_test(group) { run_ips(_1, report, test) }
+      runner.start(group) { IPS.new(shell).benchmark(_1, report, test) }
     end
 
     desc "memory [GROUP] [REPORT] [TEST]", "Run memory profiling. Can generate summary across implementations, runtimes and branches."
@@ -44,7 +44,7 @@ module Awfy
       say "Running memory profiling for:"
       say "> #{requested_tests(group, report, test)}..."
 
-      run_pref_test(group) { run_memory(_1, report, test) }
+      runner.start(group) { Memory.new(shell).benchmark(_1, report, test) }
     end
 
     desc "flamegraph GROUP REPORT TEST", "Run flamegraph profiling"
@@ -72,6 +72,8 @@ module Awfy
     def awfy_options
       Options.new(
         verbose: options[:verbose],
+        summary: options[:summary],
+        summary_format: "descending", # TODO
         temp_output_directory: options[:temp_output_directory],
         setup_file_path: options[:setup_file_path],
         tests_path: options[:tests_path],
@@ -89,42 +91,6 @@ module Awfy
       tests = [group, report, test].compact
       return "(all)" if tests.empty?
       tests.join("/")
-    end
-
-    def run_pref_test(group, &)
-      configure_benchmark_run
-      prepare_output_directory
-      if group
-        run_group(group, &)
-      else
-        run_groups(&)
-      end
-    end
-
-    def run_groups(&)
-      current_groups.keys.each do |group_name|
-        run_group(group_name, &)
-      end
-    end
-
-    def current_groups
-      @current_groups ||= Awfy.groups.dup.freeze
-    end
-
-    def run_group(group_name)
-      group = current_groups[group_name]
-      raise "Group not found" unless group
-      yield group
-    end
-
-    def list_group(group)
-      say "> #{group[:name]}"
-      group[:reports].each do |report|
-        say "  - #{report[:name]}"
-        report[:tests].each do |test|
-          say "    Test: #{test[:name]}"
-        end
-      end
     end
 
     def run_ips(group, report_name, test_name)
@@ -287,11 +253,6 @@ module Awfy
       fg.save
       fg.open if open
       result
-    end
-
-    def prepare_output_directory
-      FileUtils.mkdir_p(temp_dir) unless Dir.exist?(temp_dir)
-      Dir.glob("#{temp_dir}/*.json").each { |file| File.delete(file) }
     end
 
     def save_memory_profile_report_to_file(file_name, results)
