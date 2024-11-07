@@ -13,6 +13,7 @@ module Awfy
     end
 
     def start(group, &)
+      say_configuration
       configure_benchmark_run
       prepare_output_directory
       if group
@@ -46,8 +47,6 @@ module Awfy
     end
 
     def configure_benchmark_run
-      say_configuration
-
       Singed.output_directory = options.temp_output_directory
       expanded_setup_file_path = File.expand_path(options.setup_file_path, Dir.pwd)
       expanded_tests_path = File.expand_path(options.tests_path, Dir.pwd)

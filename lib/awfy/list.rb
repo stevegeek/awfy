@@ -1,11 +1,7 @@
 # frozen_string_literal: true
 
 module Awfy
-  class List
-    def initialize(shell)
-      @shell = shell
-    end
-
+  class List < Command
     def list(group)
       say "> \"#{group[:name]}\":"
       group[:reports].each do |report|
@@ -15,7 +11,5 @@ module Awfy
         end
       end
     end
-
-    def say(message) = @shell.say message
   end
 end

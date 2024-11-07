@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Awfy
-  class Git
+  class GitClient
     def initialize(path)
       @client = Git.open(path)
     end
