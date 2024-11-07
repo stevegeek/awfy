@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "uri"
+
 module Awfy
   class Command
     CONTROL_MARKER = "[c]"
@@ -219,15 +221,15 @@ module Awfy
       current_branch = git_current_branch_name
       output_dir = options.save? ? options.results_directory : options.temp_output_directory
       timestamp = options.save? ? "#{Time.now.to_i}-" : ""
-      file_name = "#{output_dir}/#{timestamp}#{type}-#{runtime}-#{current_branch}-#{group[:name]}-#{report[:name]}.json".gsub(/[^A-Za-z0-9\/_\-.]/, "_")
-      say "Saving results to #{file_name}" if verbose?
+      file_name = "#{output_dir}/#{timestamp}#{type}-#{runtime}-#{URI.encode_www_form_component(current_branch)}-#{URI.encode_www_form_component(group[:name])}-#{URI.encode_www_form_component(report[:name])}.json"
+      say "Saving results to '#{file_name}'" if verbose?
 
-      awfy_file = "#{output_dir}/#{timestamp}awfy-#{type}-#{group[:name]}-#{report[:name]}.json".gsub(/[^A-Za-z0-9\/_\-.]/, "_")
+      awfy_file = "#{output_dir}/#{timestamp}awfy-#{type}-#{URI.encode_www_form_component(group[:name])}-#{URI.encode_www_form_component(report[:name])}.json"
       awfy_data = JSON.parse(File.read(awfy_file)) if File.exist?(awfy_file)
       awfy_data ||= []
       awfy_data << {type:, group: group[:name], report: report[:name], branch: current_branch, runtime:, output_path: file_name}
 
-      say "(and adding to the awfy metadata in #{awfy_file})" if verbose?
+      say "...and adding to the awfy metadata in '#{awfy_file}'" if verbose?
       File.write(awfy_file, awfy_data.to_json)
       yield file_name
     end
