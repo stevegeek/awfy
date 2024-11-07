@@ -12,12 +12,14 @@ module Awfy
 
     class_option :summary, type: :boolean, desc: "Generate a summary of the results", default: true
     class_option :summary_order, enum: ["desc", "asc", "leader"], default: "leader", desc: "Sort order for summary tables: ascending, descending, or leaderboard (command specific, e.g. fastest to slowest for IPS)"
+    class_option :save, type: :boolean, desc: "Save benchmark results to results directory", default: false
     class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
     class_option :verbose, type: :boolean, desc: "Verbose output", default: false
 
     class_option :ips_warmup, type: :numeric, default: 1, desc: "Number of seconds to warmup the IPS benchmark"
     class_option :ips_time, type: :numeric, default: 3, desc: "Number of seconds to run the IPS benchmark"
     class_option :temp_output_directory, type: :string, default: "./benchmarks/tmp", desc: "Directory to store temporary output files"
+    class_option :results_directory, type: :string, default: "./benchmarks/saved", desc: "Directory to store benchmark results"
     class_option :setup_file_path, type: :string, default: "./benchmarks/setup", desc: "Path to the setup file"
     class_option :tests_path, type: :string, default: "./benchmarks/tests", desc: "Path to the tests files"
 
@@ -83,7 +85,9 @@ module Awfy
         quiet: options[:quiet],
         summary: options[:summary],
         summary_order: options[:summary_order],
+        save: options[:save],
         temp_output_directory: options[:temp_output_directory],
+        results_directory: options[:results_directory],
         setup_file_path: options[:setup_file_path],
         tests_path: options[:tests_path],
         compare_with_branch: options[:compare_with_branch],

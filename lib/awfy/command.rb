@@ -217,14 +217,17 @@ module Awfy
 
     def save_to(type, group, report, runtime)
       current_branch = git_current_branch_name
-      file_name = "#{options.temp_output_directory}/#{type}-#{runtime}-#{current_branch}-#{group[:name]}-#{report[:name]}.json".gsub(/[^A-Za-z0-9\/_\-.]/, "_")
+      output_dir = options.save? ? options.results_directory : options.temp_output_directory
+      timestamp = options.save? ? "#{Time.now.to_i}-" : ""
+      file_name = "#{output_dir}/#{timestamp}#{type}-#{runtime}-#{current_branch}-#{group[:name]}-#{report[:name]}.json".gsub(/[^A-Za-z0-9\/_\-.]/, "_")
       say "Saving results to #{file_name}" if verbose?
 
-      awfy_file = "#{options.temp_output_directory}/awfy-#{type}-#{group[:name]}-#{report[:name]}.json".gsub(/[^A-Za-z0-9\/_\-.]/, "_")
+      awfy_file = "#{output_dir}/#{timestamp}awfy-#{type}-#{group[:name]}-#{report[:name]}.json".gsub(/[^A-Za-z0-9\/_\-.]/, "_")
       awfy_data = JSON.parse(File.read(awfy_file)) if File.exist?(awfy_file)
       awfy_data ||= []
       awfy_data << {type:, group: group[:name], report: report[:name], branch: current_branch, runtime:, output_path: file_name}
 
+      say "(and adding to the awfy metadata in #{awfy_file})" if verbose?
       File.write(awfy_file, awfy_data.to_json)
       yield file_name
     end

@@ -60,6 +60,9 @@ module Awfy
       temp_dir = options.temp_output_directory
       FileUtils.mkdir_p(temp_dir) unless Dir.exist?(temp_dir)
       Dir.glob("#{temp_dir}/*.json").each { |file| File.delete(file) }
+      
+      results_dir = options.results_directory
+      FileUtils.mkdir_p(results_dir) unless Dir.exist?(results_dir)
     end
   end
 end

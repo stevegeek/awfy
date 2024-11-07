@@ -9,3 +9,4 @@
 .idea/
 *.gem
 benchmarks/tmp
+benchmarks/saved
