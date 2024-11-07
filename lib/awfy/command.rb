@@ -165,10 +165,19 @@ module Awfy
     def execute_tests(report, test_name, output: true, &)
       iterations = options.test_iterations || 1
       sorted_tests = report[:tests].sort { _1[:control] ? -1 : 1 }
-      sorted_tests.each do |test|
+
+      tests = test_name ? sorted_tests.select { |t| t[:name] == test_name } : sorted_tests
+
+      if tests.empty?
         if test_name
-          next unless test[:name] == test_name
+          say_error "Test '#{test_name}' not found in report '#{report[:name]}'"
+        else
+          say_error "No tests found in report '#{report[:name]}'"
         end
+        exit(1)
+      end
+
+      tests.each do |test|
         if output
           say "# ***" if verbose?
           say "# #{test[:control] ? "Control" : "Test"}: #{test[:name]}", :green
