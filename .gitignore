@@ -8,3 +8,4 @@
 /tmp/
 .idea/
 *.gem
+benchmarks/tmp
