@@ -13,7 +13,9 @@ module Awfy
 
     attr_reader :options, :git_client
 
-    def say(message = nil, color = nil) = @shell.say message, color
+    def say(...) = @shell.say(...)
+
+    def say_error(...) = @shell.say_error(...)
 
     def git_current_branch_name = git_client.current_branch
 
@@ -134,10 +136,18 @@ module Awfy
     end
 
     def execute_group(group, report_name, runtime, include_control = true)
-      group[:reports].each do |report|
+      reports = report_name ? group[:reports].select { |r| r[:name] == report_name } : group[:reports]
+
+      if reports.empty?
         if report_name
-          next unless report[:name] == report_name
+          say_error "Report '#{report_name}' not found in group '#{group[:name]}'"
+        else
+          say_error "No reports found in group '#{group[:name]}'"
         end
+        exit(1)
+      end
+
+      reports.each do |report|
         # We dont execute the `control` blocks if include_control is false (eg when we switch branch)
         run_report = report.dup
         run_report[:tests] = report[:tests].reject { |test| test[:control] && !include_control }
