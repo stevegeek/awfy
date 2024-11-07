@@ -11,6 +11,7 @@ module Awfy
     class_option :compare_control, type: :boolean, desc: "When comparing branches, also re-run all control blocks too", default: false
 
     class_option :summary, type: :boolean, desc: "Generate a summary of the results", default: true
+    class_option :summary_order, enum: ["desc", "asc", "leader"], default: "leader", desc: "Sort order for summary tables: ascending, descending, or leaderboard (command specific, e.g. fastest to slowest for IPS)"
     class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
     class_option :verbose, type: :boolean, desc: "Verbose output", default: false
 
@@ -81,7 +82,7 @@ module Awfy
         verbose: options[:verbose],
         quiet: options[:quiet],
         summary: options[:summary],
-        summary_format: "descending", # TODO
+        summary_order: options[:summary_order],
         temp_output_directory: options[:temp_output_directory],
         setup_file_path: options[:setup_file_path],
         tests_path: options[:tests_path],

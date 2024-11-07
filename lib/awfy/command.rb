@@ -56,6 +56,7 @@ module Awfy
         puts table
       else
         say table
+        say order_description
       end
     end
 
@@ -63,6 +64,18 @@ module Awfy
       tests = [group, report, test].compact
       return "Run: (all)" if tests.empty?
       "Run: #{tests.join("/")}"
+    end
+
+    def order_description
+      say
+      case options.summary_order
+      when "asc"
+        "Results displayed in ascending order"
+      when "desc"
+        "Results displayed in descending order"
+      when "leader"
+        "Results displayed as a leaderboard (best to worst)"
+      end
     end
 
     def result_diff_message(result, diff_key = :diff_times)

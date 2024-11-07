@@ -93,7 +93,11 @@ module Awfy
           )
         end
 
-        result_diffs.sort_by! { |result| -1 * result[:diff_times] }
+        # Sort by allocations (lower is better)
+        result_diffs.sort_by! do |result|
+          factor = options.summary_order == "desc" ? -1 : 1
+          factor * result[:diff_times]
+        end
 
         rows = result_diffs.map do |result|
           diff_message = result_diff_message(result)

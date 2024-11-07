@@ -58,7 +58,11 @@ module Awfy
           )
         end
 
-        result_diffs.sort_by! { |result| -1 * result[:iter] }
+        # Sort by iterations (higher is better)
+        result_diffs.sort_by! do |result| 
+          factor = options.summary_order == "asc" ? 1 : -1
+          factor * result[:iter]
+        end
 
         rows = result_diffs.map do |result|
           diff_message = result_diff_message(result)
