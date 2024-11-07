@@ -77,6 +77,24 @@ module Awfy
       runner.start(group) { YJITStats.new(shell).benchmark(_1, report, test) }
     end
 
+    desc "clean", "Clean up temporary and saved benchmark results"
+    option :saved, type: :boolean, desc: "Also clean saved results", default: false
+    def clean
+      Dir.glob("#{options[:temp_output_directory]}/*.json").each do |f|
+        say "Remove temp file: #{f}" if verbose?
+        File.delete(f)
+      end
+      say "Cleaned temporary results directory"
+
+      if options[:saved]
+        Dir.glob("#{options[:results_directory]}/*.json").each do |f|
+          say "Remove results file: #{f}", :yellow if verbose?
+          File.delete(f)
+        end
+        say "Cleaned saved results directory"
+      end
+    end
+
     private
 
     def awfy_options
