@@ -13,6 +13,28 @@ Supports running:
 
 Awfy can also create summary reports of the results which can be useful for comparing the performance of different implementations **(supported for IPS and memory benchmarks)**.
 
+### Example Report:
+
+```
++---------------------------------------------------------------------------+
+|                           Struct/#some_method                             |
++--------+---------+----------------------------+-------------+-------------+
+| Branch | Runtime | Name                       | IPS         | Vs baseline |
++--------+---------+----------------------------+-------------+-------------+
+| perf   | mri     |                 Ruby Struct|      3.288M |      2.26 x |
+| perf   | yjit    |                 Ruby Struct|      3.238M |      2.22 x |
+| perf   | yjit    |                    MyStruct|      2.364M |      1.62 x |
+| main   | yjit    |                    MyStruct|      2.255M |      1.55 x |
+| perf   | mri     |         (baseline) MyStruct|      1.455M |      -      |
++--------+---------+----------------------------+-------------+-------------+
+| main   | mri     |                    MyStruct|      1.248M |      -1.1 x |
+| perf   | yjit    |                 Dry::Struct|      1.213M |      -1.2 x |
+| perf   | mri     |                 Dry::Struct|    639.178k |     -2.28 x |
+| perf   | yjit    |     ActiveModel::Attributes|    487.398k |     -2.99 x |
+| perf   | mri     |     ActiveModel::Attributes|    310.554k |     -4.69 x |
++--------+---------+----------------------------+-------------+-------------+
+```
+
 ## Installation
 
 Add the gem to your application:
