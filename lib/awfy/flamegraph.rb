@@ -2,7 +2,7 @@
 
 module Awfy
   class Flamegraph < Command
-    def generate(group, report, test)
+    def generate(group, report_name, test_name)
       execute_report(group, report_name) do |report, runtime|
         execute_tests(report, test_name) do |test, _|
           label = "report-#{group[:name]}-#{report[:name]}-#{test[:name]}".gsub(/[^A-Za-z0-9_\-]/, "_")

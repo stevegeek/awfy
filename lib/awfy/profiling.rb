@@ -2,7 +2,7 @@
 
 module Awfy
   class Profiling < Command
-    def generate(group, report, test)
+    def generate(group, report_name, test_name)
       if verbose?
         say "> Profiling for:"
         say "> #{group[:name]} (iterations: #{options[:iterations]})...", :cyan

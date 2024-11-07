@@ -24,7 +24,7 @@ module Awfy
         end
       end
 
-      generate_ips_summary if options[:summary]
+      generate_ips_summary if show_summary?
     end
 
     private
