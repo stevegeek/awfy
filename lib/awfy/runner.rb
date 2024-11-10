@@ -12,7 +12,10 @@ module Awfy
       @groups = suite.groups
     end
 
+    attr_reader :start_time
+
     def start(group, &)
+      @start_time = Time.now.to_i
       say_configuration
       configure_benchmark_run
       prepare_output_directory
@@ -43,6 +46,7 @@ module Awfy
       return unless options.verbose?
       shell.say
       shell.say "| on branch '#{git_client.current_branch}', and #{options.compare_with_branch ? "compare with branch: '#{options.compare_with_branch}', and " : ""}Runtime: #{options.humanized_runtime} and assertions: #{options.assert? || "skip"}", :cyan
+      shell.say "| Timestamp #{@start_time}", :cyan
       shell.say
     end
 
