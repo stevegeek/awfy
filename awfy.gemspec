@@ -37,6 +37,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "terminal-table", ">= 3.0", "< 4.0"
   spec.add_dependency "benchmark-ips", ">= 2.14", "< 3.0"
   spec.add_dependency "memory_profiler", ">= 1.1", "< 2.0"
-  spec.add_dependency "singed", ">= 0.2", "< 1.0"
+  spec.add_dependency "vernier", ">= 1.0", "< 2.0"
+  spec.add_dependency "profile-viewer", ">= 0.0.2", "< 1.0"
   spec.add_dependency "stackprof", ">= 0.2", "< 1.0"
 end

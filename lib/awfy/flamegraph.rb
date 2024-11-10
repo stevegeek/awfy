@@ -4,10 +4,16 @@ module Awfy
   class Flamegraph < Command
     def generate(group, report_name, test_name)
       execute_report(group, report_name) do |report, runtime|
-        execute_tests(report, test_name) do |test, _|
-          label = "report-#{group[:name]}-#{report[:name]}-#{test[:name]}".gsub(/[^A-Za-z0-9_\-]/, "_")
-          generate_flamegraph(label) do
-            test[:block].call
+        execute_tests(report, test_name) do |test, iterations|
+          "report-#{group[:name]}-#{report[:name]}-#{test[:name]}".gsub(/[^A-Za-z0-9_\-]/, "_")
+          save_to(:flamegraph, group, report, runtime) do |file_name|
+            generate_flamegraph(file_name) do
+              i = 0
+              while i < iterations
+                test[:block].call
+                i += 1
+              end
+            end
           end
         end
       end
@@ -15,11 +21,9 @@ module Awfy
 
     private
 
-    def generate_flamegraph(label = nil, open: true, ignore_gc: false, interval: 1000, &)
-      fg = Singed::Flamegraph.new(label: label, ignore_gc: ignore_gc, interval: interval)
-      result = fg.record(&)
-      fg.save
-      fg.open if open
+    def generate_flamegraph(filename = nil, open: true, ignore_gc: false, interval: 1000, &)
+      result = Vernier.profile(out: filename, gc: !ignore_gc, interval: interval, &)
+      `bundle exec profile-viewer #{filename}` if open
       result
     end
   end

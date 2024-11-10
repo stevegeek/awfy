@@ -8,7 +8,7 @@ require "terminal-table"
 
 require "benchmark/ips"
 require "stackprof"
-require "singed"
+require "vernier"
 require "memory_profiler"
 
 require_relative "awfy/version"

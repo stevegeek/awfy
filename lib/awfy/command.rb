@@ -7,13 +7,14 @@ module Awfy
     CONTROL_MARKER = "[c]"
     TEST_MARKER = "[*]"
 
-    def initialize(shell, git_client: nil, options: nil)
+    def initialize(runner, shell, git_client: nil, options: nil)
+      @runner = runner
       @shell = shell
       @git_client = git_client
       @options = options
     end
 
-    attr_reader :options, :git_client
+    attr_reader :runner, :options, :git_client
 
     def say(...) = @shell.say(...)
 

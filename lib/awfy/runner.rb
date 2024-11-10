@@ -47,7 +47,6 @@ module Awfy
     end
 
     def configure_benchmark_run
-      Singed.output_directory = options.temp_output_directory
       expanded_setup_file_path = File.expand_path(options.setup_file_path, Dir.pwd)
       expanded_tests_path = File.expand_path(options.tests_path, Dir.pwd)
       test_files = Dir.glob(File.join(expanded_tests_path, "*.rb"))
@@ -60,7 +59,7 @@ module Awfy
       temp_dir = options.temp_output_directory
       FileUtils.mkdir_p(temp_dir) unless Dir.exist?(temp_dir)
       Dir.glob("#{temp_dir}/*.json").each { |file| File.delete(file) }
-      
+
       results_dir = options.results_directory
       FileUtils.mkdir_p(results_dir) unless Dir.exist?(results_dir)
     end

@@ -9,7 +9,7 @@ Supports running:
 - IPS benchmarks (with [benchmark-ips](https://rubygems.org/gems/benchmark-ips))
 - Memory profiling (with [memory_profiler](https://rubygems.org/gems/memory_profiler))
 - CPU profiling (with [stackprof](https://rubygems.org/gems/stackprof))
-- Flamegraph profiling (with [singed](https://rubygems.org/gems/singed))
+- Flamegraph profiling (with [vernier](https://rubygems.org/gems/vernier))
 
 Awfy can also create summary reports of the results which can be useful for comparing the performance of different implementations **(supported for IPS and memory benchmarks)**.
 
