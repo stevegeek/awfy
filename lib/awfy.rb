@@ -24,6 +24,7 @@ require_relative "awfy/memory"
 require_relative "awfy/flamegraph"
 require_relative "awfy/yjit_stats"
 require_relative "awfy/profiling"
+require_relative "awfy/commit_range"
 require_relative "awfy/cli"
 
 module Awfy

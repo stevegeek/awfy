@@ -16,6 +16,7 @@ module Awfy
           test_label = generate_test_label(test, runtime)
           results << {
             label: test_label,
+            control: test[:control],
             data: data
           }
           data.pretty_print if verbose?
@@ -40,6 +41,7 @@ module Awfy
         result = label_and_data[:data]
         {
           label: label_and_data[:label],
+          control: !!label_and_data[:control],
           total_allocated_memory: result.total_allocated_memsize,
           total_retained_memory: result.total_retained_memsize,
           # Individual results, arrays of objects {count: numeric, data: string}
@@ -95,7 +97,7 @@ module Awfy
 
         # Sort by allocations (lower is better)
         result_diffs.sort_by! do |result|
-          factor = options.summary_order == "desc" ? -1 : 1
+          factor = (options.summary_order == "desc") ? -1 : 1
           factor * result[:diff_times]
         end
 

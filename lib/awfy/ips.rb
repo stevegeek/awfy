@@ -33,6 +33,7 @@ module Awfy
       JSON.parse(File.read(file_name)).map do |result|
         {
           label: result["item"],
+          control: result["item"].include?(TEST_MARKER),
           measured_us: result["measured_us"],
           iter: result["iter"],
           stats: Benchmark::IPS::Stats::SD.new(result["samples"]),
@@ -59,8 +60,8 @@ module Awfy
         end
 
         # Sort by iterations (higher is better)
-        result_diffs.sort_by! do |result| 
-          factor = options.summary_order == "asc" ? 1 : -1
+        result_diffs.sort_by! do |result|
+          factor = (options.summary_order == "asc") ? 1 : -1
           factor * result[:iter]
         end
 

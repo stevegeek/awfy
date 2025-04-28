@@ -1,7 +1,28 @@
 # frozen_string_literal: true
 
 module Awfy
-  Options = Data.define(:verbose, :quiet, :summary, :summary_order, :save, :temp_output_directory, :results_directory, :setup_file_path, :tests_path, :compare_with_branch, :compare_control, :assert, :runtime, :test_time, :test_iterations, :test_warm_up) do
+  Options = Data.define(
+
+    :verbose,
+    :quiet,
+    :summary,
+    :summary_order,
+    :save,
+    :temp_output_directory,
+    :results_directory,
+    :setup_file_path,
+    :tests_path,
+    :compare_with_branch,
+    :compare_control,
+    :assert,
+    :runtime,
+    :test_time,
+    :test_iterations,
+    :test_warm_up,
+    :ignore_commits,
+    :use_cached,
+    :results_only
+  ) do
     def yjit_only? = runtime == "yjit"
 
     def both_runtimes? = runtime == "both"

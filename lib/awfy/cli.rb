@@ -94,6 +94,30 @@ module Awfy
         say "Cleaned saved results directory"
       end
     end
+    
+    desc "compare <benchmark_type> <COMMIT_RANGE> [GROUP] [REPORT] [TEST]", "Run benchmarks across a range of commits"
+    option :ignore_commits, type: :string, desc: "Commits to ignore, either individual hashes (comma-separated) or ranges 'hash1..hash2' (inclusive)"
+    option :use_cached, type: :boolean, default: true, desc: "Use cached results if available"
+    option :results_only, type: :boolean, default: false, desc: "Only display previously saved results without running new benchmarks"
+    def compare(benchmark_type, commit_range, group = nil, report = nil, test = nil)
+      unless ["ips", "memory", "profile"].include?(benchmark_type)
+        say_error "Unsupported benchmark type: #{benchmark_type}. Use one of: ips, memory, profile"
+        exit(1)
+      end
+      
+      require_relative "commit_range"
+      
+      # Set commit range in options
+      opts = awfy_options.to_h.merge(commit_range: commit_range)
+      custom_options = Options.new(**opts)
+      
+      say "Comparing #{benchmark_type} benchmarks across commits #{commit_range}:"
+      say "> #{requested_tests(group, report, test)}..."
+      
+      runner.start(group) do |group_data|
+        CommitRange.new(runner, shell, git_client, custom_options).benchmark(benchmark_type, group_data, report, test)
+      end
+    end
 
     private
 
@@ -108,13 +132,16 @@ module Awfy
         results_directory: options[:results_directory],
         setup_file_path: options[:setup_file_path],
         tests_path: options[:tests_path],
-        compare_with_branch: options[:compare_with_branch],
+        compare_with_branch: options[:compare_with],
         compare_control: options[:compare_control],
         assert: options[:assert],
         runtime: options[:runtime],
         test_iterations: options[:test_iterations],
         test_time: options[:ips_time],
-        test_warm_up: options[:ips_warmup]
+        test_warm_up: options[:ips_warmup],
+        ignore_commits: options[:ignore_commits],
+        use_cached: options[:use_cached],
+        results_only: options[:results_only]
       )
     end
 

@@ -196,7 +196,9 @@ module Awfy
     end
 
     def read_reports_for_summary(type)
-      awfy_report_result_files = Dir.glob("#{options.temp_output_directory}/awfy-#{type}-*.json").map do |file_name|
+      temp_files = Dir.glob("#{options.temp_output_directory}/*-awfy-#{type}-*.json")
+      saved_files = Dir.glob("#{options.results_directory}/*-awfy-#{type}-*.json")
+      awfy_report_result_files = (temp_files + saved_files).map do |file_name|
         JSON.parse(File.read(file_name)).map { _1.transform_keys(&:to_sym) }
       end
 
@@ -221,14 +223,31 @@ module Awfy
     def save_to(type, group, report, runtime)
       current_branch = git_current_branch_name
       output_dir = options.save? ? options.results_directory : options.temp_output_directory
-      timestamp = options.save? ? "#{Time.now.to_i}-" : ""
-      file_name = "#{output_dir}/#{timestamp}#{type}-#{runtime}-#{URI.encode_www_form_component(current_branch)}-#{URI.encode_www_form_component(group[:name])}-#{URI.encode_www_form_component(report[:name])}.json"
+
+      # Get current commit hash
+      commit_hash = git_client.lib.command("rev-parse", "HEAD").strip
+      commit_msg = git_client.lib.command("log", "--format=%s", "-n", "1", commit_hash).strip
+      ruby_version = RUBY_VERSION
+
+      timestamp = runner.start_time
+      file_name = "#{output_dir}/#{timestamp}-#{type}-#{runtime}-#{URI.encode_www_form_component(current_branch)}-#{URI.encode_www_form_component(group[:name])}-#{URI.encode_www_form_component(report[:name])}.json"
       say "Saving results to '#{file_name}'" if verbose?
 
-      awfy_file = "#{output_dir}/#{timestamp}awfy-#{type}-#{URI.encode_www_form_component(group[:name])}-#{URI.encode_www_form_component(report[:name])}.json"
+      awfy_file = "#{output_dir}/#{timestamp}-awfy-#{type}-#{URI.encode_www_form_component(group[:name])}-#{URI.encode_www_form_component(report[:name])}.json"
       awfy_data = JSON.parse(File.read(awfy_file)) if File.exist?(awfy_file)
       awfy_data ||= []
-      awfy_data << {type:, group: group[:name], report: report[:name], branch: current_branch, runtime:, output_path: file_name}
+      awfy_data << {
+        type:, 
+        timestamp:, 
+        group: group[:name], 
+        report: report[:name], 
+        branch: current_branch, 
+        runtime:, 
+        output_path: file_name,
+        commit: commit_hash,
+        commit_message: commit_msg,
+        ruby_version: ruby_version
+      }
 
       say "...and adding to the awfy metadata in '#{awfy_file}'" if verbose?
       File.write(awfy_file, awfy_data.to_json)
@@ -238,7 +257,10 @@ module Awfy
     def choose_baseline_test(results)
       base_branch = git_current_branch_name
       baseline = results.find do |r|
-        r[:branch] == base_branch && r[:label].include?(TEST_MARKER) && r[:runtime] == (options.yjit_only? ? "yjit" : "mri") # Baseline is mri baseline unless yjit only
+        r[:branch] == base_branch &&
+          r[:timestamp] == runner.start_time && # Must be current run. Previous runs cant be the baseline
+          !r[:control] &&
+          r[:runtime] == (options.yjit_only? ? "yjit" : "mri") # Baseline is mri baseline unless yjit only
       end
       unless baseline
         say_error "Could not work out which result is considered the 'baseline' (ie the `test` case)"
