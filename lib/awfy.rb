@@ -1,31 +1,27 @@
 # frozen_string_literal: true
 
+# External dependencies (still needed)
 require "thor"
-
 require "git"
 require "json"
 require "terminal-table"
-
 require "benchmark/ips"
 require "stackprof"
 require "vernier"
 require "memory_profiler"
 
-require_relative "awfy/version"
-require_relative "awfy/suite"
-require_relative "awfy/options"
-require_relative "awfy/git_client"
-require_relative "awfy/runner"
-require_relative "awfy/run_report"
-require_relative "awfy/command"
-require_relative "awfy/list"
-require_relative "awfy/ips"
-require_relative "awfy/memory"
-require_relative "awfy/flamegraph"
-require_relative "awfy/yjit_stats"
-require_relative "awfy/profiling"
-require_relative "awfy/commit_range"
-require_relative "awfy/cli"
+# Set up Zeitwerk autoloading
+require "zeitwerk"
+loader = Zeitwerk::Loader.for_gem
+
+# Configure inflections
+loader.inflector.inflect(
+  "cli" => "CLI",
+  "ips" => "IPS",
+  "yjit_stats" => "YJITStats"
+)
+
+loader.setup
 
 module Awfy
   class << self

@@ -40,4 +40,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "vernier", ">= 1.0", "< 2.0"
   spec.add_dependency "profile-viewer", ">= 0.0.2", "< 1.0"
   spec.add_dependency "stackprof", ">= 0.2", "< 1.0"
+  spec.add_dependency "zeitwerk", ">= 2.6", "< 3.0"
 end
