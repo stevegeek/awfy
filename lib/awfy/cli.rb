@@ -105,8 +105,6 @@ module Awfy
         exit(1)
       end
       
-      require_relative "commit_range"
-      
       # Set commit range in options
       opts = awfy_options.to_h.merge(commit_range: commit_range)
       custom_options = Options.new(**opts)
@@ -122,27 +120,16 @@ module Awfy
     private
 
     def awfy_options
-      Options.new(
-        verbose: options[:verbose],
-        quiet: options[:quiet],
-        summary: options[:summary],
-        summary_order: options[:summary_order],
-        save: options[:save],
-        temp_output_directory: options[:temp_output_directory],
-        results_directory: options[:results_directory],
-        setup_file_path: options[:setup_file_path],
-        tests_path: options[:tests_path],
-        compare_with_branch: options[:compare_with],
-        compare_control: options[:compare_control],
-        assert: options[:assert],
-        runtime: options[:runtime],
-        test_iterations: options[:test_iterations],
-        test_time: options[:ips_time],
-        test_warm_up: options[:ips_warmup],
-        ignore_commits: options[:ignore_commits],
-        use_cached: options[:use_cached],
-        results_only: options[:results_only]
-      )
+      # Get options from Thor and convert keys to symbols
+      thor_opts = options.to_h.transform_keys(&:to_sym)
+      
+      # Handle name mismatches between Thor options and Options class
+      thor_opts[:compare_with_branch] = thor_opts.delete(:compare_with) if thor_opts.key?(:compare_with)
+      thor_opts[:test_time] = thor_opts.delete(:ips_time) if thor_opts.key?(:ips_time)
+      thor_opts[:test_warm_up] = thor_opts.delete(:ips_warmup) if thor_opts.key?(:ips_warmup)
+      
+      # Create the Options data object with defaults from Options class
+      Options.new(**thor_opts)
     end
 
     def runner

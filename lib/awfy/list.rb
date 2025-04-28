@@ -3,12 +3,14 @@
 module Awfy
   class List < Command
     def list(group)
-      say "> \"#{group[:name]}\":"
-      group[:reports].each do |report|
-        say "    \"#{report[:name]}\""
-        report[:tests].each do |test|
-          say "      | #{test[:control] ? "Control" : "Test"}: \"#{test[:name]}\""
-        end
+      # Create a view for the list output
+      view = Views::ViewFactory.create(:list, @shell, @options)
+      
+      # Display the list using the view based on options
+      if @options&.table_format
+        view.display_table(group)
+      else
+        view.display_group(group)
       end
     end
   end
