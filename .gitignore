@@ -10,3 +10,4 @@
 *.gem
 benchmarks/tmp
 benchmarks/saved
+Gemfile.lock

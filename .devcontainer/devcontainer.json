@@ -1,0 +1,8 @@
+{
+  "name": "Awfy Gem Development",
+  "dockerComposeFile": "compose.yml",
+  "service": "awfy-dev-env",
+  "postCreateCommand": "bundle install",
+  "postStartCommand": "bundle exec rake test",
+  "remoteUser": "vscode"
+}
