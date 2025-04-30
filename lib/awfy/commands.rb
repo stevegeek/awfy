@@ -2,18 +2,23 @@
 
 # This file serves as an index to load all commands at once
 
-require_relative "commands/base"
-require_relative "commands/list"
-require_relative "commands/ips"
-require_relative "commands/memory"
-require_relative "commands/flamegraph"
-require_relative "commands/profiling"
-require_relative "commands/yjit_stats"
-require_relative "commands/commit_range"
-
 module Awfy
+  # Commands namespace - contains all command implementations for the awfy CLI
+  #
+  # The Commands module organizes all benchmark command implementations in a single
+  # namespace. Each command is implemented as a class that inherits from Commands::Base
+  # and provides the specific benchmark functionality.
+  #
+  # Command classes:
+  # - Commands::List - Lists available tests and benchmarks
+  # - Commands::IPS - Runs Instructions Per Second benchmarks
+  # - Commands::Memory - Runs memory profiling benchmarks
+  # - Commands::Flamegraph - Generates flamegraphs for visualization
+  # - Commands::Profiling - Runs CPU profiling
+  # - Commands::YJITStats - Gathers YJIT-specific statistics
+  # - Commands::CommitRange - Runs benchmarks across a range of git commits
+  #
+  # Each command has a consistent interface that is invoked by the Awfy::CLI class.
   module Commands
-    # This module is intentionally empty
-    # It serves as a namespace for all command classes
   end
 end
