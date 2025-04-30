@@ -1,0 +1,71 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'fileutils'
+require 'optparse'
+
+# Default configuration for faster tests
+TEST_ENV = {
+  'AWFY_TEST_TIME' => '0.01',       # Very short test time for benchmarks
+  'AWFY_TEST_WARM_UP' => '0.01',    # Very short warmup time for benchmarks
+  'AWFY_TEST_ITERATIONS' => '3',   # Few iterations for benchmarks
+  'RUBYOPT' => '-Ilib:test'         # Include lib and test directories in load path
+}
+
+parser = OptionParser.new do |opts|
+  opts.banner = 'Usage: bin/test [options] [test_file_path] [test_name]'
+
+  opts.on('-v', '--verbose', 'Run tests with verbose output') do
+    TEST_ENV["VERBOSE"] = 'true'
+  end
+
+  opts.on('-r', '--realistic', 'Run benchmarks with more realistic (but still minimal) settings') do
+    TEST_ENV['AWFY_TEST_TIME'] = '0.1'
+    TEST_ENV['AWFY_TEST_WARM_UP'] = '0.1'
+    TEST_ENV['AWFY_TEST_ITERATIONS'] = '50'
+  end
+
+  opts.on('-h', '--help', 'Show this help message') do
+    puts opts
+    exit
+  end
+end
+
+# Parse the options, but keep remaining arguments
+parser.parse!(ARGV)
+
+# Get the test file and test name from remaining arguments
+test_file = ARGV[0]
+test_name = ARGV[1]
+
+# Build command
+command = []
+if test_file
+  command = %w[bundle exec ruby]
+  command << '-Ilib:test'
+  command << test_file
+
+  # If a specific test name is provided
+  if test_name
+    command << '-n'
+    command << test_name
+  end
+else
+  # Run all tests or just integration tests
+  command = %w[bundle exec rake test]
+end
+
+# Display command
+puts "Running: #{command.join(' ')}"
+puts '=' * 80
+puts 'Test environment:'
+TEST_ENV.each do |key, value|
+  puts "  #{key}=#{value}"
+end
+puts '=' * 80
+
+# Execute command with test environment variables
+env = ENV.to_h.merge(TEST_ENV)
+system(env, *command)
+
+exit $?.exitstatus
