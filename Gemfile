@@ -10,3 +10,6 @@ gem "rake", "~> 13.0"
 gem "minitest", "~> 5.16"
 
 gem "standard", "~> 1.3"
+
+# For SQLite storage backend
+gem "sqlite3", "~> 1.6"

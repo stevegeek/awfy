@@ -21,6 +21,11 @@ loader.inflector.inflect(
   "yjit_stats" => "YJITStats"
 )
 
+# Configure special inflections for commands directory
+loader.inflector.inflect(
+  "commands/ips" => "Commands::IPS",
+  "commands/yjit_stats" => "Commands::YJITStats"
+)
 loader.setup
 
 module Awfy

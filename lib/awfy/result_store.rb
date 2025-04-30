@@ -83,7 +83,14 @@ module Awfy
       when :json
         JsonResultStore.new(options)
       when :sqlite
-        SqliteResultStore.new(options)
+        # Check if SQLite is available directly without instantiating
+        begin
+          require "sqlite3"
+          SqliteResultStore.new(options)
+        rescue LoadError => e
+          raise "SQLite backend requested but sqlite3 gem is not available. " \
+                "Please install it with: gem install sqlite3"
+        end
       else
         raise "Unsupported backend: #{backend}"
       end
