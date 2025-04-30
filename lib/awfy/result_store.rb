@@ -87,7 +87,7 @@ module Awfy
         begin
           require "sqlite3"
           SqliteResultStore.new(options)
-        rescue LoadError => e
+        rescue LoadError
           raise "SQLite backend requested but sqlite3 gem is not available. " \
                 "Please install it with: gem install sqlite3"
         end

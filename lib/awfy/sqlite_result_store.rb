@@ -10,7 +10,7 @@ module Awfy
     def initialize(options)
       super
       # SQLite library availability is checked at factory level before instantiation
-      
+
       # Ensure the results directory exists
       FileUtils.mkdir_p(options.results_directory)
       @db_path = File.join(options.results_directory, "awfy_benchmarks.db")
@@ -20,7 +20,6 @@ module Awfy
     end
 
     def store_result(type, group, report, runtime, metadata, &block)
-      
       # Ensure we have a ResultMetadata object
       unless metadata.is_a?(ResultMetadata)
         raise ArgumentError, "Expected ResultMetadata object, got #{metadata.class.name}"
@@ -45,8 +44,8 @@ module Awfy
       db.transaction do
         # Store the metadata
         db.execute(
-          "INSERT INTO metadata (result_id, type, group_name, report_name, runtime, 
-            timestamp, branch, commit_hash, commit_msg, ruby_version, is_temp) 
+          "INSERT INTO metadata (result_id, type, group_name, report_name, runtime,
+            timestamp, branch, commit_hash, commit_msg, ruby_version, is_temp)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             result_id, type.to_s, group, report, runtime,
@@ -67,7 +66,6 @@ module Awfy
     end
 
     def query_results(query_params = {})
-      
       type = query_params[:type]
       group = query_params[:group]
       report = query_params[:report]
@@ -144,7 +142,6 @@ module Awfy
     end
 
     def load_result(result_id)
-      
       db = connect_db
       db.results_as_hash = true
 
@@ -159,7 +156,6 @@ module Awfy
     end
 
     def get_metadata(type, group = nil, report = nil)
-      
       db = connect_db
       db.results_as_hash = true
 
@@ -205,7 +201,6 @@ module Awfy
     end
 
     def list_results(type = nil)
-      
       db = connect_db
       db.results_as_hash = true
 
@@ -239,7 +234,6 @@ module Awfy
     end
 
     def clean_results(temp_only: true)
-      
       db = connect_db
 
       if temp_only
@@ -264,7 +258,6 @@ module Awfy
     end
 
     def setup_database
-      
       db = SQLite3::Database.new(@db_path)
 
       # Create tables for metadata and results
