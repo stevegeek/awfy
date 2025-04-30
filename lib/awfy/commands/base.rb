@@ -252,8 +252,6 @@ module Awfy
           # Skip if no results
           next if results.empty?
 
-          puts "Found #{results.size} results for report '#{report_name}'"
-          puts "Results: #{results.inspect}"
           # Choose baseline
           baseline = choose_baseline_test(results)
 

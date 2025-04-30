@@ -152,8 +152,6 @@ module Awfy
     def list_results(type = nil)
       results = {}
 
-      puts "Listing results of type '#{type}'"
-
       # Search in both temp and results directories
       [@temp_dir, @results_dir].each do |dir|
         pattern = "#{dir}/*-awfy-"
@@ -189,9 +187,6 @@ module Awfy
     end
 
     def clean_results(temp_only: true)
-
-      puts "Cleaning results"
-
       # Clean temp directory
       Dir.glob("#{@temp_dir}/*.json").each do |file|
         File.delete(file)
