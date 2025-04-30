@@ -207,6 +207,8 @@ module Awfy
         end
       end
 
+      # TODO extract this to a separate class and then we can start to refactor, this parses result data into
+      # something to pass to view?
       def read_reports_for_summary(type)
         # Get the result store
         result_store = Awfy::ResultStoreFactory.instance(options)
@@ -220,8 +222,8 @@ module Awfy
         grouped_metadata.each do |(_group, report_name), report_entries|
           results = report_entries.map do |entry|
             # Load the result data using the result store
-            result_data = result_store.load_result(entry["result_id"])
-
+            #result_data = result_store.load_result(entry["result_id"])
+            result_data = entry["result_data"]
             next unless result_data
 
             # Process each result
@@ -237,7 +239,9 @@ module Awfy
               result.merge!(
                 runtime: entry["runtime"],
                 test_name: test_name,
-                branch: entry["branch"]
+                branch: entry["branch"],
+                timestamp: entry["timestamp"],
+                control: entry["control"],
               )
             end
           end
@@ -248,6 +252,8 @@ module Awfy
           # Skip if no results
           next if results.empty?
 
+          puts "Found #{results.size} results for report '#{report_name}'"
+          puts "Results: #{results.inspect}"
           # Choose baseline
           baseline = choose_baseline_test(results)
 
@@ -286,17 +292,13 @@ module Awfy
           ruby_version: ruby_version,
           save: options.save?,
           result_id: nil,  # This will be set by the result store
-          output_path: nil # This will be set by the result store
+          result_data: nil # This will be set by the result store
         )
 
         result_store = Awfy::ResultStoreFactory.instance(options)
 
-        # Store the result
         result_id = result_store.store_result(type, group[:name], report[:name], runtime, metadata) do
-          # The block is expected to return the result data as an object that can be JSON-serialized
-          result_data = yield
-          # Convert string to JSON object if it's a string (for backward compatibility)
-          result_data.is_a?(String) ? JSON.parse(result_data) : result_data
+          yield
         end
 
         say "Saved results with ID '#{result_id}'" if verbose?

@@ -38,8 +38,8 @@ module Awfy
         # Compute result differences compared to baseline
         def compute_result_diffs(results, baseline)
           results.map do |result|
-            baseline_stats = baseline[:stats]
-            result_stats = result[:stats]
+            baseline_stats = Benchmark::IPS::Stats::SD.new(baseline[:samples])
+            result_stats = Benchmark::IPS::Stats::SD.new(result[:samples])
             overlaps = result_stats.overlaps?(baseline_stats)
             diff_x = if baseline_stats.central_tendency > result_stats.central_tendency
               -1.0 * result_stats.speedup(baseline_stats).first
@@ -66,8 +66,8 @@ module Awfy
           results.map do |result|
             diff_message = format_result_diff(result)
             test_name = result[:is_baseline] ? "(baseline) #{result[:test_name]}" : result[:test_name]
-
-            [result[:branch], result[:runtime], test_name, humanize_scale(result[:stats].central_tendency), diff_message]
+            result_stats = Benchmark::IPS::Stats::SD.new(result[:samples])
+            [result[:branch], result[:runtime], test_name, humanize_scale(result_stats.central_tendency), diff_message]
           end
         end
 

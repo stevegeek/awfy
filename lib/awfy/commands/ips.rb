@@ -45,7 +45,7 @@ module Awfy
           control: entry.label.include?(TEST_MARKER),
           measured_us: entry.microseconds,
           iter: entry.iterations,
-          stats: Benchmark::IPS::Stats::SD.new(entry.samples),
+          samples: entry.samples, # Benchmark::IPS::Stats::SD.new(entry.samples),
           cycles: entry.measurement_cycle
         }
       end

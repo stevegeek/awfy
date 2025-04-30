@@ -14,7 +14,7 @@ module Awfy
     :ruby_version,
     :save,
     :result_id,
-    :output_path
+    :result_data
   ) do
     def to_h
       super.compact

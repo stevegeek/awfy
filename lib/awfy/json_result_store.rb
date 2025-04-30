@@ -31,18 +31,12 @@ module Awfy
       # Execute the provided block to get the result data
       result_data = yield if block_given?
 
-      # File path for the actual result data
-      result_file = File.join(output_dir, "#{result_id}.json")
-
-      # Save the actual benchmark result data
-      File.write(result_file, result_data.to_json)
-
       # Metadata file that tracks all results for this type/group/report
-      metadata_file = File.join(output_dir, "#{timestamp}-awfy-#{type}-#{URI.encode_www_form_component(group)}-#{URI.encode_www_form_component(report)}.json")
+      result_file = result_output_file_path(output_dir, type, group, report, timestamp)
 
       # Load existing metadata if available
-      existing_metadata = if File.exist?(metadata_file)
-        JSON.parse(File.read(metadata_file))
+      existing_metadata = if File.exist?(result_file)
+        JSON.parse(File.read(result_file))
       else
         []
       end
@@ -51,7 +45,7 @@ module Awfy
       complete_metadata = ResultMetadata.new(
         **metadata.to_h,
         result_id: result_id,
-        output_path: result_file
+        result_data: result_data
       )
 
       # Add entry to existing metadata
@@ -59,7 +53,7 @@ module Awfy
       existing_metadata << complete_metadata.to_h
 
       # Write updated metadata
-      File.write(metadata_file, existing_metadata.to_json)
+      File.write(result_file, existing_metadata.to_json)
 
       result_file
     end
@@ -141,7 +135,7 @@ module Awfy
         pattern = "#{dir}/*-awfy-#{type}"
         pattern += "-#{URI.encode_www_form_component(group)}" if group
         pattern += "-#{URI.encode_www_form_component(report)}" if report
-        pattern += ".json"
+        pattern += "*.json"
 
         Dir.glob(pattern).each do |file|
           entries = JSON.parse(File.read(file))
@@ -157,6 +151,8 @@ module Awfy
 
     def list_results(type = nil)
       results = {}
+
+      puts "Listing results of type '#{type}'"
 
       # Search in both temp and results directories
       [@temp_dir, @results_dir].each do |dir|
@@ -193,6 +189,9 @@ module Awfy
     end
 
     def clean_results(temp_only: true)
+
+      puts "Cleaning results"
+
       # Clean temp directory
       Dir.glob("#{@temp_dir}/*.json").each do |file|
         File.delete(file)
@@ -207,6 +206,10 @@ module Awfy
     end
 
     private
+
+    def result_output_file_path(output_dir, type, group, report, timestamp)
+      File.join(output_dir, "#{timestamp}-awfy-#{type}-#{URI.encode_www_form_component(group)}-#{URI.encode_www_form_component(report)}.json")
+    end
 
     def generate_result_id(type, runtime, group, report, timestamp, branch)
       branch ||= "unknown"
