@@ -4,6 +4,17 @@ require "uri"
 
 module Awfy
   module Commands
+    # Base class for all benchmark commands
+    #
+    # Commands::Base provides common functionality used by all benchmark command classes:
+    # - Command execution helpers
+    # - Shell output utilities
+    # - Git operations
+    # - Data formatting
+    # - Result storage and retrieval
+    #
+    # All command implementations should inherit from this class to maintain
+    # a consistent interface and leverage the shared functionality.
     class Base
       CONTROL_MARKER = "[c]"
       TEST_MARKER = "[*]"
@@ -199,31 +210,31 @@ module Awfy
       def read_reports_for_summary(type)
         # Get the result store
         backend = options.storage_backend&.to_sym || :json
-        result_store = ResultStoreFactory.create(options, backend)
-        
+        result_store = Awfy::ResultStoreFactory.create(options, backend)
+
         # Get all metadata for this benchmark type
         metadata_entries = result_store.get_metadata(type)
-        
+
         # Group metadata by report (since we need to process each report separately)
         grouped_metadata = metadata_entries.group_by { |entry| [entry["group"], entry["report"]] }
-        
+
         grouped_metadata.each do |(_group, report_name), report_entries|
           results = report_entries.map do |entry|
             # Load the actual result data
-            result_data = result_store.load_result(entry["result_id"]) || 
-                          (File.exist?(entry["output_path"]) ? JSON.parse(File.read(entry["output_path"])) : nil)
-            
+            result_data = result_store.load_result(entry["result_id"]) ||
+              (File.exist?(entry["output_path"]) ? JSON.parse(File.read(entry["output_path"])) : nil)
+
             next unless result_data
-            
+
             # Process each result
             result_data.map do |result|
               # Convert string keys to symbols for backward compatibility
               result = result.transform_keys(&:to_sym) if result.is_a?(Hash)
-              
+
               # Extract test name from label
               test_name_match = result[:label].match(/\[.{3,4}\] \[.\] (.*)/)
               test_name = test_name_match ? test_name_match[1] : "unknown"
-              
+
               # Add metadata to the result
               result.merge!(
                 runtime: entry["runtime"],
@@ -232,16 +243,16 @@ module Awfy
               )
             end
           end
-          
+
           # Flatten and remove nils
           results = results.compact.flatten
-          
+
           # Skip if no results
           next if results.empty?
-          
+
           # Choose baseline
           baseline = choose_baseline_test(results)
-          
+
           # Yield to the block
           yield report_entries, results, baseline
         end
@@ -250,15 +261,23 @@ module Awfy
       def save_to(type, group, report, runtime)
         current_branch = git_current_branch_name
 
-        # Get current commit hash
-        commit_hash = git_client.lib.command("rev-parse", "HEAD").strip
-        commit_msg = git_client.lib.command("log", "--format=%s", "-n", "1", commit_hash).strip
+        # Get current commit hash - use public API or fall back to safe defaults
+        begin
+          commit_hash = git_client.object("HEAD").sha
+          commit_msg = git_client.object("HEAD").message.lines.first.strip
+        rescue => e
+          say_error "Failed to get current commit hash: #{e.message}"
+          # Fall back to safer defaults if git operations fail
+          commit_hash = "unknown"
+          commit_msg = "unknown commit message"
+        end
+
         ruby_version = RUBY_VERSION
 
         timestamp = runner.start_time
-        
+
         # Create metadata for this result using the ResultMetadata data object
-        metadata = ResultMetadata.new(
+        metadata = Awfy::ResultMetadata.new(
           type: type,
           group: group[:name],
           report: report[:name],
@@ -272,11 +291,11 @@ module Awfy
           result_id: nil,  # This will be set by the result store
           output_path: nil # This will be set by the result store
         )
-        
+
         # Get the result store
         backend = options.storage_backend&.to_sym || :json
-        result_store = ResultStoreFactory.create(options, backend)
-        
+        result_store = Awfy::ResultStoreFactory.create(options, backend)
+
         # Store the result
         file_name = result_store.store_result(type, group[:name], report[:name], runtime, metadata) do
           # The block is expected to return the result data as an object that can be JSON-serialized
@@ -284,9 +303,9 @@ module Awfy
           # Convert string to JSON object if it's a string (for backward compatibility)
           result_data.is_a?(String) ? JSON.parse(result_data) : result_data
         end
-        
+
         say "Saved results to '#{file_name}'" if verbose?
-        
+
         file_name
       end
 

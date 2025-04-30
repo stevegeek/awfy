@@ -68,9 +68,9 @@ module Awfy
       end
 
       def generate_memory_summary
-        # Get the Memory view
-        view = Views::ViewFactory.create(:memory, shell, options)
-        
+        # Create the Memory composite view directly
+        view = Views::Memory::CompositeView.new(shell, options)
+
         # Process reports and use the view to display
         read_reports_for_summary("memory") do |report, results, baseline|
           # Calculate and add measurements for each result
@@ -85,7 +85,7 @@ module Awfy
               Struct.new(:allocated).new(0)  # We don't have this data in the current format
             )
           end
-          
+
           view.summary_table(report, results, baseline)
         end
       end

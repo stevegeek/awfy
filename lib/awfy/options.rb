@@ -8,32 +8,26 @@ module Awfy
     :summary,         # Boolean: generate a summary of the results
     :summary_order,   # String: sort order for summary tables - "desc", "asc", "leader"
     :table_format,    # Boolean: display output in table format
-    
     # Output options
     :save,            # Boolean: save benchmark results to results directory
     :temp_output_directory, # String: directory to store temporary output files
     :results_directory,     # String: directory to store benchmark results
-    
     # Input paths
     :setup_file_path, # String: path to the setup file
     :tests_path,      # String: path to the tests files
-    
     # Comparison options
     :compare_with_branch, # String: name of branch to compare with
     :compare_control,     # Boolean: when comparing branches, also re-run control blocks
     :assert,              # Boolean: assert that results are within thresholds
-    
     # Runtime options
     :runtime,         # String: "both", "yjit", or "mri"
     :test_time,       # Integer: seconds to run IPS benchmarks
     :test_iterations, # Integer: iterations to run tests
     :test_warm_up,    # Integer: seconds to warmup IPS benchmarks
-    
     # Commit range options
     :ignore_commits,  # String: commits to ignore
     :use_cached,      # Boolean: use cached results if available
     :results_only,    # Boolean: only display previously saved results
-    
     # Storage options
     :storage_backend  # String: storage backend for results - "json" or "sqlite"
   ) do
@@ -63,7 +57,7 @@ module Awfy
     )
       super
     end
-    
+
     def yjit_only? = runtime == "yjit"
 
     def both_runtimes? = runtime == "both"

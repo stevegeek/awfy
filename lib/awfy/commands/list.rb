@@ -4,9 +4,9 @@ module Awfy
   module Commands
     class List < Base
       def list(group)
-        # Create a view for the list output
-        view = Views::ViewFactory.create(:list, @shell, @options)
-        
+        # Create the list view directly
+        view = Views::ListView.new(@shell, @options)
+
         # Display the list using the view based on options
         if @options&.table_format
           view.display_table(group)

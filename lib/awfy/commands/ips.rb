@@ -44,9 +44,8 @@ module Awfy
       end
 
       def generate_ips_summary
-        # Get the IPS view
-        view = Views::ViewFactory.create(:ips, shell, options)
-        
+        view = Views::IPS::CompositeView.new(@shell, options)
+
         # Process reports and use the view to display
         read_reports_for_summary("ips") do |report, results, baseline|
           view.summary_table(report, results, baseline)
