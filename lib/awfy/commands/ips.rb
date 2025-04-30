@@ -10,18 +10,27 @@ module Awfy
         end
 
         execute_report(group, report_name) do |report, runtime|
-          Benchmark.ips(time: options.test_time, warmup: options.test_warm_up, quiet: show_summary? || verbose?) do |bm|
+          Benchmark.ips(time: options.test_time, warmup: options.test_warm_up, quiet: show_summary? || verbose?) do |benchmark_job|
             execute_tests(report, test_name, output: false) do |test, _|
               test_label = generate_test_label(test, runtime)
-              bm.item(test_label, &test[:block])
+              benchmark_job.item(test_label, &test[:block])
             end
 
             # We can persist the results to a file to use to later generate a summary
-            save_to(:ips, group, report, runtime) do |file_name|
-              bm.save!(file_name)
+            save_to(:ips, group, report, runtime) do
+              # Force the job to run before we save, as normally jobs are run after this block yields
+              benchmark_job.load_held_results
+              benchmark_job.run
+
+              # The override definition of run to prevent it happening again after this block completes
+              # This is a hack but it works
+              benchmark_job.define_singleton_method(:run) do
+              end
+
+              benchmark_job.full_report.entries.map { |entry| map_data_to_standard_format(entry) }
             end
 
-            bm.compare! if verbose? || !show_summary?
+            benchmark_job.compare! if verbose? || !show_summary?
           end
         end
 
@@ -30,17 +39,15 @@ module Awfy
 
       private
 
-      def load_ips_results_json(file_name)
-        JSON.parse(File.read(file_name)).map do |result|
-          {
-            label: result["item"],
-            control: result["item"].include?(TEST_MARKER),
-            measured_us: result["measured_us"],
-            iter: result["iter"],
-            stats: Benchmark::IPS::Stats::SD.new(result["samples"]),
-            cycles: result["cycles"]
-          }
-        end
+      def map_data_to_standard_format(entry)
+        {
+          label: entry.label,
+          control: entry.label.include?(TEST_MARKER),
+          measured_us: entry.microseconds,
+          iter: entry.iterations,
+          stats: Benchmark::IPS::Stats::SD.new(entry.samples),
+          cycles: entry.measurement_cycle
+        }
       end
 
       def generate_ips_summary

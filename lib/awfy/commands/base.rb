@@ -209,8 +209,7 @@ module Awfy
 
       def read_reports_for_summary(type)
         # Get the result store
-        backend = options.storage_backend&.to_sym || :json
-        result_store = Awfy::ResultStoreFactory.create(options, backend)
+        result_store = Awfy::ResultStoreFactory.instance(options)
 
         # Get all metadata for this benchmark type
         metadata_entries = result_store.get_metadata(type)
@@ -220,9 +219,8 @@ module Awfy
 
         grouped_metadata.each do |(_group, report_name), report_entries|
           results = report_entries.map do |entry|
-            # Load the actual result data
-            result_data = result_store.load_result(entry["result_id"]) ||
-              (File.exist?(entry["output_path"]) ? JSON.parse(File.read(entry["output_path"])) : nil)
+            # Load the result data using the result store
+            result_data = result_store.load_result(entry["result_id"])
 
             next unless result_data
 
@@ -273,7 +271,6 @@ module Awfy
         end
 
         ruby_version = RUBY_VERSION
-
         timestamp = runner.start_time
 
         # Create metadata for this result using the ResultMetadata data object
@@ -292,21 +289,19 @@ module Awfy
           output_path: nil # This will be set by the result store
         )
 
-        # Get the result store
-        backend = options.storage_backend&.to_sym || :json
-        result_store = Awfy::ResultStoreFactory.create(options, backend)
+        result_store = Awfy::ResultStoreFactory.instance(options)
 
         # Store the result
-        file_name = result_store.store_result(type, group[:name], report[:name], runtime, metadata) do
+        result_id = result_store.store_result(type, group[:name], report[:name], runtime, metadata) do
           # The block is expected to return the result data as an object that can be JSON-serialized
           result_data = yield
           # Convert string to JSON object if it's a string (for backward compatibility)
           result_data.is_a?(String) ? JSON.parse(result_data) : result_data
         end
 
-        say "Saved results to '#{file_name}'" if verbose?
+        say "Saved results with ID '#{result_id}'" if verbose?
 
-        file_name
+        result_id
       end
 
       def choose_baseline_test(results)
@@ -324,10 +319,6 @@ module Awfy
         baseline[:is_baseline] = true
         say "> Chosen baseline: #{baseline[:label]}" if verbose?
         baseline
-      end
-
-      def load_results_json(type, file_name)
-        send(:"load_#{type}_results_json", file_name)
       end
     end
   end

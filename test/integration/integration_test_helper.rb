@@ -4,7 +4,7 @@ require "tmpdir"
 require "fileutils"
 require "stringio"
 require "json"
-require_relative "../fixtures/mock_result_store"
+require "awfy"
 
 module IntegrationTestHelper
   def setup_test_environment
@@ -109,6 +109,12 @@ module IntegrationTestHelper
     thor_options[:ips_warmup] ||= ENV.fetch("AWFY_TEST_WARM_UP", "0.01").to_f
     thor_options[:test_iterations] ||= ENV.fetch("AWFY_TEST_ITERATIONS", "10").to_i
     thor_options[:verbose] = ENV["VERBOSE"] if ENV["VERBOSE"]
+
+    # Make sure we're using our memory result store for tests
+    thor_options[:storage_backend] = :memory
+
+    # Reset the result store factory before each command
+    Awfy::ResultStoreFactory.reset!
 
     # Start the CLI with command and all processed args
     capture_command_output do

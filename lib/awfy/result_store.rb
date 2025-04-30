@@ -75,25 +75,4 @@ module Awfy
       ResultMetadata.new(**defaults.merge(filtered_metadata))
     end
   end
-
-  # Factory for result stores
-  class ResultStoreFactory
-    def self.create(options, backend = :json)
-      case backend
-      when :json
-        JsonResultStore.new(options)
-      when :sqlite
-        # Check if SQLite is available directly without instantiating
-        begin
-          require "sqlite3"
-          SqliteResultStore.new(options)
-        rescue LoadError
-          raise "SQLite backend requested but sqlite3 gem is not available. " \
-                "Please install it with: gem install sqlite3"
-        end
-      else
-        raise "Unsupported backend: #{backend}"
-      end
-    end
-  end
 end

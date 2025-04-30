@@ -29,7 +29,7 @@ module Awfy
     :use_cached,      # Boolean: use cached results if available
     :results_only,    # Boolean: only display previously saved results
     # Storage options
-    :storage_backend  # String: storage backend for results - "json" or "sqlite"
+    :storage_backend # String: storage backend for results - "json", "sqlite", or "memory"
   ) do
     # Default values
     def initialize(

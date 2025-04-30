@@ -23,8 +23,9 @@ module Awfy
             data.pretty_print if verbose?
           end
 
-          save_to(:memory, group, report, runtime) do |file_name|
-            save_memory_profile_report_to_file(file_name, results)
+          save_to(:memory, group, report, runtime) do
+            # Return the memory profile data directly for the store to save
+            convert_memory_profile_to_data(results)
           end
         end
 
@@ -33,12 +34,8 @@ module Awfy
 
       private
 
-      def load_memory_results_json(file_name)
-        JSON.parse(File.read(file_name)).map { _1.transform_keys(&:to_sym) }
-      end
-
-      def save_memory_profile_report_to_file(file_name, results)
-        data = results.map do |label_and_data|
+      def convert_memory_profile_to_data(results)
+        results.map do |label_and_data|
           result = label_and_data[:data]
           {
             label: label_and_data[:label],
@@ -64,7 +61,6 @@ module Awfy
             retained_objects_by_class: result.retained_objects_by_class
           }
         end
-        File.write(file_name, data.to_json)
       end
 
       def generate_memory_summary
