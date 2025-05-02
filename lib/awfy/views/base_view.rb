@@ -40,7 +40,7 @@ module Awfy
         # Right-align numeric columns (2nd column and beyond)
         (1...headings.size).each do |i|
           # Only right-align if all values in column are numeric
-          if rows.all? { |row| row[i].is_a?(Numeric) || (row[i].is_a?(String) && row[i] =~ /^-?\d+(\.\d+)?/) }
+          if rows.all? { |row| row[i].is_a?(Numeric) || (row[i].is_a?(String) && (row[i] =~ /^\s*-?\d+(\.\d+)?/) || row[i] == "-") }
             table.align_column(i, :right)
           end
         end

@@ -7,78 +7,94 @@ module Awfy
         include CommitHelpers
 
         def highlights_table(sorted_commits, results_by_commit)
-          headings = ["Commit", "Description", "Memory Change", "Objects Change"]
+          # Use MRI results for memory comparisons if available, otherwise YJIT
+          runtime = select_runtime(results_by_commit)
+          baseline_data = extract_baseline_data(sorted_commits, results_by_commit, runtime)
 
-          # Get baseline data
-          baseline_commit = sorted_commits.first
-
-          # Use MRI results for memory comparisons
-          runtime = has_runtime?(results_by_commit, :mri) ? :mri : :yjit
-          baseline_result = find_first_test_with_memory(results_by_commit, baseline_commit, runtime)
-
-          if !baseline_result
+          unless baseline_data
             say "No baseline memory data available for comparison"
             return
           end
 
-          baseline_memory = baseline_result["memory"]["memsize"]
-          baseline_objects = baseline_result["memory"]["objects"]
+          headings = ["Commit", "Description", "Memory Change", "Objects Change"]
+          rows = [build_baseline_row(baseline_data)]
 
-          # Prepare baseline row
-          metadata = results_by_commit[baseline_commit][:metadata]
-          commit_short, commit_msg = format_commit_info(baseline_commit, metadata[:commit_message], 8, 23)
-
-          # Create baseline row with default "baseline" values for memory and objects
-          baseline_row = [commit_short, commit_msg, "baseline", "baseline"]
-          rows = [baseline_row]
-
-          # Skip the first one (baseline)
+          # Process non-baseline commits
           sorted_commits[1..].each do |commit|
-            metadata = results_by_commit[commit][:metadata]
-            commit_short, commit_msg = format_commit_info(commit, metadata[:commit_message], 8, 23)
-
-            current_result = find_first_test_with_memory(results_by_commit, commit, runtime)
-
-            if current_result && current_result["memory"]
-              current_memory = current_result["memory"]["memsize"]
-              current_objects = current_result["memory"]["objects"]
-
-              # Memory change
-              memory_comparison = if current_memory && baseline_memory
-                (current_memory.to_f / baseline_memory).round(2)
-              end
-
-              memory_change = if memory_comparison
-                format_change(memory_comparison)
-              else
-                "N/A"
-              end
-
-              # Objects change
-              objects_comparison = if current_objects && baseline_objects
-                (current_objects.to_f / baseline_objects).round(2)
-              end
-
-              objects_change = if objects_comparison
-                format_change(objects_comparison)
-              else
-                "N/A"
-              end
-
-              rows << [commit_short, commit_msg, memory_change, objects_change]
-            else
-              rows << [commit_short, commit_msg, "N/A", "N/A"]
-            end
+            rows << build_commit_row(commit, baseline_data, results_by_commit, runtime)
           end
 
           # Generate and display the table
           table = format_table("Memory Highlights", headings, rows)
-
           say "\n\n==== MEMORY HIGHLIGHTS ====\n"
           say table
         end
 
         private
+
+        def select_runtime(results_by_commit)
+          has_runtime?(results_by_commit, :mri) ? :mri : :yjit
+        end
+
+        def extract_baseline_data(sorted_commits, results_by_commit, runtime)
+          baseline_commit = sorted_commits.first
+          baseline_result = find_first_test_with_memory(results_by_commit, baseline_commit, runtime)
+
+          return nil unless baseline_result
+
+          {
+            commit: baseline_commit,
+            metadata: results_by_commit[baseline_commit][:metadata],
+            memory: baseline_result["memory"]["memsize"],
+            objects: baseline_result["memory"]["objects"]
+          }
+        end
+
+        def build_baseline_row(baseline_data)
+          commit_short, commit_msg = format_commit_info(
+            baseline_data[:commit],
+            baseline_data[:metadata][:commit_message],
+            8,
+            23
+          )
+
+          [commit_short, commit_msg, "baseline", "baseline"]
+        end
+
+        def build_commit_row(commit, baseline_data, results_by_commit, runtime)
+          metadata = results_by_commit[commit][:metadata]
+          commit_short, commit_msg = format_commit_info(commit, metadata[:commit_message], 8, 23)
+
+          current_result = find_first_test_with_memory(results_by_commit, commit, runtime)
+
+          if current_result && current_result["memory"]
+            memory_change = format_memory_change(
+              current_result["memory"]["memsize"],
+              baseline_data[:memory]
+            )
+
+            objects_change = format_memory_change(
+              current_result["memory"]["objects"],
+              baseline_data[:objects]
+            )
+
+            [commit_short, commit_msg, memory_change, objects_change]
+          else
+            [commit_short, commit_msg, "N/A", "N/A"]
+          end
+        end
+
+        def format_memory_change(current_value, baseline_value)
+          if current_value && baseline_value
+            # Convert to BigDecimal for precise division
+            current_bd = BigDecimal(current_value.to_s)
+            baseline_bd = BigDecimal(baseline_value.to_s)
+            comparison_ratio = (current_bd / baseline_bd).round(2)
+            format_change(comparison_ratio)
+          else
+            "N/A"
+          end
+        end
 
         def find_first_test_with_memory(results_by_commit, commit, runtime)
           return nil unless results_by_commit[commit] && results_by_commit[commit][runtime]

@@ -76,12 +76,16 @@ module Awfy
             "-"
           elsif !result[:memory_diff]
             "N/A"
-          elsif result[:memory_diff] == 1.0
-            "same"
-          elsif result[:memory_diff] < 1.0
-            "#{((1 - result[:memory_diff]) * 100).round(1)}% better"
           else
-            "#{((result[:memory_diff] - 1) * 100).round(1)}% worse"
+            bd_memory_diff = BigDecimal(result[:memory_diff].to_s)
+            bd_one = BigDecimal("1.0")
+            if bd_memory_diff == bd_one
+              "same"
+            elsif bd_memory_diff < bd_one
+              "%.1f%% better" % ((bd_one - bd_memory_diff) * 100).round(1)
+            else
+              "%.1f%% worse" % ((bd_memory_diff - bd_one) * 100).round(1)
+            end
           end
         end
       end

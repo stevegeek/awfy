@@ -46,15 +46,16 @@ module IntegrationTestHelper
   def setup_git_repository
     # Initialize a new git repository
     Dir.chdir(@test_dir) do
-      system("git init -b main")
+      # Redirect output to /dev/null to suppress git messages
+      system("git init -b main > /dev/null 2>&1")
 
       # Configure git user
-      system('git config --local user.name "Test User"')
-      system('git config --local user.email "test@example.com"')
+      system('git config --local user.name "Test User" > /dev/null 2>&1')
+      system('git config --local user.email "test@example.com" > /dev/null 2>&1')
 
       # Add all files and create initial commit
-      system("git add .")
-      result = system('git commit -m "Initial commit for integration test"')
+      system("git add . > /dev/null 2>&1")
+      result = system('git commit -m "Initial commit for integration test" > /dev/null 2>&1')
 
       puts "Failed to create git repository. Tests requiring git may fail." unless result
     end
@@ -67,9 +68,7 @@ module IntegrationTestHelper
 
     begin
       yield
-      output_capture.string.tap do |output|
-        original_stdout.puts output # if ENV["VERBOSE"]
-      end
+      output_capture.string
     ensure
       $stdout = original_stdout
     end
@@ -87,9 +86,9 @@ module IntegrationTestHelper
         content.gsub!(/\d+\.times/, "#{iterations}.times")
         File.write(benchmark_file, content)
 
-        # Create commit
-        system("git add #{benchmark_file}")
-        system("git commit -m \"Commit #{i + 1}: Update benchmark\"")
+        # Create commit with suppressed output
+        system("git add #{benchmark_file} > /dev/null 2>&1")
+        system("git commit -m \"Commit #{i + 1}: Update benchmark\" > /dev/null 2>&1")
       end
     end
   end
@@ -99,6 +98,7 @@ module IntegrationTestHelper
     Dir.chdir(@test_dir) do
       cmd = "git log --format=%H"
       cmd += " -n #{count}" if count
+      cmd += " 2>/dev/null" # Suppress stderr output
       `#{cmd}`.strip.split("\n")
     end
   end
