@@ -7,7 +7,7 @@ module Awfy
     def self.exit_on_failure? = true
 
     class_option :runtime, enum: ["both", "yjit", "mri"], default: "both", desc: "Run with and/or without YJIT enabled"
-    class_option :compare_with, type: :string, desc: "Name of branch to compare with results on current branch"
+    class_option :compare_with_branch, type: :string, desc: "Name of branch to compare with results on current branch"
     class_option :compare_control, type: :boolean, desc: "When comparing branches, also re-run all control blocks too", default: false
 
     class_option :summary, type: :boolean, desc: "Generate a summary of the results", default: true
@@ -16,8 +16,8 @@ module Awfy
     class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
     class_option :verbose, type: :boolean, desc: "Verbose output", default: false
 
-    class_option :ips_warmup, type: :numeric, default: 1, desc: "Number of seconds to warmup the IPS benchmark"
-    class_option :ips_time, type: :numeric, default: 3, desc: "Number of seconds to run the IPS benchmark"
+    class_option :test_warm_up, type: :numeric, default: 1, desc: "Number of seconds to warmup the IPS benchmark"
+    class_option :test_time, type: :numeric, default: 3, desc: "Number of seconds to run the IPS benchmark"
     class_option :test_iterations, type: :numeric, default: 1_000_000, desc: "Number of iterations to run the test"
     class_option :temp_output_directory, type: :string, default: "./benchmarks/tmp", desc: "Directory to store temporary output files"
     class_option :results_directory, type: :string, default: "./benchmarks/saved", desc: "Directory to store benchmark results"
@@ -120,11 +120,6 @@ module Awfy
     def awfy_options
       # Get options from Thor and convert keys to symbols
       thor_opts = options.to_h.transform_keys(&:to_sym)
-
-      # Handle name mismatches between Thor options and Options class
-      thor_opts[:compare_with_branch] = thor_opts.delete(:compare_with) if thor_opts.key?(:compare_with)
-      thor_opts[:test_time] = thor_opts.delete(:ips_time) if thor_opts.key?(:ips_time)
-      thor_opts[:test_warm_up] = thor_opts.delete(:ips_warmup) if thor_opts.key?(:ips_warmup)
 
       # Create the Options data object with defaults from Options class
       Options.new(**thor_opts)

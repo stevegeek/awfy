@@ -108,8 +108,8 @@ module IntegrationTestHelper
     thor_options = options
 
     # Add fast benchmark settings from environment if not already specified
-    thor_options[:ips_time] ||= ENV.fetch("AWFY_TEST_TIME", "0.01").to_f
-    thor_options[:ips_warmup] ||= ENV.fetch("AWFY_TEST_WARM_UP", "0.01").to_f
+    thor_options[:test_time] ||= ENV.fetch("AWFY_TEST_TIME", "0.01").to_f
+    thor_options[:test_warm_up] ||= ENV.fetch("AWFY_TEST_WARM_UP", "0.01").to_f
     thor_options[:test_iterations] ||= ENV.fetch("AWFY_TEST_ITERATIONS", "10").to_i
     thor_options[:verbose] = ENV["VERBOSE"] if ENV["VERBOSE"]
 
