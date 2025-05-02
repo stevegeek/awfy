@@ -29,7 +29,7 @@ class JsonResultStoreTest < Minitest::Test
     teardown_test_environment
   end
 
-  def test_store_result
+  def test_save_result
     # Create test metadata
     metadata = Awfy::ResultMetadata.new(
       type: :ips,
@@ -54,7 +54,7 @@ class JsonResultStoreTest < Minitest::Test
     }
 
     # Store the result
-    result_path = @store.store_result(:ips, "Test Group", "#method_name", "ruby", metadata) do
+    result_path = @store.save_result(metadata) do
       result_data
     end
 
@@ -86,7 +86,7 @@ class JsonResultStoreTest < Minitest::Test
     assert metadata_content.first["output_path"], "output_path should be present in metadata"
   end
 
-  def test_store_result_with_save_flag
+  def test_save_result_with_save_flag
     # Create test metadata with save=true
     metadata = Awfy::ResultMetadata.new(
       type: :memory,
@@ -110,7 +110,7 @@ class JsonResultStoreTest < Minitest::Test
     }
 
     # Store the result
-    result_path = @store.store_result(:memory, "Test Group", "#memory_test", "ruby", metadata) do
+    result_path = @store.save_result(metadata) do
       result_data
     end
 
@@ -124,7 +124,7 @@ class JsonResultStoreTest < Minitest::Test
     assert_equal 1, metadata_files.length, "Expected one metadata file in results directory"
   end
 
-  def test_query_results
+  def test_get_results
     # Store multiple results first
     timestamp = Time.now.to_i
 
@@ -144,7 +144,7 @@ class JsonResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:ips, "Query Group", "#method1", "ruby", metadata1) do
+    @store.save_result(metadata1) do
       {ips: 1000.0}
     end
 
@@ -164,7 +164,7 @@ class JsonResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:ips, "Query Group", "#method1", "yjit", metadata2) do
+    @store.save_result(metadata2) do
       {ips: 1500.0}
     end
 
@@ -184,7 +184,7 @@ class JsonResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:ips, "Another Group", "#method2", "ruby", metadata3) do
+    @store.save_result(metadata3) do
       {ips: 2000.0}
     end
 
@@ -203,7 +203,7 @@ class JsonResultStoreTest < Minitest::Test
 
     # If we got YJIT results, check the value
     if runtime_results.length > 0
-      assert_equal 1500.0, runtime_results.first[:data]["ips"], "Should find the correct result"
+      assert_equal 1500.0, runtime_results.first.result_data["ips"], "Should find the correct result"
     end
 
     # Query with combination of filters
@@ -216,7 +216,7 @@ class JsonResultStoreTest < Minitest::Test
 
     # If we got combo results, check the value
     if combo_results.length > 0
-      assert_equal 1000.0, combo_results.first[:data]["ips"], "Should find the correct result"
+      assert_equal 1000.0, combo_results.first.result_data["ips"], "Should find the correct result"
     end
   end
 
@@ -239,7 +239,7 @@ class JsonResultStoreTest < Minitest::Test
 
     result_data = {ips: 3000.0, iterations: 5000}
 
-    result_path = @store.store_result(:ips, "Load Test", "#load_method", "ruby", metadata) do
+    result_path = @store.save_result(metadata) do
       result_data
     end
 
@@ -249,180 +249,12 @@ class JsonResultStoreTest < Minitest::Test
     # Load the result by ID
     loaded_result = @store.load_result(result_id)
 
+    # Verify loaded result is a ResultMetadata object
+    assert_instance_of Awfy::ResultMetadata, loaded_result
+    
     # Verify loaded data matches original
-    assert_equal result_data[:ips], loaded_result["ips"]
-    assert_equal result_data[:iterations], loaded_result["iterations"]
-  end
-
-  def test_get_metadata
-    # Use store_result directly for this test
-    # This ensures the method properly creates the metadata files
-
-    timestamp = Time.now.to_i
-
-    # Create test metadata for type1
-    metadata1 = Awfy::ResultMetadata.new(
-      type: :meta_type1,
-      group: "Meta Group",
-      report: "#meta1",
-      runtime: "ruby",
-      timestamp: timestamp,
-      branch: "main",
-      commit: "meta1",
-      commit_message: "Test commit",
-      ruby_version: "3.1.0",
-      save: false,
-      result_id: nil,
-      output_path: nil
-    )
-
-    # Store type1 result
-    @store.store_result(:meta_type1, "Meta Group", "#meta1", "ruby", metadata1) do
-      {data: "meta_type1 data"}
-    end
-
-    # Create test metadata for type2
-    metadata2 = Awfy::ResultMetadata.new(
-      type: :meta_type2,
-      group: "Meta Group",
-      report: "#meta1",
-      runtime: "ruby",
-      timestamp: timestamp,
-      branch: "main",
-      commit: "meta2",
-      commit_message: "Test commit",
-      ruby_version: "3.1.0",
-      save: false,
-      result_id: nil,
-      output_path: nil
-    )
-
-    # Store type2 result
-    @store.store_result(:meta_type2, "Meta Group", "#meta1", "ruby", metadata2) do
-      {data: "meta_type2 data"}
-    end
-
-    # Skip asserting specific metadata count, just test that the method works
-    # Get metadata for non-existent type
-    metadata_entries = @store.get_metadata(:nonexistent)
-    assert_equal 0, metadata_entries.length, "Should find 0 metadata entries for nonexistent type"
-
-    # Test that we can get metadata by type
-    begin
-      metadata_entries = @store.get_metadata(:meta_type1)
-      # Additional assertions only if we have results
-      if metadata_entries.length > 0
-        assert_equal "Meta Group", metadata_entries.first["group"], "Group should match"
-        assert_equal "#meta1", metadata_entries.first["report"], "Report should match"
-      end
-    rescue => e
-      # If there's an error, we'll skip the assertions but make the test pass
-      # This is to handle potential encoding issues in CI
-      puts "Warning: Error in get_metadata test: #{e.message}"
-    end
-  end
-
-  def test_list_results
-    # Create metadata files directly for better test reliability
-    timestamp = Time.now.to_i
-
-    # Create result files
-    result_id1 = "#{timestamp}-list_type1-ruby-main-List%20Group%201-%23list1"
-    result_id2 = "#{timestamp}-list_type1-ruby-main-List%20Group%202-%23list2"
-    result_id3 = "#{timestamp}-list_type2-ruby-main-List%20Group%201-%23list3"
-
-    File.write(File.join(@temp_dir, "#{result_id1}.json"), {data: "list data 1"}.to_json)
-    File.write(File.join(@temp_dir, "#{result_id2}.json"), {data: "list data 2"}.to_json)
-    File.write(File.join(@temp_dir, "#{result_id3}.json"), {data: "list data 3"}.to_json)
-
-    # Create metadata for type1, group1
-    metadata1 = [
-      {
-        "type" => "list_type1",
-        "group" => "List Group 1",
-        "report" => "#list1",
-        "runtime" => "ruby",
-        "timestamp" => timestamp,
-        "branch" => "main",
-        "commit" => "list1",
-        "commit_message" => "Test commit",
-        "ruby_version" => "3.1.0",
-        "result_id" => result_id1,
-        "output_path" => File.join(@temp_dir, "#{result_id1}.json")
-      }
-    ]
-
-    # Create metadata for type1, group2
-    metadata2 = [
-      {
-        "type" => "list_type1",
-        "group" => "List Group 2",
-        "report" => "#list2",
-        "runtime" => "ruby",
-        "timestamp" => timestamp,
-        "branch" => "main",
-        "commit" => "list2",
-        "commit_message" => "Test commit",
-        "ruby_version" => "3.1.0",
-        "result_id" => result_id2,
-        "output_path" => File.join(@temp_dir, "#{result_id2}.json")
-      }
-    ]
-
-    # Create metadata for type2, group1
-    metadata3 = [
-      {
-        "type" => "list_type2",
-        "group" => "List Group 1",
-        "report" => "#list3",
-        "runtime" => "ruby",
-        "timestamp" => timestamp,
-        "branch" => "main",
-        "commit" => "list3",
-        "commit_message" => "Test commit",
-        "ruby_version" => "3.1.0",
-        "result_id" => result_id3,
-        "output_path" => File.join(@temp_dir, "#{result_id3}.json")
-      }
-    ]
-
-    # Create metadata files directly - use URI encoding for special characters
-    group1_encoded = URI.encode_www_form_component("List Group 1")
-    group2_encoded = URI.encode_www_form_component("List Group 2")
-    report1_encoded = URI.encode_www_form_component("#list1")
-    report2_encoded = URI.encode_www_form_component("#list2")
-    report3_encoded = URI.encode_www_form_component("#list3")
-
-    meta_file1 = File.join(@temp_dir, "#{timestamp}-awfy-list_type1-#{group1_encoded}-#{report1_encoded}.json")
-    meta_file2 = File.join(@temp_dir, "#{timestamp}-awfy-list_type1-#{group2_encoded}-#{report2_encoded}.json")
-    meta_file3 = File.join(@temp_dir, "#{timestamp}-awfy-list_type2-#{group1_encoded}-#{report3_encoded}.json")
-
-    File.write(meta_file1, metadata1.to_json)
-    File.write(meta_file2, metadata2.to_json)
-    File.write(meta_file3, metadata3.to_json)
-
-    # Verify files were created
-    assert File.exist?(meta_file1), "Metadata file 1 should exist"
-    assert File.exist?(meta_file2), "Metadata file 2 should exist"
-    assert File.exist?(meta_file3), "Metadata file 3 should exist"
-
-    # List all results
-    results = @store.list_results
-
-    # Check that results include our test types
-    assert results.size >= 1, "Results should include entries"
-
-    # Special case handling for type filter
-    type1_results = @store.list_results("list_type1")
-
-    # If we got results for this type filter, make some basic assertions
-    if !type1_results.empty?
-      # Just check that the results don't have type2 in any key
-      refute type1_results.keys.any? { |k| k.to_s.include?("type2") },
-        "Type1 results should not include list_type2"
-    end
-
-    # Skip emptiness assertions since we might have URI encoding issues
+    assert_equal result_data[:ips], loaded_result.result_data["ips"]
+    assert_equal result_data[:iterations], loaded_result.result_data["iterations"]
   end
 
   def test_clean_results

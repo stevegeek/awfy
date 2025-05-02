@@ -19,11 +19,16 @@ module Awfy
       setup_database
     end
 
-    def store_result(type, group, report, runtime, metadata, &block)
+    def save_result(metadata, &block)
       # Ensure we have a ResultMetadata object
       unless metadata.is_a?(ResultMetadata)
         raise ArgumentError, "Expected ResultMetadata object, got #{metadata.class.name}"
       end
+      
+      type = metadata.type
+      group = metadata.group
+      report = metadata.report
+      runtime = metadata.runtime
 
       # Generate data values
       timestamp = metadata.timestamp || Time.now.to_i
@@ -65,13 +70,7 @@ module Awfy
       result_id
     end
 
-    def query_results(query_params = {})
-      type = query_params[:type]
-      group = query_params[:group]
-      report = query_params[:report]
-      commit = query_params[:commit]
-      runtime = query_params[:runtime]
-
+    def query_results(type: nil, group: nil, report: nil, runtime: nil, commit: nil)
       db = connect_db
       db.results_as_hash = true
 
@@ -113,28 +112,25 @@ module Awfy
 
         # Create a metadata hash from row data
         metadata_hash = {
-          "type" => row["type"],
-          "group" => row["group_name"],
-          "report" => row["report_name"],
-          "runtime" => row["runtime"],
-          "timestamp" => row["timestamp"],
-          "branch" => row["branch"],
-          "commit" => row["commit_hash"],
-          "commit_message" => row["commit_msg"],
-          "ruby_version" => row["ruby_version"],
-          "save" => row["is_temp"] == 0, # Convert is_temp to save flag
-          "result_id" => row["result_id"],
-          "output_path" => nil # Not used in SQLite backend
+          type: row["type"].to_sym,
+          group: row["group_name"],
+          report: row["report_name"],
+          runtime: row["runtime"],
+          timestamp: row["timestamp"],
+          branch: row["branch"],
+          commit: row["commit_hash"],
+          commit_message: row["commit_msg"],
+          ruby_version: row["ruby_version"],
+          save: row["is_temp"] == 0, # Convert is_temp to save flag
+          result_id: row["result_id"],
+          result_data: data
         }
 
-        # Convert to ResultMetadata object
-        metadata_obj = create_metadata(metadata_hash)
+        # Create the ResultMetadata object
+        metadata_obj = ResultMetadata.new(**metadata_hash)
 
         # Add to results
-        results << {
-          metadata: metadata_obj,
-          data: data
-        }
+        results << metadata_obj
       end
 
       db.close
@@ -145,92 +141,33 @@ module Awfy
       db = connect_db
       db.results_as_hash = true
 
-      # Query for the result by ID
+      # Query for both metadata and result data by ID
       result = nil
-      db.execute("SELECT data FROM results WHERE result_id = ?", [result_id]) do |row|
-        result = JSON.parse(row["data"])
+      db.execute("SELECT m.*, r.data FROM metadata m JOIN results r ON m.result_id = r.result_id WHERE m.result_id = ?", [result_id]) do |row|
+        data = JSON.parse(row["data"])
+        
+        # Create a metadata hash from row data
+        metadata_hash = {
+          type: row["type"].to_sym,
+          group: row["group_name"],
+          report: row["report_name"],
+          runtime: row["runtime"],
+          timestamp: row["timestamp"],
+          branch: row["branch"],
+          commit: row["commit_hash"],
+          commit_message: row["commit_msg"],
+          ruby_version: row["ruby_version"],
+          save: row["is_temp"] == 0, # Convert is_temp to save flag
+          result_id: row["result_id"],
+          result_data: data
+        }
+        
+        # Create the ResultMetadata object
+        result = ResultMetadata.new(**metadata_hash)
       end
 
       db.close
       result
-    end
-
-    def get_metadata(type, group = nil, report = nil)
-      db = connect_db
-      db.results_as_hash = true
-
-      # Build the SQL query
-      sql = "SELECT * FROM metadata WHERE type = ?"
-      params = [type.to_s]
-
-      # Add filters
-      if group
-        sql += " AND group_name = ?"
-        params << group
-      end
-
-      if report
-        sql += " AND report_name = ?"
-        params << report
-      end
-
-      # Execute query
-      metadata = []
-      db.execute(sql, params) do |row|
-        # Convert row to metadata hash
-        metadata_hash = {
-          "type" => row["type"],
-          "group" => row["group_name"],
-          "report" => row["report_name"],
-          "runtime" => row["runtime"],
-          "timestamp" => row["timestamp"],
-          "branch" => row["branch"],
-          "commit" => row["commit_hash"],
-          "commit_message" => row["commit_msg"],
-          "ruby_version" => row["ruby_version"],
-          "save" => row["is_temp"] == 0, # Convert is_temp to save flag
-          "result_id" => row["result_id"],
-          "output_path" => nil # Not used in SQLite backend
-        }
-
-        metadata << metadata_hash
-      end
-
-      db.close
-      metadata
-    end
-
-    def list_results(type = nil)
-      db = connect_db
-      db.results_as_hash = true
-
-      # Build the SQL query
-      sql = "SELECT DISTINCT type, group_name, report_name FROM metadata"
-      params = []
-
-      # Add type filter if provided
-      if type
-        sql += " WHERE type = ?"
-        params << type.to_s
-      end
-
-      # Execute query
-      results = {}
-      db.execute(sql, params) do |row|
-        type_key = row["type"]
-        group_key = row["group_name"]
-        report = row["report_name"]
-
-        # Initialize nested structure if needed
-        results[type_key] ||= {}
-        results[type_key][group_key] ||= []
-
-        # Add report if not already included
-        results[type_key][group_key] << report unless results[type_key][group_key].include?(report)
-      end
-
-      db.close
-      results
     end
 
     def clean_results(temp_only: true)

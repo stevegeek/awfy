@@ -64,12 +64,15 @@ module IntegrationTestHelper
     original_stdout = $stdout
     output_capture = StringIO.new
     $stdout = output_capture
-    yield
-    output_capture.string.tap do |output|
-      puts output if ENV["VERBOSE"]
+
+    begin
+      yield
+      output_capture.string.tap do |output|
+        original_stdout.puts output# if ENV["VERBOSE"]
+      end
+    ensure
+      $stdout = original_stdout
     end
-  ensure
-    $stdout = original_stdout
   end
 
   # Create multiple commits for testing commit range features
@@ -118,8 +121,7 @@ module IntegrationTestHelper
 
     # Start the CLI with command and all processed args
     capture_command_output do
-      cli = Awfy::CLI.new([], thor_options)
-      cli.public_send(command, *args)
+      Awfy::CLI.new.invoke(command, args, thor_options)
     end
   end
 

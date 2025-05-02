@@ -35,7 +35,7 @@ class SqliteResultStoreTest < Minitest::Test
     teardown_test_environment
   end
 
-  def test_store_result
+  def test_save_result
     # Create test metadata
     metadata = Awfy::ResultMetadata.new(
       type: :ips,
@@ -60,7 +60,7 @@ class SqliteResultStoreTest < Minitest::Test
     }
 
     # Store the result
-    result_id = @store.store_result(:ips, "Test Group", "#method_name", "ruby", metadata) do
+    result_id = @store.save_result(metadata) do
       result_data
     end
 
@@ -89,7 +89,7 @@ class SqliteResultStoreTest < Minitest::Test
     assert_equal "abc123", our_entry["commit"]
   end
 
-  def test_store_result_with_save_flag
+  def test_save_result_with_save_flag
     # Create test metadata with save=true
     metadata = Awfy::ResultMetadata.new(
       type: :memory,
@@ -113,7 +113,7 @@ class SqliteResultStoreTest < Minitest::Test
     }
 
     # Store the result
-    result_id = @store.store_result(:memory, "Test Group", "#memory_test", "ruby", metadata) do
+    result_id = @store.save_result(metadata) do
       result_data
     end
 
@@ -149,7 +149,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:ips, "Query Group", "#method1", "ruby", metadata1) do
+    @store.save_result(metadata1) do
       {ips: 1000.0}
     end
 
@@ -169,7 +169,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:ips, "Query Group", "#method1", "yjit", metadata2) do
+    @store.save_result(metadata2) do
       {ips: 1500.0}
     end
 
@@ -189,7 +189,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:ips, "Another Group", "#method2", "ruby", metadata3) do
+    @store.save_result(metadata3) do
       {ips: 2000.0}
     end
 
@@ -204,7 +204,8 @@ class SqliteResultStoreTest < Minitest::Test
     # Query with runtime filter
     results = @store.query_results(type: :ips, runtime: "yjit")
     assert_equal 1, results.length, "Should find 1 result for yjit runtime"
-    assert_equal 1500.0, results.first[:data]["ips"], "Should find the correct result"
+    assert_instance_of Awfy::ResultMetadata, results.first
+    assert_equal 1500.0, results.first.result_data["ips"], "Should find the correct result"
 
     # Query with combination of filters
     results = @store.query_results(
@@ -214,7 +215,8 @@ class SqliteResultStoreTest < Minitest::Test
       runtime: "ruby"
     )
     assert_equal 1, results.length, "Should find 1 result matching all criteria"
-    assert_equal 1000.0, results.first[:data]["ips"], "Should find the correct result"
+    assert_instance_of Awfy::ResultMetadata, results.first
+    assert_equal 1000.0, results.first.result_data["ips"], "Should find the correct result"
 
     # Query with commit filter
     results = @store.query_results(type: :ips, commit: "query1")
@@ -241,16 +243,19 @@ class SqliteResultStoreTest < Minitest::Test
     result_data = {ips: 3000.0, iterations: 5000}
 
     # Store the result
-    result_id = @store.store_result(:ips, "Load Test", "#load_method", "ruby", metadata) do
+    result_id = @store.save_result(metadata) do
       result_data
     end
 
     # Load the result by ID
     loaded_result = @store.load_result(result_id)
 
+    # Verify loaded result is a ResultMetadata object
+    assert_instance_of Awfy::ResultMetadata, loaded_result
+    
     # Verify loaded data matches original
-    assert_equal result_data[:ips], loaded_result["ips"]
-    assert_equal result_data[:iterations], loaded_result["iterations"]
+    assert_equal result_data[:ips], loaded_result.result_data["ips"]
+    assert_equal result_data[:iterations], loaded_result.result_data["iterations"]
 
     # Attempt to load non-existent result
     assert_nil @store.load_result("non-existent-id"), "Should return nil for non-existent ID"
@@ -276,7 +281,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:meta_type1, "Meta Group", "#meta1", "ruby", metadata1) do
+    @store.save_result(metadata1) do
       {data: "meta_type1 data"}
     end
 
@@ -296,7 +301,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:meta_type2, "Meta Group", "#meta1", "ruby", metadata2) do
+    @store.save_result(metadata2) do
       {data: "meta_type2 data"}
     end
 
@@ -339,7 +344,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:list_type1, "List Group 1", "#list1", "ruby", metadata1) do
+    @store.save_result(metadata1) do
       {data: "list data 1"}
     end
 
@@ -359,7 +364,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:list_type1, "List Group 2", "#list2", "ruby", metadata2) do
+    @store.save_result(metadata2) do
       {data: "list data 2"}
     end
 
@@ -379,7 +384,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:list_type2, "List Group 1", "#list3", "ruby", metadata3) do
+    @store.save_result(metadata3) do
       {data: "list data 3"}
     end
 
@@ -427,7 +432,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:clean_test, "Clean Group", "#temp", "ruby", metadata_temp) do
+    @store.save_result(metadata_temp) do
       {data: "temp data"}
     end
 
@@ -447,7 +452,7 @@ class SqliteResultStoreTest < Minitest::Test
       output_path: nil
     )
 
-    @store.store_result(:clean_test, "Clean Group", "#perm", "ruby", metadata_perm) do
+    @store.save_result(metadata_perm) do
       {data: "perm data"}
     end
 

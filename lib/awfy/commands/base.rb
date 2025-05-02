@@ -222,7 +222,7 @@ module Awfy
         grouped_metadata.each do |(_group, report_name), report_entries|
           results = report_entries.map do |entry|
             # Load the result data using the result store
-            #result_data = result_store.load_result(entry["result_id"])
+            # result_data = result_store.load_result(entry["result_id"])
             result_data = entry["result_data"]
             next unless result_data
 
@@ -241,7 +241,7 @@ module Awfy
                 test_name: test_name,
                 branch: entry["branch"],
                 timestamp: entry["timestamp"],
-                control: entry["control"],
+                control: entry["control"]
               )
             end
           end
