@@ -62,9 +62,12 @@ class JsonResultStoreTest < Minitest::Test
 
     # Verify the stored data matches what we provided
     stored_data = JSON.parse(File.read(result_path))
-    assert_equal result_data[:iterations], stored_data["iterations"]
-    assert_equal result_data[:runtime], stored_data["runtime"]
-    assert_equal result_data[:ips], stored_data["ips"]
+    assert_equal 1, stored_data.length, "Expected one entry in metadata file"
+    result_metadata = stored_data.first
+    assert result_metadata["result_data"], "Result data should be present"
+    assert_equal result_data[:iterations], result_metadata["result_data"]["iterations"]
+    assert_equal result_data[:runtime], result_metadata["result_data"]["runtime"]
+    assert_equal result_data[:ips], result_metadata["result_data"]["ips"]
 
     # Verify the metadata file exists and contains our entry
     metadata_glob = File.join(@temp_dir, "*-awfy-ips-*")
@@ -237,8 +240,9 @@ class JsonResultStoreTest < Minitest::Test
       result_data
     end
 
-    # Extract result_id from the path
-    result_id = File.basename(result_path, ".json")
+    # Read the file to get the metadata with result_id
+    metadata_content = JSON.parse(File.read(result_path))
+    result_id = metadata_content.first["result_id"]
 
     # Load the result by ID
     loaded_result = @store.load_result(result_id)

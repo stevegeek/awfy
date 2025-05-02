@@ -67,25 +67,27 @@ class SqliteResultStoreTest < Minitest::Test
     assert result_id, "Result ID should be returned"
 
     # Load stored data and verify it matches original
-    stored_data = @store.load_result(result_id)
+    stored_metadata = @store.load_result(result_id)
+    assert_instance_of Awfy::ResultMetadata, stored_metadata
+    stored_data = stored_metadata.result_data
     assert_equal result_data[:iterations], stored_data["iterations"]
     assert_equal result_data[:runtime], stored_data["runtime"]
     assert_equal result_data[:ips], stored_data["ips"]
 
-    # Query metadata and verify it contains our entry
-    metadata_entries = @store.get_metadata(:ips)
+    # Use query_results to verify metadata
+    metadata_entries = @store.query_results(type: :ips)
     assert metadata_entries.length > 0, "Should find metadata entries for ips"
 
     # Find our entry
-    our_entry = metadata_entries.find { |entry| entry["result_id"] == result_id }
+    our_entry = metadata_entries.find { |entry| entry.result_id == result_id }
     assert our_entry, "Should find our metadata entry"
 
     # Verify metadata content
-    assert_equal "Test Group", our_entry["group"]
-    assert_equal "#method_name", our_entry["report"]
-    assert_equal "ruby", our_entry["runtime"]
-    assert_equal "main", our_entry["branch"]
-    assert_equal "abc123", our_entry["commit"]
+    assert_equal "Test Group", our_entry.group
+    assert_equal "#method_name", our_entry.report
+    assert_equal "ruby", our_entry.runtime
+    assert_equal "main", our_entry.branch
+    assert_equal "abc123", our_entry.commit
   end
 
   def test_save_result_with_save_flag
@@ -118,13 +120,13 @@ class SqliteResultStoreTest < Minitest::Test
     # Assert that the result_id is returned
     assert result_id, "Result ID should be returned"
 
-    # Query metadata and verify it's flagged as permanent
-    metadata_entries = @store.get_metadata(:memory)
-    our_entry = metadata_entries.find { |entry| entry["result_id"] == result_id }
+    # Query results and verify it's flagged as permanent
+    metadata_entries = @store.query_results(type: :memory)
+    our_entry = metadata_entries.find { |entry| entry.result_id == result_id }
     assert our_entry, "Should find our metadata entry"
 
-    # The "save" flag should be reflected in the is_temp flag (inverted)
-    refute our_entry["is_temp"], "Result should be saved as permanent"
+    # The "save" flag should be true for permanent entries
+    assert our_entry.save, "Result should be saved as permanent"
   end
 
   def test_query_results
@@ -181,8 +183,7 @@ class SqliteResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     @store.save_result(metadata3) do
@@ -232,8 +233,7 @@ class SqliteResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     result_data = {ips: 3000.0, iterations: 5000}
@@ -257,160 +257,6 @@ class SqliteResultStoreTest < Minitest::Test
     assert_nil @store.load_result("non-existent-id"), "Should return nil for non-existent ID"
   end
 
-  def test_get_metadata
-    # Store some results for metadata retrieval
-    timestamp = Time.now.to_i
-
-    # Store for type1
-    metadata1 = Awfy::ResultMetadata.new(
-      type: :meta_type1,
-      group: "Meta Group",
-      report: "#meta1",
-      runtime: "ruby",
-      timestamp: timestamp,
-      branch: "main",
-      commit: "meta1",
-      commit_message: "Test commit",
-      ruby_version: "3.1.0",
-      save: false,
-      result_id: nil,
-      output_path: nil
-    )
-
-    @store.save_result(metadata1) do
-      {data: "meta_type1 data"}
-    end
-
-    # Store for type2
-    metadata2 = Awfy::ResultMetadata.new(
-      type: :meta_type2,
-      group: "Meta Group",
-      report: "#meta1",
-      runtime: "ruby",
-      timestamp: timestamp,
-      branch: "main",
-      commit: "meta2",
-      commit_message: "Test commit",
-      ruby_version: "3.1.0",
-      save: false,
-      result_id: nil,
-      output_path: nil
-    )
-
-    @store.save_result(metadata2) do
-      {data: "meta_type2 data"}
-    end
-
-    # Get metadata for type1
-    metadata_entries = @store.get_metadata(:meta_type1)
-    assert_equal 1, metadata_entries.length, "Should find 1 metadata entry for meta_type1"
-    assert_equal "Meta Group", metadata_entries.first["group"]
-    assert_equal "#meta1", metadata_entries.first["report"]
-
-    # Get metadata with group filter
-    metadata_entries = @store.get_metadata(:meta_type2, "Meta Group")
-    assert_equal 1, metadata_entries.length, "Should find 1 metadata entry for meta_type2 + Meta Group"
-
-    # Get metadata with group and report filter
-    metadata_entries = @store.get_metadata(:meta_type2, "Meta Group", "#meta1")
-    assert_equal 1, metadata_entries.length, "Should find 1 metadata entry for all filters"
-
-    # Get metadata for non-existent type
-    metadata_entries = @store.get_metadata(:nonexistent)
-    assert_equal 0, metadata_entries.length, "Should find 0 metadata entries for nonexistent type"
-  end
-
-  def test_list_results
-    # Store some results for listing
-    timestamp = Time.now.to_i
-
-    # Store for type1, group1
-    metadata1 = Awfy::ResultMetadata.new(
-      type: :list_type1,
-      group: "List Group 1",
-      report: "#list1",
-      runtime: "ruby",
-      timestamp: timestamp,
-      branch: "main",
-      commit: "list1",
-      commit_message: "Test commit",
-      ruby_version: "3.1.0",
-      save: false,
-      result_id: nil,
-      output_path: nil
-    )
-
-    @store.save_result(metadata1) do
-      {data: "list data 1"}
-    end
-
-    # Store for type1, group2
-    metadata2 = Awfy::ResultMetadata.new(
-      type: :list_type1,
-      group: "List Group 2",
-      report: "#list2",
-      runtime: "ruby",
-      timestamp: timestamp,
-      branch: "main",
-      commit: "list2",
-      commit_message: "Test commit",
-      ruby_version: "3.1.0",
-      save: false,
-      result_id: nil,
-      output_path: nil
-    )
-
-    @store.save_result(metadata2) do
-      {data: "list data 2"}
-    end
-
-    # Store for type2, group1
-    metadata3 = Awfy::ResultMetadata.new(
-      type: :list_type2,
-      group: "List Group 1",
-      report: "#list3",
-      runtime: "ruby",
-      timestamp: timestamp,
-      branch: "main",
-      commit: "list3",
-      commit_message: "Test commit",
-      ruby_version: "3.1.0",
-      save: false,
-      result_id: nil,
-      output_path: nil
-    )
-
-    @store.save_result(metadata3) do
-      {data: "list data 3"}
-    end
-
-    # List all results
-    results = @store.list_results
-
-    # Verify the structure of results
-    assert_equal 2, results.size, "Results should include 2 types"
-
-    # Verify the data for list_type1
-    assert results.key?("list_type1"), "Results should include list_type1"
-    assert_equal 2, results["list_type1"].size, "list_type1 should have 2 groups"
-    assert results["list_type1"].key?("List Group 1"), "list_type1 should include List Group 1"
-    assert results["list_type1"].key?("List Group 2"), "list_type1 should include List Group 2"
-    assert_equal ["#list1"], results["list_type1"]["List Group 1"], "Should find correct report for Group 1"
-    assert_equal ["#list2"], results["list_type1"]["List Group 2"], "Should find correct report for Group 2"
-
-    # Verify the data for list_type2
-    assert results.key?("list_type2"), "Results should include list_type2"
-    assert_equal 1, results["list_type2"].size, "list_type2 should have 1 group"
-    assert results["list_type2"].key?("List Group 1"), "list_type2 should include List Group 1"
-    assert_equal ["#list3"], results["list_type2"]["List Group 1"], "Should find correct report for list_type2 Group 1"
-
-    # List results for specific type
-    type1_results = @store.list_results("list_type1")
-    assert_equal 1, type1_results.size, "Type1 results should only have 1 type"
-    assert type1_results.key?("list_type1"), "Type1 results should include list_type1"
-    refute type1_results.key?("list_type2"), "Type1 results should not include list_type2"
-  end
-
   def test_clean_results
     # Store some temporary results
     metadata_temp = Awfy::ResultMetadata.new(
@@ -424,8 +270,7 @@ class SqliteResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,  # temporary
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     @store.save_result(metadata_temp) do
@@ -444,8 +289,7 @@ class SqliteResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: true,  # permanent
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     @store.save_result(metadata_perm) do
@@ -453,22 +297,22 @@ class SqliteResultStoreTest < Minitest::Test
     end
 
     # Verify both results exist
-    results = @store.get_metadata(:clean_test)
+    results = @store.query_results(type: :clean_test)
     assert_equal 2, results.length, "Should have 2 results before cleaning"
 
     # Clean temporary results only
     @store.clean_results(temp_only: true)
 
     # Verify only permanent results remain
-    results = @store.get_metadata(:clean_test)
+    results = @store.query_results(type: :clean_test)
     assert_equal 1, results.length, "Should have 1 result after cleaning temp"
-    assert_equal "#perm", results.first["report"], "Permanent result should remain"
+    assert_equal "#perm", results.first.report, "Permanent result should remain"
 
     # Clean all results
     @store.clean_results(temp_only: false)
 
     # Verify no results remain
-    results = @store.get_metadata(:clean_test)
+    results = @store.query_results(type: :clean_test)
     assert_equal 0, results.length, "Should have 0 results after cleaning all"
   end
 end

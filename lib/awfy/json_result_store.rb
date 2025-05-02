@@ -120,7 +120,7 @@ module Awfy
           metadata_entries = JSON.parse(File.read(file))
           entry = metadata_entries.find { |e| e["result_id"] == result_id }
           if entry
-            metadata_obj = create_metadata(entry)
+            metadata_obj = ResultMetadata.from_hash(entry)
             break
           end
         rescue

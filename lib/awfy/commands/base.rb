@@ -249,7 +249,7 @@ module Awfy
 
           # Skip if no results
           next if results.empty?
-          
+
           # Choose baseline
           baseline = choose_baseline_test(results)
 
