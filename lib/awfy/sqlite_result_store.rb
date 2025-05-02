@@ -20,10 +20,8 @@ module Awfy
     end
 
     def save_result(metadata, &block)
-      # Ensure we have a ResultMetadata object
-      unless metadata.is_a?(ResultMetadata)
-        raise ArgumentError, "Expected ResultMetadata object, got #{metadata.class.name}"
-      end
+      # Validate metadata is a ResultMetadata object
+      validate_metadata!(metadata)
 
       type = metadata.type
       group = metadata.group
@@ -33,13 +31,12 @@ module Awfy
       # Generate data values
       timestamp = metadata.timestamp || Time.now.to_i
       is_temp = !(metadata.save || false)
-      branch = metadata.branch || "unknown"
 
       # Generate a unique identifier for this result
-      result_id = "#{timestamp}-#{type}-#{runtime}-#{branch}-#{group}-#{report}"
+      result_id = generate_result_id(metadata)
 
       # Execute the provided block to get the result data
-      result_data = yield if block_given?
+      result_data = execute_result_block(&block)
       data_json = result_data.to_json
 
       # Store in database
@@ -54,7 +51,7 @@ module Awfy
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             result_id, type.to_s, group, report, runtime,
-            timestamp, branch, metadata.commit, metadata.commit_message,
+            timestamp, metadata.branch, metadata.commit, metadata.commit_message,
             metadata.ruby_version, is_temp ? 1 : 0
           ]
         )

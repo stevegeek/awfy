@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "fileutils"
-require "uri"
 require "json"
 
 module Awfy
@@ -16,23 +15,21 @@ module Awfy
     end
 
     def save_result(metadata, &block)
-      unless metadata.is_a?(ResultMetadata)
-        raise ArgumentError, "Expected ResultMetadata object, got #{metadata.class.name}"
-      end
+      # Validate metadata is a ResultMetadata object
+      validate_metadata!(metadata)
 
       type = metadata.type
       group = metadata.group
       report = metadata.report
-      runtime = metadata.runtime
       timestamp = metadata.timestamp || Time.now.to_i
       save_to_permanent = metadata.save || false
       output_dir = save_to_permanent ? @results_dir : @temp_dir
 
       # Generate a unique identifier for this result
-      result_id = generate_result_id(type, runtime, group, report, timestamp, metadata.branch)
+      result_id = generate_result_id(metadata)
 
       # Execute the provided block to get the result data
-      result_data = yield if block_given?
+      result_data = execute_result_block(&block)
 
       # Metadata file that tracks all results for this type/group/report
       result_file = result_output_file_path(output_dir, type, group, report, timestamp)
@@ -70,8 +67,8 @@ module Awfy
         pattern = "#{dir}/*-awfy-"
         pattern += "#{type}-" if type
         pattern += "*" if !group && !report # If no group/report specified, match all
-        pattern += "#{URI.encode_www_form_component(group)}" if group
-        pattern += "-#{URI.encode_www_form_component(report)}" if report
+        pattern += encode_component(group).to_s if group
+        pattern += "-#{encode_component(report)}" if report
         pattern += ".json"
 
         metadata_files.concat(Dir.glob(pattern))
@@ -85,23 +82,13 @@ module Awfy
         # Skip empty files
         next if metadata_entries.empty?
 
-        # Filter by criteria
-        filtered_entries = metadata_entries.select do |entry|
-          matches = true
-          matches &= entry["runtime"] == runtime if runtime
-          matches &= entry["commit"] == commit if commit
-          matches
-        end
+        # Convert entries to ResultMetadata objects and apply filters
+        entries = metadata_entries.map { |entry| ResultMetadata.from_hash(entry) }
+          .select { |entry| entry.result_data } # Only include entries with result data
 
-        filtered_entries.each do |entry|
-          # Convert the metadata hash to a ResultMetadata object with result_data included
-          metadata_obj = ResultMetadata.from_hash(entry)
-
-          # Only add to results if there's result data
-          if metadata_obj.result_data
-            results << metadata_obj
-          end
-        end
+        # Apply the filters
+        filtered_entries = apply_filters(entries, type: type, group: group, report: report, runtime: runtime, commit: commit)
+        results.concat(filtered_entries)
       rescue
         # Skip files that can't be processed
         next
@@ -165,12 +152,7 @@ module Awfy
     private
 
     def result_output_file_path(output_dir, type, group, report, timestamp)
-      File.join(output_dir, "#{timestamp}-awfy-#{type}-#{URI.encode_www_form_component(group)}-#{URI.encode_www_form_component(report)}.json")
-    end
-
-    def generate_result_id(type, runtime, group, report, timestamp, branch)
-      branch ||= "unknown"
-      "#{timestamp}-#{type}-#{runtime}-#{URI.encode_www_form_component(branch)}-#{URI.encode_www_form_component(group)}-#{URI.encode_www_form_component(report)}"
+      File.join(output_dir, "#{timestamp}-awfy-#{type}-#{encode_component(group)}-#{encode_component(report)}.json")
     end
   end
 end

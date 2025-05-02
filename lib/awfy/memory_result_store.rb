@@ -11,18 +11,22 @@ module Awfy
       @next_id = 1
     end
 
-    def save_result(result)
-      # Generate an ID for the result
+    def save_result(metadata, &block)
+      # Validate metadata is a ResultMetadata object
+      validate_metadata!(metadata)
+
+      # Generate an ID for the result (using a simplified approach)
       result_id = "memory-result-#{@next_id}"
       @next_id += 1
 
       # Get the result data from the block
-      data = block_given? ? yield : nil
+      result_data = execute_result_block(&block)
+
       # Create complete metadata with result_id and result_data
       complete_metadata = ResultMetadata.new(
-        **result.to_h,
+        **metadata.to_h,
         result_id: result_id,
-        result_data: data
+        result_data: result_data
       )
       @stored_results[result_id] = complete_metadata
 
@@ -31,13 +35,8 @@ module Awfy
     end
 
     def query_results(type: nil, group: nil, report: nil, runtime: nil, commit: nil)
-      @stored_results.values.select do |result|
-        (type.nil? || result.type == type) &&
-          (group.nil? || result.group == group) &&
-          (report.nil? || result.report == report) &&
-          (runtime.nil? || result.runtime == runtime) &&
-          (commit.nil? || result.commit == commit)
-      end
+      # Use the common filtering logic from the base class
+      apply_filters(@stored_results.values, type: type, group: group, report: report, runtime: runtime, commit: commit)
     end
 
     def load_result(result_id)
