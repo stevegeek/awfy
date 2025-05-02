@@ -216,12 +216,12 @@ module Awfy
         # Get all metadata for this benchmark type
         metadata_entries = result_store.query_results(type:)
         # Group metadata by report (since we need to process each report separately)
-        grouped_metadata = metadata_entries.group_by { |entry| [entry["group"], entry["report"]] }
+        grouped_metadata = metadata_entries.group_by { |entry| [entry.group, entry.report] }
 
         grouped_metadata.each do |(_group, report_name), report_entries|
           results = report_entries.map do |entry|
-            # Load the result data using the result store
-            result_data = entry["result_data"]
+            # Load the result data from the ResultMetadata object
+            result_data = entry.result_data
             next unless result_data
 
             # Process each result
@@ -235,11 +235,11 @@ module Awfy
 
               # Add metadata to the result
               result.merge!(
-                runtime: entry["runtime"],
+                runtime: entry.runtime,
                 test_name: test_name,
-                branch: entry["branch"],
-                timestamp: entry["timestamp"],
-                control: entry["control"]
+                branch: entry.branch,
+                timestamp: entry.timestamp,
+                control: result[:control] # Use the control flag from the result itself
               )
             end
           end
@@ -249,12 +249,23 @@ module Awfy
 
           # Skip if no results
           next if results.empty?
-
+          
           # Choose baseline
           baseline = choose_baseline_test(results)
 
+          # Create report data for the view
+          report_data = report_entries.map do |entry|
+            {
+              "type" => entry.type,
+              "group" => entry.group,
+              "report" => entry.report,
+              "runtime" => entry.runtime,
+              "branch" => entry.branch
+            }
+          end
+
           # Yield to the block
-          yield report_entries, results, baseline
+          yield report_data, results, baseline
         end
       end
 

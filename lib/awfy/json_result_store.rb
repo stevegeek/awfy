@@ -73,7 +73,7 @@ module Awfy
         pattern += "#{URI.encode_www_form_component(group)}" if group
         pattern += "-#{URI.encode_www_form_component(report)}" if report
         pattern += ".json"
-
+        
         metadata_files.concat(Dir.glob(pattern))
       end
 
@@ -82,6 +82,9 @@ module Awfy
       metadata_files.each do |file|
         begin
           metadata_entries = JSON.parse(File.read(file))
+          
+          # Skip empty files
+          next if metadata_entries.empty?
 
           # Filter by criteria
           filtered_entries = metadata_entries.select do |entry|
@@ -92,9 +95,12 @@ module Awfy
           end
 
           filtered_entries.each do |entry|
-            # Load the actual result data if the file exists
-            if File.exist?(entry["output_path"])
-              result_data = JSON.parse(File.read(entry["output_path"]))
+            # Load the actual result data if an output_path is specified and the file exists
+            output_path = entry["output_path"]
+            
+            if output_path && File.exist?(output_path)
+              # Load result data from external file
+              result_data = JSON.parse(File.read(output_path))
 
               # Convert the metadata hash to a ResultMetadata object
               metadata_obj = ResultMetadata.from_hash(entry)
@@ -106,9 +112,15 @@ module Awfy
               )
 
               results << complete_metadata
+            else
+              # If the entry has result_data directly, use that
+              if entry["result_data"]
+                metadata_obj = ResultMetadata.from_hash(entry)
+                results << metadata_obj
+              end
             end
           end
-        rescue
+        rescue => e
           # Skip files that can't be processed
           next
         end
