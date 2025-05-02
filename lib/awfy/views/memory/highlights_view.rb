@@ -3,11 +3,9 @@
 module Awfy
   module Views
     module Memory
-      # View for Memory performance highlights
       class HighlightsView < BaseView
-        # Generate a highlights table showing memory trends across commits
-        # @param sorted_commits [Array<String>] Sorted list of commit hashes
-        # @param results_by_commit [Hash] Results organized by commit
+        include CommitHelpers
+
         def highlights_table(sorted_commits, results_by_commit)
           headings = ["Commit", "Description", "Memory Change", "Objects Change"]
 
@@ -26,23 +24,18 @@ module Awfy
           baseline_memory = baseline_result["memory"]["memsize"]
           baseline_objects = baseline_result["memory"]["objects"]
 
-          rows = []
+          # Prepare baseline row
+          metadata = results_by_commit[baseline_commit][:metadata]
+          commit_short, commit_msg = format_commit_info(baseline_commit, metadata[:commit_message], 8, 23)
 
-          # Show baseline row
-          baseline_row = [
-            baseline_commit[0..7],
-            results_by_commit[baseline_commit][:metadata][:commit_message].to_s[0..22] + "...",
-            "baseline",
-            "baseline"
-          ]
-
-          rows << baseline_row
+          # Create baseline row with default "baseline" values for memory and objects
+          baseline_row = [commit_short, commit_msg, "baseline", "baseline"]
+          rows = [baseline_row]
 
           # Skip the first one (baseline)
           sorted_commits[1..].each do |commit|
             metadata = results_by_commit[commit][:metadata]
-            commit_short = commit[0..7]
-            commit_msg = metadata[:commit_message].to_s[0..22] + "..."
+            commit_short, commit_msg = format_commit_info(commit, metadata[:commit_message], 8, 23)
 
             current_result = find_first_test_with_memory(results_by_commit, commit, runtime)
 
@@ -56,13 +49,7 @@ module Awfy
               end
 
               memory_change = if memory_comparison
-                if memory_comparison < 1.0
-                  "-#{((1 - memory_comparison) * 100).round(1)}%"
-                elsif memory_comparison > 1.0
-                  "+#{((memory_comparison - 1) * 100).round(1)}%"
-                else
-                  "No change"
-                end
+                format_change(memory_comparison)
               else
                 "N/A"
               end
@@ -73,13 +60,7 @@ module Awfy
               end
 
               objects_change = if objects_comparison
-                if objects_comparison < 1.0
-                  "-#{((1 - objects_comparison) * 100).round(1)}%"
-                elsif objects_comparison > 1.0
-                  "+#{((objects_comparison - 1) * 100).round(1)}%"
-                else
-                  "No change"
-                end
+                format_change(objects_comparison)
               else
                 "N/A"
               end
@@ -98,10 +79,6 @@ module Awfy
         end
 
         private
-
-        def has_runtime?(results_by_commit, runtime)
-          results_by_commit.any? { |_, data| data[runtime] }
-        end
 
         def find_first_test_with_memory(results_by_commit, commit, runtime)
           return nil unless results_by_commit[commit] && results_by_commit[commit][runtime]

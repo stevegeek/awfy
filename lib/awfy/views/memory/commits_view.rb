@@ -3,13 +3,9 @@
 module Awfy
   module Views
     module Memory
-      # View for Memory benchmark commit comparison reports
       class CommitsView < BaseView
-        # Generate a table showing test memory usage across commits
-        # @param test_label [String] The name of the test
-        # @param runtime [Symbol] The runtime (:mri or :yjit)
-        # @param sorted_commits [Array<String>] Sorted list of commit hashes
-        # @param results_by_commit [Hash] Results organized by commit
+        include CommitHelpers
+
         def test_memory_table(test_label, runtime, sorted_commits, results_by_commit)
           # Get baseline memory (first commit for this test)
           first_commit = sorted_commits.first
@@ -21,8 +17,7 @@ module Awfy
           sorted_commits.each do |commit|
             # Get commit metadata
             metadata = results_by_commit[commit][:metadata]
-            commit_short = commit[0..7]
-            commit_msg = metadata[:commit_message].to_s[0..27] + "..."
+            commit_short, commit_msg = format_commit_info(commit, metadata[:commit_message], 8, 28)
 
             # Find this test in the results
             result = find_test_result(results_by_commit, commit, runtime, test_label)
@@ -49,14 +44,6 @@ module Awfy
           table = format_table(table_title, ["Commit", "Description", "Bytes", "Objects", "vs Baseline"], rows)
 
           say table
-        end
-
-        private
-
-        def find_test_result(results_by_commit, commit, runtime, test_label)
-          return nil unless results_by_commit[commit] && results_by_commit[commit][runtime]
-
-          results_by_commit[commit][runtime].find { |r| r["item"] == test_label }
         end
       end
     end

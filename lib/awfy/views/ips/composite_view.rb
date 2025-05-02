@@ -3,23 +3,20 @@
 module Awfy
   module Views
     module IPS
-      # Composite view for IPS that delegates to specialized views
-      class CompositeView < BaseView
-        def initialize(shell, options)
-          super
-          @summary_view = SummaryView.new(shell, options)
-          @commits_view = CommitsView.new(shell, options)
-          @highlights_view = HighlightsView.new(shell, options)
+      class CompositeView < CompositeViewBase
+        # Initialize child views for delegation
+        def setup_child_views
+          @summary_view = SummaryView.new(@shell, @options)
+          @commits_view = CommitsView.new(@shell, @options)
+          @highlights_view = HighlightsView.new(@shell, @options)
         end
 
-        def summary_table(report, results, baseline)
-          @summary_view.summary_table(report, results, baseline)
-        end
-
+        # Generate a table showing test performance across commits
         def test_performance_table(test_label, runtime, sorted_commits, results_by_commit)
           @commits_view.test_performance_table(test_label, runtime, sorted_commits, results_by_commit)
         end
 
+        # Generate a highlights table showing performance trends across commits
         def highlights_table(sorted_commits, results_by_commit)
           @highlights_view.highlights_table(sorted_commits, results_by_commit)
         end

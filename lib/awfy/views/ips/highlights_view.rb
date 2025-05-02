@@ -3,11 +3,9 @@
 module Awfy
   module Views
     module IPS
-      # View for IPS performance highlights
       class HighlightsView < BaseView
-        # Generate a highlights table showing performance trends across commits
-        # @param sorted_commits [Array<String>] Sorted list of commit hashes
-        # @param results_by_commit [Hash] Results organized by commit
+        include CommitHelpers
+
         def highlights_table(sorted_commits, results_by_commit)
           # Define headings based on available runtimes
           headings = ["Commit", "Description"]
@@ -30,14 +28,12 @@ module Awfy
           baseline_mri_ips = get_first_test_ips(results_by_commit, baseline_commit, :mri)
           baseline_yjit_ips = get_first_test_ips(results_by_commit, baseline_commit, :yjit)
 
-          rows = []
+          # Prepare baseline row
+          metadata = results_by_commit[baseline_commit][:metadata]
+          commit_short, commit_msg = format_commit_info(baseline_commit, metadata[:commit_message], 8, 23)
+          baseline_row = [commit_short, commit_msg]
 
-          # Show baseline row
-          baseline_row = [
-            baseline_commit[0..7],
-            results_by_commit[baseline_commit][:metadata][:commit_message].to_s[0..22] + "..."
-          ]
-
+          # Add runtime baseline columns
           if has_runtime?(results_by_commit, :mri)
             baseline_row << "baseline"
           end
@@ -46,6 +42,7 @@ module Awfy
             baseline_row << "baseline"
           end
 
+          # Add YJIT vs MRI comparison for baseline
           if has_runtime?(results_by_commit, :mri) && has_runtime?(results_by_commit, :yjit)
             baseline_row << if baseline_mri_ips && baseline_yjit_ips
               "#{(baseline_yjit_ips / baseline_mri_ips).round(2)}x"
@@ -54,13 +51,12 @@ module Awfy
             end
           end
 
-          rows << baseline_row
+          rows = [baseline_row]
 
           # Skip the first one (baseline)
           sorted_commits[1..].each do |commit|
             metadata = results_by_commit[commit][:metadata]
-            commit_short = commit[0..7]
-            commit_msg = metadata[:commit_message].to_s[0..22] + "..."
+            commit_short, commit_msg = format_commit_info(commit, metadata[:commit_message], 8, 23)
 
             row = [commit_short, commit_msg]
 
@@ -115,16 +111,9 @@ module Awfy
 
         private
 
-        def has_runtime?(results_by_commit, runtime)
-          results_by_commit.any? { |_, data| data[runtime] }
-        end
-
         def get_first_test_ips(results_by_commit, commit, runtime)
-          return nil unless results_by_commit[commit] && results_by_commit[commit][runtime]
-
-          # Get the first real test result
-          first_test = results_by_commit[commit][runtime].find { |r| r["item"] }
-          first_test ? first_test["ips"] : nil
+          result = find_test_result(results_by_commit, commit, runtime)
+          result ? result["ips"] : nil
         end
       end
     end
