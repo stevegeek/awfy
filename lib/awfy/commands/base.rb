@@ -214,15 +214,13 @@ module Awfy
         result_store = Awfy::ResultStoreFactory.instance(options)
 
         # Get all metadata for this benchmark type
-        metadata_entries = result_store.get_metadata(type)
-
+        metadata_entries = result_store.query_results(type:)
         # Group metadata by report (since we need to process each report separately)
         grouped_metadata = metadata_entries.group_by { |entry| [entry["group"], entry["report"]] }
 
         grouped_metadata.each do |(_group, report_name), report_entries|
           results = report_entries.map do |entry|
             # Load the result data using the result store
-            # result_data = result_store.load_result(entry["result_id"])
             result_data = entry["result_data"]
             next unless result_data
 
@@ -295,7 +293,7 @@ module Awfy
 
         result_store = Awfy::ResultStoreFactory.instance(options)
 
-        result_id = result_store.store_result(type, group[:name], report[:name], runtime, metadata) do
+        result_id = result_store.save_result(metadata) do
           yield
         end
 

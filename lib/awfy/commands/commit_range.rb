@@ -292,7 +292,7 @@ module Awfy
           report: report_name
         }
 
-        results = result_store.query_results(query_params)
+        results = result_store.query_results(**query_params)
 
         if results.empty?
           say_error "No IPS benchmark results found for comparison"
@@ -354,7 +354,7 @@ module Awfy
           report: report_name
         }
 
-        results = result_store.query_results(query_params)
+        results = result_store.query_results(**query_params)
 
         if results.empty?
           say_error "No memory benchmark results found for comparison"

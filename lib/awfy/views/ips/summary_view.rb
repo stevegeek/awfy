@@ -100,7 +100,7 @@ module Awfy
             "Results displayed in ascending order"
           when "desc"
             "Results displayed in descending order"
-          when "leader"
+          else # Default to "leader"
             "Results displayed as a leaderboard (best to worst)"
           end
         end
