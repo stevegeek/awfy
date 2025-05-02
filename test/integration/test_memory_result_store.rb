@@ -56,10 +56,10 @@ class MemoryResultStoreTest < Minitest::Test
 
     # Verify stored result exists
     refute_empty @store.stored_results, "No results were stored in the memory store"
-    
+
     # Verify result_id is stored
     assert @store.stored_results.key?(result_id), "Result ID should be present in stored results"
-    
+
     # Check stored data structure
     stored_result = @store.stored_results[result_id]
     assert_instance_of Awfy::ResultMetadata, stored_result, "Stored result should be a ResultMetadata object"
@@ -193,7 +193,7 @@ class MemoryResultStoreTest < Minitest::Test
 
     # Verify loaded result is a ResultMetadata object
     assert_instance_of Awfy::ResultMetadata, loaded_result
-    
+
     # Verify loaded data matches original
     assert_equal result_data[:ips], loaded_result.result_data[:ips]
     assert_equal result_data[:iterations], loaded_result.result_data[:iterations]

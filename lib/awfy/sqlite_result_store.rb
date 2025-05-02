@@ -24,7 +24,7 @@ module Awfy
       unless metadata.is_a?(ResultMetadata)
         raise ArgumentError, "Expected ResultMetadata object, got #{metadata.class.name}"
       end
-      
+
       type = metadata.type
       group = metadata.group
       report = metadata.report
@@ -145,7 +145,7 @@ module Awfy
       result = nil
       db.execute("SELECT m.*, r.data FROM metadata m JOIN results r ON m.result_id = r.result_id WHERE m.result_id = ?", [result_id]) do |row|
         data = JSON.parse(row["data"])
-        
+
         # Create a metadata hash from row data
         metadata_hash = {
           type: row["type"].to_sym,
@@ -161,7 +161,7 @@ module Awfy
           result_id: row["result_id"],
           result_data: data
         }
-        
+
         # Create the ResultMetadata object
         result = ResultMetadata.new(**metadata_hash)
       end

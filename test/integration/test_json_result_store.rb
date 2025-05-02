@@ -42,8 +42,7 @@ class JsonResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     # Sample benchmark result data
@@ -83,7 +82,7 @@ class JsonResultStoreTest < Minitest::Test
 
     # Verify result_id is stored in metadata
     assert metadata_content.first["result_id"], "result_id should be present in metadata"
-    assert metadata_content.first["output_path"], "output_path should be present in metadata"
+    assert metadata_content.first["result_data"], "result_data should be present in metadata"
   end
 
   def test_save_result_with_save_flag
@@ -99,8 +98,7 @@ class JsonResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: true,  # This should cause it to be saved to results_dir
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     # Sample benchmark result data
@@ -140,8 +138,7 @@ class JsonResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     @store.save_result(metadata1) do
@@ -160,8 +157,7 @@ class JsonResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     @store.save_result(metadata2) do
@@ -180,8 +176,7 @@ class JsonResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     @store.save_result(metadata3) do
@@ -233,8 +228,7 @@ class JsonResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     result_data = {ips: 3000.0, iterations: 5000}
@@ -251,7 +245,7 @@ class JsonResultStoreTest < Minitest::Test
 
     # Verify loaded result is a ResultMetadata object
     assert_instance_of Awfy::ResultMetadata, loaded_result
-    
+
     # Verify loaded data matches original
     assert_equal result_data[:ips], loaded_result.result_data["ips"]
     assert_equal result_data[:iterations], loaded_result.result_data["iterations"]

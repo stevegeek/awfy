@@ -18,7 +18,7 @@ module Awfy
 
       # Get the result data from the block
       data = block_given? ? yield : nil
-      # Create complete metadata with result_id and output_path
+      # Create complete metadata with result_id and result_data
       complete_metadata = ResultMetadata.new(
         **result.to_h,
         result_id: result_id,

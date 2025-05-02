@@ -73,57 +73,38 @@ module Awfy
         pattern += "#{URI.encode_www_form_component(group)}" if group
         pattern += "-#{URI.encode_www_form_component(report)}" if report
         pattern += ".json"
-        
+
         metadata_files.concat(Dir.glob(pattern))
       end
 
       results = []
 
       metadata_files.each do |file|
-        begin
-          metadata_entries = JSON.parse(File.read(file))
-          
-          # Skip empty files
-          next if metadata_entries.empty?
+        metadata_entries = JSON.parse(File.read(file))
 
-          # Filter by criteria
-          filtered_entries = metadata_entries.select do |entry|
-            matches = true
-            matches &= entry["runtime"] == runtime if runtime
-            matches &= entry["commit"] == commit if commit
-            matches
-          end
+        # Skip empty files
+        next if metadata_entries.empty?
 
-          filtered_entries.each do |entry|
-            # Load the actual result data if an output_path is specified and the file exists
-            output_path = entry["output_path"]
-            
-            if output_path && File.exist?(output_path)
-              # Load result data from external file
-              result_data = JSON.parse(File.read(output_path))
-
-              # Convert the metadata hash to a ResultMetadata object
-              metadata_obj = ResultMetadata.from_hash(entry)
-              
-              # Create a complete ResultMetadata object with result data
-              complete_metadata = ResultMetadata.new(
-                **metadata_obj.to_h,
-                result_data: result_data
-              )
-
-              results << complete_metadata
-            else
-              # If the entry has result_data directly, use that
-              if entry["result_data"]
-                metadata_obj = ResultMetadata.from_hash(entry)
-                results << metadata_obj
-              end
-            end
-          end
-        rescue => e
-          # Skip files that can't be processed
-          next
+        # Filter by criteria
+        filtered_entries = metadata_entries.select do |entry|
+          matches = true
+          matches &= entry["runtime"] == runtime if runtime
+          matches &= entry["commit"] == commit if commit
+          matches
         end
+
+        filtered_entries.each do |entry|
+          # Convert the metadata hash to a ResultMetadata object with result_data included
+          metadata_obj = ResultMetadata.from_hash(entry)
+
+          # Only add to results if there's result data
+          if metadata_obj.result_data
+            results << metadata_obj
+          end
+        end
+      rescue
+        # Skip files that can't be processed
+        next
       end
 
       results
@@ -132,21 +113,19 @@ module Awfy
     def load_result(result_id)
       # Find and load the metadata for this result
       metadata_obj = nil
-      
+
       # Look in both temp and results directories for metadata files
       [@temp_dir, @results_dir].each do |dir|
         Dir.glob("#{dir}/*.json").each do |file|
-          begin
-            metadata_entries = JSON.parse(File.read(file))
-            entry = metadata_entries.find { |e| e["result_id"] == result_id }
-            if entry
-              metadata_obj = create_metadata(entry)
-              break
-            end
-          rescue
-            # Skip files that can't be processed
-            next
+          metadata_entries = JSON.parse(File.read(file))
+          entry = metadata_entries.find { |e| e["result_id"] == result_id }
+          if entry
+            metadata_obj = create_metadata(entry)
+            break
           end
+        rescue
+          # Skip files that can't be processed
+          next
         end
         break if metadata_obj
       end

@@ -48,8 +48,7 @@ class SqliteResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     # Sample benchmark result data
@@ -102,8 +101,7 @@ class SqliteResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: true,  # This should cause it to be saved permanently
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     # Sample benchmark result data
@@ -145,8 +143,7 @@ class SqliteResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     @store.save_result(metadata1) do
@@ -165,8 +162,7 @@ class SqliteResultStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       save: false,
-      result_id: nil,
-      output_path: nil
+      result_id: nil
     )
 
     @store.save_result(metadata2) do
@@ -252,7 +248,7 @@ class SqliteResultStoreTest < Minitest::Test
 
     # Verify loaded result is a ResultMetadata object
     assert_instance_of Awfy::ResultMetadata, loaded_result
-    
+
     # Verify loaded data matches original
     assert_equal result_data[:ips], loaded_result.result_data["ips"]
     assert_equal result_data[:iterations], loaded_result.result_data["iterations"]

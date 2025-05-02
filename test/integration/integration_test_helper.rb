@@ -68,7 +68,7 @@ module IntegrationTestHelper
     begin
       yield
       output_capture.string.tap do |output|
-        original_stdout.puts output# if ENV["VERBOSE"]
+        original_stdout.puts output # if ENV["VERBOSE"]
       end
     ensure
       $stdout = original_stdout
