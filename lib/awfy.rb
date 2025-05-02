@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# External dependencies (still needed)
 require "thor"
 require "git"
 require "json"
@@ -30,28 +29,7 @@ loader.setup
 
 module Awfy
   class << self
-    def group(name, &)
-      suite.group(name, &)
-    end
-
-    def groups
-      suite.groups
-    end
-
-    def report(name, &)
-      suite.report(name, &)
-    end
-
-    def control(name, &)
-      suite.control(name, &)
-    end
-
-    def test(name, &)
-      suite.test(name, &)
-    end
-
-    def suite
-      @suite ||= Suite.new
-    end
+    # Include the DSL methods from the DSL module
+    include Awfy::Dsl
   end
 end
