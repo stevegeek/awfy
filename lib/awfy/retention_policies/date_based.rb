@@ -3,7 +3,7 @@
 require_relative "base"
 
 module Awfy
-  module RetentionPolicy
+  module RetentionPolicies
     # A retention policy that keeps benchmark results based on their age.
     #
     # Results newer than the cutoff date (defined by retention_days) are kept,

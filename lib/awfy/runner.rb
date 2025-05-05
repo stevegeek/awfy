@@ -19,6 +19,7 @@ module Awfy
       say_configuration
       configure_benchmark_run
       prepare_output_directory
+      run_cleanup_with_retention_policy
       if group
         run_group(group, &)
       else

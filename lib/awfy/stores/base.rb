@@ -6,18 +6,14 @@ module Awfy
   module Stores
     # Abstract base class for result storage
     class Base
-      def initialize(options)
+      def initialize(options, retention_policy = nil)
         @options = options
         @storage_name = options.storage_name || "benchmark_history"
+        @retention_policy = retention_policy || RetentionPolicies.keep
       end
 
       # Get the storage name (could be a database name or directory name)
-      attr_reader :storage_name
-
-      # Get the retention policy for this store
-      def retention_policy
-        @retention_policy ||= RetentionPolicy::Factory.create(@options)
-      end
+      attr_reader :storage_name, :retention_policy
 
       # Abstract methods that subclasses must implement
       def save_result(metadata, &block)
@@ -32,21 +28,15 @@ module Awfy
         raise NotImplementedError, "Subclasses must implement query_results"
       end
 
-      def clean_results(ignore_retention: false)
+      def clean_results
         raise NotImplementedError, "Subclasses must implement clean_results"
       end
 
-      # Apply retention policy to determine if a result should be kept
-      #
-      # @param result [Awfy::Result] The result to check
-      # @param ignore_retention [Boolean] Whether to ignore the retention policy
-      # @return [Boolean] True if the result should be kept, false if it should be deleted
-      def apply_retention_policy(result, ignore_retention: false)
-        return false if ignore_retention
+      private
+
+      def apply_retention_policy(result)
         retention_policy.retain?(result)
       end
-
-      protected
 
       # Common method to validate metadata
       def validate_metadata!(metadata)
@@ -84,8 +74,6 @@ module Awfy
           match
         end
       end
-
-      private
 
       # Helper method to safely encode URI components
       def encode_component(component)

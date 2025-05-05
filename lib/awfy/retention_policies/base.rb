@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Awfy
-  module RetentionPolicy
+  module RetentionPolicies
     # Base abstract class for retention policies
     #
     # Retention policies determine which benchmark results are kept in storage

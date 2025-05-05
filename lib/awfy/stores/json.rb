@@ -7,7 +7,7 @@ module Awfy
   module Stores
     # JSON file-based implementation of Base
     class Json < Base
-      def initialize(options)
+      def initialize(options, retention_policy = nil)
         super
         # Create a subdirectory for the storage name to keep files organized
         @storage_dir = File.join(options.results_directory, storage_name)
@@ -74,18 +74,14 @@ module Awfy
         metadata_obj
       end
 
-      def clean_results(ignore_retention: false)
-        if ignore_retention
-          # If ignoring retention, clean everything
-          clean_directory(@storage_dir)
-        else
-          # Apply retention policy to each file
-          apply_retention_policy_to_files(ignore_retention)
-        end
+      def clean_results
+        apply_retention_policy_to_files
       end
 
+      private
+
       # Apply retention policy to all files in the storage directory
-      def apply_retention_policy_to_files(ignore_retention)
+      def apply_retention_policy_to_files
         # Only process JSON files
         Dir.glob(File.join(@storage_dir, "*.json")).each do |file_path|
           # Parse the metadata and apply the retention policy
@@ -98,7 +94,7 @@ module Awfy
           result = Result.new(**metadata_hash.transform_keys(&:to_sym))
 
           # Check if the result should be kept based on the retention policy
-          unless apply_retention_policy(result, ignore_retention: ignore_retention)
+          unless apply_retention_policy(result)
             # Delete the file if it doesn't meet the retention policy
             File.delete(file_path)
           end
@@ -107,8 +103,6 @@ module Awfy
           warn "Error processing file #{file_path}: #{e.message}"
         end
       end
-
-      private
 
       def ensure_directory_exists
         FileUtils.mkdir_p(@storage_dir)

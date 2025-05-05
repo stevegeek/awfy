@@ -7,7 +7,7 @@ module Awfy
     class Memory < Base
       attr_reader :stored_results
 
-      def initialize(options)
+      def initialize(options, retention_policy = nil)
         super
         initialize_store
       end
@@ -42,24 +42,19 @@ module Awfy
       end
 
       # Clean results from memory based on retention policy
-      def clean_results(ignore_retention: false)
-        if ignore_retention
-          # If ignoring retention, clean everything
-          initialize_store
-        else
-          # Apply retention policy to each result
-          results_to_keep = {}
+      def clean_results
+        # Apply retention policy to each result
+        results_to_keep = {}
 
-          @stored_results.each do |result_id, result|
-            if apply_retention_policy(result, ignore_retention: ignore_retention)
-              # Keep results that match the retention policy
-              results_to_keep[result_id] = result
-            end
+        @stored_results.each do |result_id, result|
+          if apply_retention_policy(result)
+            # Keep results that match the retention policy
+            results_to_keep[result_id] = result
           end
-
-          # Replace stored results with the filtered list
-          @stored_results = results_to_keep
         end
+
+        # Replace stored results with the filtered list
+        @stored_results = results_to_keep
       end
 
       private

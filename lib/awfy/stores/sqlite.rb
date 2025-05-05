@@ -35,7 +35,7 @@ module Awfy
         );
       SQL
 
-      def initialize(options)
+      def initialize(options, retention_policy = nil)
         super
         # SQLite library availability is checked at factory level before instantiation
         ensure_results_directory(options.results_directory)
@@ -92,24 +92,20 @@ module Awfy
         result
       end
 
-      def clean_results(ignore_retention: false)
+      def clean_results
         with_database_connection do |db|
-          if ignore_retention
-            # Delete everything regardless of retention
-            db.execute("DELETE FROM results")
-            db.execute("DELETE FROM metadata")
-          else
-            # Apply the retention policy to each result
-            query_all_results.each do |result|
-              unless apply_retention_policy(result, ignore_retention: ignore_retention)
-                # Delete the result if it doesn't meet the retention policy
-                db.execute("DELETE FROM results WHERE result_id = ?", [result.result_id])
-                db.execute("DELETE FROM metadata WHERE result_id = ?", [result.result_id])
-              end
+          # Apply the retention policy to each result
+          query_all_results.each do |result|
+            unless apply_retention_policy(result)
+              # Delete the result if it doesn't meet the retention policy
+              db.execute("DELETE FROM results WHERE result_id = ?", [result.result_id])
+              db.execute("DELETE FROM metadata WHERE result_id = ?", [result.result_id])
             end
           end
         end
       end
+
+      private
 
       # Query all results from the database without any filtering
       def query_all_results
@@ -127,8 +123,6 @@ module Awfy
 
         results
       end
-
-      private
 
       def ensure_results_directory(directory)
         FileUtils.mkdir_p(directory)
