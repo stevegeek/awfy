@@ -8,10 +8,10 @@ class JsonStoreTest < Minitest::Test
   def setup
     # Create a temporary directory for testing
     @test_dir = Dir.mktmpdir
-    
+
     # Create storage path
     @storage_dir = File.join(@test_dir, "test_json_store")
-    
+
     # Create retention policy
     @retention_policy = Awfy::RetentionPolicies.keep_all
 
@@ -182,16 +182,16 @@ class JsonStoreTest < Minitest::Test
     # due to filesystem and encoding issues, so we're making these tests more lenient
 
     # Query with group filter
-    group_results = @store.query_results(type: :ips, group: "Query Group")
-    
+    @store.query_results(type: :ips, group: "Query Group")
+
     # Query with runtime filter
     runtime_results = @store.query_results(type: :ips, runtime: "yjit")
-    
+
     # If we got yjit results, check the value
     if runtime_results.length > 0
       assert_equal 1500.0, runtime_results.first.result_data["ips"], "Should find the correct result"
     end
-    
+
     # Query with combination of filters
     combo_results = @store.query_results(
       type: :ips,
@@ -199,7 +199,7 @@ class JsonStoreTest < Minitest::Test
       report: "#method1",
       runtime: "ruby"
     )
-    
+
     # If we got combo results, check the value
     if combo_results.length > 0
       assert_equal 1000.0, combo_results.first.result_data["ips"], "Should find the correct result"
@@ -248,17 +248,17 @@ class JsonStoreTest < Minitest::Test
     test_file = File.join(@storage_dir, "test-results#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
     # Create a valid result metadata format
     metadata = {
-      "type": "test",
-      "group": "test_group",
-      "report": "test_report",
-      "runtime": "ruby",
-      "timestamp": Time.now.to_i,
-      "branch": "main",
-      "commit": "test",
-      "commit_message": "test",
-      "ruby_version": "3.0.0",
-      "result_id": "test-results",
-      "result_data": {"test": "results"}
+      type: "test",
+      group: "test_group",
+      report: "test_report",
+      runtime: "ruby",
+      timestamp: Time.now.to_i,
+      branch: "main",
+      commit: "test",
+      commit_message: "test",
+      ruby_version: "3.0.0",
+      result_id: "test-results",
+      result_data: {test: "results"}
     }
     File.write(test_file, JSON.dump([metadata]))
 
@@ -274,7 +274,7 @@ class JsonStoreTest < Minitest::Test
     # Now create a store with KeepNone policy which should delete everything
     keep_none_policy = Awfy::RetentionPolicies.keep_none
     keep_none_store = Awfy::Stores::Json.new(@storage_dir, keep_none_policy)
-    
+
     # Clean with KeepNone retention policy
     keep_none_store.clean_results
 

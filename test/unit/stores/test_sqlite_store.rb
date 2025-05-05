@@ -8,10 +8,10 @@ class SqliteStoreTest < Minitest::Test
   def setup
     # Create a temporary directory for testing
     @test_dir = Dir.mktmpdir
-    
+
     # Set the database path
     @db_path = File.join(@test_dir, "test_results")
-    
+
     # Create retention policy
     retention_policy = Awfy::RetentionPolicies.keep_all
 
@@ -259,7 +259,7 @@ class SqliteStoreTest < Minitest::Test
     # Create a store with KeepNone policy to remove all results
     keep_none_policy = Awfy::RetentionPolicies.keep_none
     keep_none_store = Awfy::Stores::Sqlite.new(@db_path, keep_none_policy)
-    
+
     # Clean with KeepNone policy
     keep_none_store.clean_results
 

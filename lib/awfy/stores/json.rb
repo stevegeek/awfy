@@ -5,7 +5,7 @@ require "json"
 
 module Awfy
   module Stores
-    AWFY_RESULT_EXTENSION = ".awfy-result.json".freeze
+    AWFY_RESULT_EXTENSION = ".awfy-result.json"
 
     # JSON file-based implementation of Base
     class Json < Base

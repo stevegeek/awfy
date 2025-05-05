@@ -22,7 +22,7 @@ class JsonStoreDatePolicyTest < Minitest::Test
 
     # Create storage path
     storage_path = File.join(@test_dir, "test_date_policy")
-  
+
     # Create the store
     store = Awfy::Stores::Json.new(storage_path, date_policy)
 
@@ -74,7 +74,7 @@ class JsonStoreDatePolicyTest < Minitest::Test
 
     # Create storage path
     storage_path = File.join(@test_dir, "test_keep_all")
-  
+
     # Create the store
     store = Awfy::Stores::Json.new(storage_path, keep_all_policy)
 
