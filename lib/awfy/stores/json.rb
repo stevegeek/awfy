@@ -74,14 +74,37 @@ module Awfy
         metadata_obj
       end
 
-      def clean_results(temp_only: true, ignore_retention: false)
-        # If ignore_retention is true, clean everything
-        # Otherwise, we would implement a retention policy based on timestamp
+      def clean_results(ignore_retention: false)
         if ignore_retention
+          # If ignoring retention, clean everything
           clean_directory(@storage_dir)
         else
-          # For now, we don't delete anything based on retention policy
-          # In the future, we can implement a retention policy here
+          # Apply retention policy to each file
+          apply_retention_policy_to_files(ignore_retention)
+        end
+      end
+
+      # Apply retention policy to all files in the storage directory
+      def apply_retention_policy_to_files(ignore_retention)
+        # Only process JSON files
+        Dir.glob(File.join(@storage_dir, "*.json")).each do |file_path|
+          # Parse the metadata and apply the retention policy
+
+          metadata_json = JSON.parse(File.read(file_path))
+          next unless metadata_json.is_a?(Array) && !metadata_json.empty?
+
+          # Convert the first entry to a Result object
+          metadata_hash = metadata_json.first
+          result = Result.new(**metadata_hash.transform_keys(&:to_sym))
+
+          # Check if the result should be kept based on the retention policy
+          unless apply_retention_policy(result, ignore_retention: ignore_retention)
+            # Delete the file if it doesn't meet the retention policy
+            File.delete(file_path)
+          end
+        rescue => e
+          # Skip files that can't be processed
+          warn "Error processing file #{file_path}: #{e.message}"
         end
       end
 
@@ -151,7 +174,7 @@ module Awfy
       def clean_directory(directory)
         # Make sure the directory exists before trying to clean it
         return unless File.directory?(directory)
-        
+
         # Delete all JSON files in the directory
         Dir.glob("#{directory}/*.json").each do |file|
           File.delete(file)

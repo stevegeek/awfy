@@ -41,10 +41,25 @@ module Awfy
         @stored_results[result_id]
       end
 
-      # Clean all results from memory
-      def clean_results(temp_only: true, ignore_retention: false)
-        # Memory store always cleans everything regardless of parameters
-        initialize_store
+      # Clean results from memory based on retention policy
+      def clean_results(ignore_retention: false)
+        if ignore_retention
+          # If ignoring retention, clean everything
+          initialize_store
+        else
+          # Apply retention policy to each result
+          results_to_keep = {}
+
+          @stored_results.each do |result_id, result|
+            if apply_retention_policy(result, ignore_retention: ignore_retention)
+              # Keep results that match the retention policy
+              results_to_keep[result_id] = result
+            end
+          end
+
+          # Replace stored results with the filtered list
+          @stored_results = results_to_keep
+        end
       end
 
       private

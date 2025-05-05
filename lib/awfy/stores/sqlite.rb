@@ -92,20 +92,40 @@ module Awfy
         result
       end
 
-      def clean_results(temp_only: true, ignore_retention: false)
-        # Since we've removed the concept of temporary results,
-        # we just use retention policy based on timestamp unless ignore_retention is true
-        # If ignore_retention is true, we clean everything regardless of retention policy
+      def clean_results(ignore_retention: false)
         with_database_connection do |db|
           if ignore_retention
             # Delete everything regardless of retention
             db.execute("DELETE FROM results")
             db.execute("DELETE FROM metadata")
           else
-            # In the future, implement retention policy based on timestamp
-            # For now, we don't delete anything unless ignore_retention is true
+            # Apply the retention policy to each result
+            query_all_results.each do |result|
+              unless apply_retention_policy(result, ignore_retention: ignore_retention)
+                # Delete the result if it doesn't meet the retention policy
+                db.execute("DELETE FROM results WHERE result_id = ?", [result.result_id])
+                db.execute("DELETE FROM metadata WHERE result_id = ?", [result.result_id])
+              end
+            end
           end
         end
+      end
+
+      # Query all results from the database without any filtering
+      def query_all_results
+        results = []
+
+        with_database_connection do |db|
+          db.results_as_hash = true
+
+          # Build the query for all results
+          sql = JOIN_TABLES_SQL
+          db.execute(sql) do |row|
+            results << create_metadata_from_row(row)
+          end
+        end
+
+        results
       end
 
       private

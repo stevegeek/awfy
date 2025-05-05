@@ -221,10 +221,10 @@ class MemoryResultStoreTest < Minitest::Test
     # Verify result was added
     refute_empty @store.stored_results, "Result should be added to store"
 
-    # Clean results
-    @store.clean_results
+    # Clean results with ignore_retention to ensure all results are removed
+    @store.clean_results(ignore_retention: true)
 
     # Verify store is now empty
-    assert_empty @store.stored_results, "Store should be empty after cleaning"
+    assert_empty @store.stored_results, "Store should be empty after cleaning with ignore_retention"
   end
 end

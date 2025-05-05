@@ -24,6 +24,8 @@ module Awfy
     class_option :tests_path, type: :string, default: "./benchmarks/tests", desc: "Path to the tests files"
     class_option :storage_backend, type: :string, default: "json", desc: "Storage backend for benchmark results (json or sqlite)"
     class_option :storage_name, type: :string, default: "benchmark_history", desc: "Name for the storage repository (database name or directory)"
+    class_option :retention_policy, type: :string, default: "all", desc: "Retention policy for benchmark results (all or date)"
+    class_option :retention_days, type: :numeric, default: 30, desc: "Number of days to keep results (only used with 'date' policy)"
 
     # TODO: implement assert option
     # class_option :assert, type: :boolean, desc: "Assert that the results are within a certain threshold coded in the tests"
@@ -79,17 +81,21 @@ module Awfy
       runner.start(group) { Commands::YJITStats.new(runner, shell).benchmark(_1, report, test) }
     end
 
-    desc "clean", "Clean up temporary and saved benchmark results"
-    option :saved, type: :boolean, desc: "Also clean saved results", default: false
+    desc "clean", "Clean up benchmark results based on retention policy"
+    option :ignore_retention, type: :boolean, desc: "Clean all results regardless of retention policy", default: false
     def clean
       # Get the result store
       result_store = Stores::Factory.instance(awfy_options)
 
       # Clean results
-      result_store.clean_results(temp_only: !options[:saved])
+      result_store.clean_results(ignore_retention: options[:ignore_retention])
 
-      say "Cleaned temporary results directory"
-      say "Cleaned saved results directory" if options[:saved]
+      if options[:ignore_retention]
+        say "Cleaned all benchmark results (ignoring retention policy)"
+      else
+        policy = RetentionPolicy::Factory.create(awfy_options)
+        say "Cleaned benchmark results using '#{policy.name}' retention policy"
+      end
     end
 
     desc "compare <benchmark_type> <COMMIT_RANGE> [GROUP] [REPORT] [TEST]", "Run benchmarks across a range of commits"

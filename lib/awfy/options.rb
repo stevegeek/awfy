@@ -29,7 +29,10 @@ module Awfy
     :results_only,    # Boolean: only display previously saved results
     # Storage options
     :storage_backend, # String: storage backend for results - "json", "sqlite", or "memory"
-    :storage_name     # String: name for the storage repository (database name or directory)
+    :storage_name,    # String: name for the storage repository (database name or directory)
+    # Retention policy options
+    :retention_policy, # String: the retention policy to use - "keep_all" or "date_based"
+    :retention_days    # Integer: number of days to keep results (used by date_based policy)
   ) do
     # Default values
     def initialize(
@@ -53,7 +56,9 @@ module Awfy
       use_cached: true,
       results_only: false,
       storage_backend: "json",
-      storage_name: "benchmark_history"
+      storage_name: "benchmark_history",
+      retention_policy: "keep_all",
+      retention_days: 30
     )
       super
     end

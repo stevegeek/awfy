@@ -89,7 +89,7 @@ class JsonResultStoreTest < Minitest::Test
   end
 
   def test_save_result_additional
-    # Create test metadata 
+    # Create test metadata
     metadata = Awfy::Result.new(
       type: :memory,
       group: "Test Group",
@@ -258,26 +258,26 @@ class JsonResultStoreTest < Minitest::Test
 
     # Verify file exists before cleaning
     assert File.exist?(test_file), "Test file should exist"
-    
+
     # Clean results with default parameters (shouldn't delete due to retention policy)
     @store.clean_results
 
     # Verify file still exists (with current implementation, retention policy keeps everything)
     assert File.exist?(test_file), "Test file should still exist with current retention policy"
-    
+
     # Now clean with ignore_retention which should delete everything
     @store.clean_results(ignore_retention: true)
-    
+
     # Verify file is deleted
     refute File.exist?(test_file), "Test file should be deleted when ignore_retention is true"
-    
+
     # Create another test file
     File.write(test_file, '{"test": "results2"}')
     assert File.exist?(test_file), "Test file should exist again"
-    
+
     # Clean with ignore_retention: true explicitly
     @store.clean_results(ignore_retention: true)
-    
+
     # Verify file is deleted again
     refute File.exist?(test_file), "Test file should be deleted"
   end

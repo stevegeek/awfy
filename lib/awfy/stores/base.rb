@@ -10,10 +10,13 @@ module Awfy
         @options = options
         @storage_name = options.storage_name || "benchmark_history"
       end
-      
+
       # Get the storage name (could be a database name or directory name)
-      def storage_name
-        @storage_name
+      attr_reader :storage_name
+
+      # Get the retention policy for this store
+      def retention_policy
+        @retention_policy ||= RetentionPolicy::Factory.create(@options)
       end
 
       # Abstract methods that subclasses must implement
@@ -29,8 +32,18 @@ module Awfy
         raise NotImplementedError, "Subclasses must implement query_results"
       end
 
-      def clean_results(temp_only: true)
+      def clean_results(ignore_retention: false)
         raise NotImplementedError, "Subclasses must implement clean_results"
+      end
+
+      # Apply retention policy to determine if a result should be kept
+      #
+      # @param result [Awfy::Result] The result to check
+      # @param ignore_retention [Boolean] Whether to ignore the retention policy
+      # @return [Boolean] True if the result should be kept, false if it should be deleted
+      def apply_retention_policy(result, ignore_retention: false)
+        return false if ignore_retention
+        retention_policy.retain?(result)
       end
 
       protected

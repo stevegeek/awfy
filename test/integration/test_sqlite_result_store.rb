@@ -292,7 +292,7 @@ class SqliteResultStoreTest < Minitest::Test
 
     # With the save flag removed, clean_results behavior has changed
     # Clean with retention policy (cleantup is based on timestamp now, not save flag)
-    @store.clean_results()
+    @store.clean_results
 
     # Verify results after cleaning
     results = @store.query_results(type: :clean_test)
