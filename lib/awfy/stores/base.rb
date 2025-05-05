@@ -8,6 +8,12 @@ module Awfy
     class Base
       def initialize(options)
         @options = options
+        @storage_name = options.storage_name || "benchmark_history"
+      end
+      
+      # Get the storage name (could be a database name or directory name)
+      def storage_name
+        @storage_name
       end
 
       # Abstract methods that subclasses must implement

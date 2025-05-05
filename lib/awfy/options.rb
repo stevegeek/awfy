@@ -9,7 +9,6 @@ module Awfy
     :summary_order,   # String: sort order for summary tables - "desc", "asc", "leader"
     :table_format,    # Boolean: display output in table format
     # Output options
-    :save,            # Boolean: save benchmark results to results directory
     :temp_output_directory, # String: directory to store temporary output files
     :results_directory,     # String: directory to store benchmark results
     # Input paths
@@ -29,7 +28,8 @@ module Awfy
     :use_cached,      # Boolean: use cached results if available
     :results_only,    # Boolean: only display previously saved results
     # Storage options
-    :storage_backend # String: storage backend for results - "json", "sqlite", or "memory"
+    :storage_backend, # String: storage backend for results - "json", "sqlite", or "memory"
+    :storage_name     # String: name for the storage repository (database name or directory)
   ) do
     # Default values
     def initialize(
@@ -38,7 +38,6 @@ module Awfy
       summary: true,
       summary_order: "leader",
       table_format: false,
-      save: false,
       temp_output_directory: "./benchmarks/tmp",
       results_directory: "./benchmarks/saved",
       setup_file_path: "./benchmarks/setup",
@@ -53,7 +52,8 @@ module Awfy
       ignore_commits: nil,
       use_cached: true,
       results_only: false,
-      storage_backend: "json"
+      storage_backend: "json",
+      storage_name: "benchmark_history"
     )
       super
     end
@@ -74,6 +74,5 @@ module Awfy
 
     def humanized_runtime = runtime.upcase
 
-    def save? = save
   end
 end

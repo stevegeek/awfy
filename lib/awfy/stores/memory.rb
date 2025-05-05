@@ -42,7 +42,8 @@ module Awfy
       end
 
       # Clean all results from memory
-      def clean_results(temp_only: true)
+      def clean_results(temp_only: true, ignore_retention: false)
+        # Memory store always cleans everything regardless of parameters
         initialize_store
       end
 

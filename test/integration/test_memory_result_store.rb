@@ -11,7 +11,8 @@ class MemoryResultStoreTest < Minitest::Test
 
     # Create options with our test directories
     @options = Awfy::Options.new(
-      storage_backend: :memory
+      storage_backend: :memory,
+      storage_name: "test_memory_store"
     )
 
     # Create the Memory store instance to test
@@ -34,7 +35,6 @@ class MemoryResultStoreTest < Minitest::Test
       commit: "abc123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil,
       result_data: nil
     )
@@ -85,7 +85,6 @@ class MemoryResultStoreTest < Minitest::Test
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil,
       result_data: nil
     )
@@ -105,7 +104,6 @@ class MemoryResultStoreTest < Minitest::Test
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil,
       result_data: nil
     )
@@ -125,7 +123,6 @@ class MemoryResultStoreTest < Minitest::Test
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil,
       result_data: nil
     )
@@ -176,7 +173,6 @@ class MemoryResultStoreTest < Minitest::Test
       commit: "load123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil,
       result_data: nil
     )
@@ -214,7 +210,6 @@ class MemoryResultStoreTest < Minitest::Test
       commit: "clean123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil,
       result_data: nil
     )

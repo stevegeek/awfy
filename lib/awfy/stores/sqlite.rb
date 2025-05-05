@@ -22,8 +22,7 @@ module Awfy
           branch TEXT,
           commit_hash TEXT,
           commit_msg TEXT,
-          ruby_version TEXT,
-          is_temp INTEGER
+          ruby_version TEXT
         );
       SQL
 
@@ -40,7 +39,8 @@ module Awfy
         super
         # SQLite library availability is checked at factory level before instantiation
         ensure_results_directory(options.results_directory)
-        @db_path = File.join(options.results_directory, "awfy_benchmarks.db")
+        db_filename = "#{storage_name}.db"
+        @db_path = File.join(options.results_directory, db_filename)
         setup_database
       end
 
@@ -50,11 +50,10 @@ module Awfy
         # Prepare data for storage
         result_id = generate_result_id(metadata)
         result_data = execute_result_block(&block)
-        is_temp = !metadata.save
 
         # Store result in database
         with_database_connection do |db|
-          store_benchmark_result(db, metadata, result_id, result_data, is_temp)
+          store_benchmark_result(db, metadata, result_id, result_data)
         end
 
         result_id
@@ -93,16 +92,18 @@ module Awfy
         result
       end
 
-      def clean_results(temp_only: true)
+      def clean_results(temp_only: true, ignore_retention: false)
+        # Since we've removed the concept of temporary results,
+        # we just use retention policy based on timestamp unless ignore_retention is true
+        # If ignore_retention is true, we clean everything regardless of retention policy
         with_database_connection do |db|
-          if temp_only
-            # Delete only temporary results
-            db.execute("DELETE FROM results WHERE result_id IN (SELECT result_id FROM metadata WHERE is_temp = 1)")
-            db.execute("DELETE FROM metadata WHERE is_temp = 1")
-          else
-            # Delete all results
+          if ignore_retention
+            # Delete everything regardless of retention
             db.execute("DELETE FROM results")
             db.execute("DELETE FROM metadata")
+          else
+            # In the future, implement retention policy based on timestamp
+            # For now, we don't delete anything unless ignore_retention is true
           end
         end
       end
@@ -146,25 +147,25 @@ module Awfy
         db.execute "CREATE INDEX IF NOT EXISTS idx_metadata_commit ON metadata (commit_hash);"
       end
 
-      def store_benchmark_result(db, metadata, result_id, result_data, is_temp)
+      def store_benchmark_result(db, metadata, result_id, result_data)
         # Use a transaction for atomicity
         db.transaction do
-          store_metadata(db, metadata, result_id, is_temp)
+          store_metadata(db, metadata, result_id)
           store_result_data(db, result_id, result_data)
         end
       end
 
-      def store_metadata(db, metadata, result_id, is_temp)
+      def store_metadata(db, metadata, result_id)
         timestamp = metadata.timestamp || Time.now.to_i
 
         db.execute(
           "INSERT INTO metadata (result_id, type, group_name, report_name, runtime,
-            timestamp, branch, commit_hash, commit_msg, ruby_version, is_temp)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            timestamp, branch, commit_hash, commit_msg, ruby_version)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             result_id, metadata.type.to_s, metadata.group, metadata.report, metadata.runtime,
             timestamp, metadata.branch, metadata.commit, metadata.commit_message,
-            metadata.ruby_version, is_temp ? 1 : 0
+            metadata.ruby_version
           ]
         )
       end
@@ -225,7 +226,6 @@ module Awfy
           commit: row["commit_hash"],
           commit_message: row["commit_msg"],
           ruby_version: row["ruby_version"],
-          save: row["is_temp"] == 0, # Convert is_temp to save flag
           result_id: row["result_id"],
           result_data: data
         }

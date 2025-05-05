@@ -10,19 +10,20 @@ class JsonResultStoreTest < Minitest::Test
     setup_test_environment
 
     # Create specific directories for this test
-    @temp_dir = File.join(@test_dir, "temp_results")
     @results_dir = File.join(@test_dir, "saved_results")
-    FileUtils.mkdir_p(@temp_dir)
     FileUtils.mkdir_p(@results_dir)
 
     # Create options with our test directories
     @options = Awfy::Options.new(
-      temp_output_directory: @temp_dir,
-      results_directory: @results_dir
+      results_directory: @results_dir,
+      storage_name: "test_json_store"
     )
 
     # Create the Json store instance to test
     @store = Awfy::Stores::Json.new(@options)
+
+    # Define the storage directory for easier access
+    @storage_dir = File.join(@results_dir, "test_json_store")
   end
 
   def teardown
@@ -41,7 +42,6 @@ class JsonResultStoreTest < Minitest::Test
       commit: "abc123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -70,7 +70,7 @@ class JsonResultStoreTest < Minitest::Test
     assert_equal result_data[:ips], result_metadata["result_data"]["ips"]
 
     # Verify the metadata file exists and contains our entry
-    metadata_glob = File.join(@temp_dir, "*-awfy-ips-*")
+    metadata_glob = File.join(@storage_dir, "*-test_json_store-ips-*")
     metadata_files = Dir.glob(metadata_glob)
     assert_equal 1, metadata_files.length, "Expected one metadata file"
 
@@ -88,8 +88,8 @@ class JsonResultStoreTest < Minitest::Test
     assert metadata_content.first["result_data"], "result_data should be present in metadata"
   end
 
-  def test_save_result_with_save_flag
-    # Create test metadata with save=true
+  def test_save_result_additional
+    # Create test metadata 
     metadata = Awfy::Result.new(
       type: :memory,
       group: "Test Group",
@@ -100,7 +100,6 @@ class JsonResultStoreTest < Minitest::Test
       commit: "def456",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: true,  # This should cause it to be saved to results_dir
       result_id: nil
     )
 
@@ -115,12 +114,12 @@ class JsonResultStoreTest < Minitest::Test
       result_data
     end
 
-    # Assert the result file exists in results_dir (not temp_dir)
+    # Assert the result file exists in results_dir
     assert File.exist?(result_path), "Result file was not created"
     assert_match(/#{@results_dir}/, result_path, "Result should be in results directory")
 
-    # Verify metadata file exists in results_dir
-    metadata_glob = File.join(@results_dir, "*-awfy-memory-*")
+    # Verify metadata file exists
+    metadata_glob = File.join(@storage_dir, "*-test_json_store-memory-*")
     metadata_files = Dir.glob(metadata_glob)
     assert_equal 1, metadata_files.length, "Expected one metadata file in results directory"
   end
@@ -140,7 +139,6 @@ class JsonResultStoreTest < Minitest::Test
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -159,7 +157,6 @@ class JsonResultStoreTest < Minitest::Test
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -178,7 +175,6 @@ class JsonResultStoreTest < Minitest::Test
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -230,7 +226,6 @@ class JsonResultStoreTest < Minitest::Test
       commit: "load123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -256,25 +251,34 @@ class JsonResultStoreTest < Minitest::Test
   end
 
   def test_clean_results
-    # Create some files in both directories
-    temp_file = File.join(@temp_dir, "test-temp.json")
-    results_file = File.join(@results_dir, "test-results.json")
+    # Create test files in the storage directory
+    FileUtils.mkdir_p(@storage_dir)
+    test_file = File.join(@storage_dir, "test-results.json")
+    File.write(test_file, '{"test": "results"}')
 
-    File.write(temp_file, '{"test": "temp"}')
-    File.write(results_file, '{"test": "results"}')
-
-    # Clean temp only
+    # Verify file exists before cleaning
+    assert File.exist?(test_file), "Test file should exist"
+    
+    # Clean results with default parameters (shouldn't delete due to retention policy)
     @store.clean_results
 
-    # Verify temp is cleaned but results is not
-    refute File.exist?(temp_file), "Temp file should be deleted"
-    assert File.exist?(results_file), "Results file should still exist"
-
-    # Clean both
-    @store.clean_results(temp_only: false)
-
-    # Verify both are cleaned
-    refute File.exist?(temp_file), "Temp file should be deleted"
-    refute File.exist?(results_file), "Results file should be deleted"
+    # Verify file still exists (with current implementation, retention policy keeps everything)
+    assert File.exist?(test_file), "Test file should still exist with current retention policy"
+    
+    # Now clean with ignore_retention which should delete everything
+    @store.clean_results(ignore_retention: true)
+    
+    # Verify file is deleted
+    refute File.exist?(test_file), "Test file should be deleted when ignore_retention is true"
+    
+    # Create another test file
+    File.write(test_file, '{"test": "results2"}')
+    assert File.exist?(test_file), "Test file should exist again"
+    
+    # Clean with ignore_retention: true explicitly
+    @store.clean_results(ignore_retention: true)
+    
+    # Verify file is deleted again
+    refute File.exist?(test_file), "Test file should be deleted"
   end
 end

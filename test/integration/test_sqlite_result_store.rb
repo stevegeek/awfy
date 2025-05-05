@@ -18,7 +18,8 @@ class SqliteResultStoreTest < Minitest::Test
     # Create options with our test directories
     @options = Awfy::Options.new(
       temp_output_directory: @temp_dir,
-      results_directory: @results_dir
+      results_directory: @results_dir,
+      storage_name: "test_results"
     )
 
     # Create the Sqlite store instance to test
@@ -28,7 +29,7 @@ class SqliteResultStoreTest < Minitest::Test
     # The factory should raise an error if SQLite is not available
 
     # Verify the database file was created
-    assert File.exist?(File.join(@results_dir, "awfy_benchmarks.db")), "Database file should exist"
+    assert File.exist?(File.join(@results_dir, "test_results.db")), "Database file should exist"
   end
 
   def teardown
@@ -47,7 +48,6 @@ class SqliteResultStoreTest < Minitest::Test
       commit: "abc123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -91,7 +91,7 @@ class SqliteResultStoreTest < Minitest::Test
   end
 
   def test_save_result_with_save_flag
-    # Create test metadata with save=true
+    # Create test metadata (save flag has been removed)
     metadata = Awfy::Result.new(
       type: :memory,
       group: "Test Group",
@@ -102,7 +102,6 @@ class SqliteResultStoreTest < Minitest::Test
       commit: "def456",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: true,  # This should cause it to be saved permanently
       result_id: nil
     )
 
@@ -120,13 +119,10 @@ class SqliteResultStoreTest < Minitest::Test
     # Assert that the result_id is returned
     assert result_id, "Result ID should be returned"
 
-    # Query results and verify it's flagged as permanent
+    # Query results and verify it's found correctly
     metadata_entries = @store.query_results(type: :memory)
     our_entry = metadata_entries.find { |entry| entry.result_id == result_id }
     assert our_entry, "Should find our metadata entry"
-
-    # The "save" flag should be true for permanent entries
-    assert our_entry.save, "Result should be saved as permanent"
   end
 
   def test_query_results
@@ -144,7 +140,6 @@ class SqliteResultStoreTest < Minitest::Test
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -163,7 +158,6 @@ class SqliteResultStoreTest < Minitest::Test
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -182,7 +176,6 @@ class SqliteResultStoreTest < Minitest::Test
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -232,7 +225,6 @@ class SqliteResultStoreTest < Minitest::Test
       commit: "load123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,
       result_id: nil
     )
 
@@ -258,7 +250,7 @@ class SqliteResultStoreTest < Minitest::Test
   end
 
   def test_clean_results
-    # Store some temporary results
+    # Store some results
     metadata_temp = Awfy::Result.new(
       type: :clean_test,
       group: "Clean Group",
@@ -269,7 +261,6 @@ class SqliteResultStoreTest < Minitest::Test
       commit: "clean1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: false,  # temporary
       result_id: nil
     )
 
@@ -277,7 +268,7 @@ class SqliteResultStoreTest < Minitest::Test
       {data: "temp data"}
     end
 
-    # Store some permanent results
+    # Store additional results
     metadata_perm = Awfy::Result.new(
       type: :clean_test,
       group: "Clean Group",
@@ -288,7 +279,6 @@ class SqliteResultStoreTest < Minitest::Test
       commit: "clean2",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      save: true,  # permanent
       result_id: nil
     )
 
@@ -300,16 +290,17 @@ class SqliteResultStoreTest < Minitest::Test
     results = @store.query_results(type: :clean_test)
     assert_equal 2, results.length, "Should have 2 results before cleaning"
 
-    # Clean temporary results only
-    @store.clean_results(temp_only: true)
+    # With the save flag removed, clean_results behavior has changed
+    # Clean with retention policy (cleantup is based on timestamp now, not save flag)
+    @store.clean_results()
 
-    # Verify only permanent results remain
+    # Verify results after cleaning
     results = @store.query_results(type: :clean_test)
-    assert_equal 1, results.length, "Should have 1 result after cleaning temp"
-    assert_equal "#perm", results.first.report, "Permanent result should remain"
+    # With our current implementation, retention policy should keep both results
+    assert_equal 2, results.length, "Both results should remain with current retention policy"
 
-    # Clean all results
-    @store.clean_results(temp_only: false)
+    # Clean all results regardless of retention policy
+    @store.clean_results(ignore_retention: true)
 
     # Verify no results remain
     results = @store.query_results(type: :clean_test)

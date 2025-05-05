@@ -12,7 +12,6 @@ module Awfy
     :commit,
     :commit_message,
     :ruby_version,
-    :save,
     :result_id,
     :result_data
   ) do
@@ -26,7 +25,6 @@ module Awfy
       commit: nil,
       commit_message: nil,
       ruby_version: nil,
-      save: nil,
       result_id: nil,
       result_data: nil
     )
@@ -41,7 +39,7 @@ module Awfy
     def self.from_hash(hash)
       # Valid keys for Result
       valid_keys = %i[type group report runtime timestamp branch commit commit_message
-        ruby_version save result_id result_data]
+        ruby_version result_id result_data]
 
       # Convert string keys to symbols
       hash_with_symbol_keys = hash.transform_keys do |key|

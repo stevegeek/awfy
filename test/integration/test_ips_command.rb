@@ -63,7 +63,7 @@ class IPSCommandTest < Minitest::Test
     run_command("ips")
 
     # Get the result store instance
-    result_store = Awfy::ResultStoreFactory.instance(Awfy::Options.new(storage_backend: :memory))
+    result_store = Awfy::Stores::Factory.instance(Awfy::Options.new(storage_backend: :memory))
 
     # Check that results were stored in the memory store
     refute_empty result_store.stored_results, "No results were stored in the ResultStore"

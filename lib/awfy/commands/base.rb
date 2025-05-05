@@ -297,7 +297,6 @@ module Awfy
           commit: commit_hash,
           commit_message: commit_msg,
           ruby_version: ruby_version,
-          save: options.save?,
           result_id: nil,  # This will be set by the result store
           result_data: nil # This will be set by the result store
         )

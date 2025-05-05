@@ -9,22 +9,20 @@ module Awfy
     class Json < Base
       def initialize(options)
         super
-        @temp_dir = options.temp_output_directory
-        @results_dir = options.results_directory
-        ensure_directories_exist
+        # Create a subdirectory for the storage name to keep files organized
+        @storage_dir = File.join(options.results_directory, storage_name)
+        ensure_directory_exists
       end
 
       def save_result(metadata, &block)
         validate_metadata!(metadata)
 
         timestamp = metadata.timestamp || Time.now.to_i
-        output_dir = metadata.save ? @results_dir : @temp_dir
         result_id = generate_result_id(metadata)
         result_data = execute_result_block(&block)
 
         # Get result file and update it
         result_file = metadata_file_path(
-          output_dir,
           metadata.type,
           metadata.group,
           metadata.report,
@@ -63,57 +61,51 @@ module Awfy
         return nil unless metadata_obj
 
         # Check for separate result data file (not used currently but kept for compatibility)
-        [@temp_dir, @results_dir].each do |dir|
-          file_path = File.join(dir, "#{result_id}.json")
-          if File.exist?(file_path)
-            result_data = load_json_file(file_path)
-            return Result.new(
-              **metadata_obj.to_h,
-              result_data: result_data
-            )
-          end
+        file_path = File.join(@storage_dir, "#{result_id}.json")
+        if File.exist?(file_path)
+          result_data = load_json_file(file_path)
+          return Result.new(
+            **metadata_obj.to_h,
+            result_data: result_data
+          )
         end
 
         # If we found metadata but no separate data file, return the metadata as is
         metadata_obj
       end
 
-      def clean_results(temp_only: true)
-        # Clean temp directory
-        clean_directory(@temp_dir)
-
-        # Clean results directory if requested
-        clean_directory(@results_dir) unless temp_only
+      def clean_results(temp_only: true, ignore_retention: false)
+        # If ignore_retention is true, clean everything
+        # Otherwise, we would implement a retention policy based on timestamp
+        if ignore_retention
+          clean_directory(@storage_dir)
+        else
+          # For now, we don't delete anything based on retention policy
+          # In the future, we can implement a retention policy here
+        end
       end
 
       private
 
-      def ensure_directories_exist
-        FileUtils.mkdir_p(@temp_dir)
-        FileUtils.mkdir_p(@results_dir)
+      def ensure_directory_exists
+        FileUtils.mkdir_p(@storage_dir)
       end
 
-      def metadata_file_path(output_dir, type, group, report, timestamp)
+      def metadata_file_path(type, group, report, timestamp)
+        # Include storage name in the filename to easily identify which storage repository it belongs to
         File.join(
-          output_dir,
-          "#{timestamp}-awfy-#{type}-#{encode_component(group)}-#{encode_component(report)}.json"
+          @storage_dir,
+          "#{timestamp}-#{storage_name}-#{type}-#{encode_component(group)}-#{encode_component(report)}.json"
         )
       end
 
       def find_metadata_files(type, group, report)
-        metadata_files = []
-
-        # Search in both temp and results directories
-        [@temp_dir, @results_dir].each do |dir|
-          pattern = build_metadata_pattern(dir, type, group, report)
-          metadata_files.concat(Dir.glob(pattern))
-        end
-
-        metadata_files
+        pattern = build_metadata_pattern(type, group, report)
+        Dir.glob(pattern)
       end
 
-      def build_metadata_pattern(dir, type, group, report)
-        pattern = "#{dir}/*-awfy-"
+      def build_metadata_pattern(type, group, report)
+        pattern = "#{@storage_dir}/*-#{storage_name}-"
         pattern += "#{type}-" if type
         pattern += "*" if !group && !report # If no group/report specified, match all
         pattern += encode_component(group).to_s if group
@@ -142,23 +134,25 @@ module Awfy
       end
 
       def find_metadata_by_id(result_id)
-        # Look in both temp and results directories for metadata files
-        [@temp_dir, @results_dir].each do |dir|
-          Dir.glob("#{dir}/*.json").each do |file|
-            metadata_entries = load_json_file(file)
-            next unless metadata_entries
+        # Look in the storage directory for metadata files
+        Dir.glob("#{@storage_dir}/*.json").each do |file|
+          metadata_entries = load_json_file(file)
+          next unless metadata_entries
 
-            entry = metadata_entries.find { |e| e["result_id"] == result_id }
-            return Result.from_hash(entry) if entry
-          rescue
-            # Skip files that can't be processed
-            next
-          end
+          entry = metadata_entries.find { |e| e["result_id"] == result_id }
+          return Result.from_hash(entry) if entry
+        rescue
+          # Skip files that can't be processed
+          next
         end
         nil
       end
 
       def clean_directory(directory)
+        # Make sure the directory exists before trying to clean it
+        return unless File.directory?(directory)
+        
+        # Delete all JSON files in the directory
         Dir.glob("#{directory}/*.json").each do |file|
           File.delete(file)
         end
