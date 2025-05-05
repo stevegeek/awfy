@@ -47,14 +47,14 @@ module Awfy
       # Run cleanup with the current retention policy
       # This ensures old results are cleaned up before each benchmark run
       def run_cleanup_with_retention_policy
-        # Skip if RetentionPolicy is not defined (in tests)
-        return unless defined?(Awfy::RetentionPolicy)
+        # Skip if RetentionPolicies module is not defined (in tests)
+        return unless defined?(Awfy::RetentionPolicies)
 
-        # Create the retention policy
-        policy = Awfy::RetentionPolicy::Factory.create(options)
+        # Create the retention policy using the module method
+        policy = Awfy::RetentionPolicies.create(options.retention_policy, options.to_h)
 
-        # Get the result store and pass the retention policy
-        result_store = Awfy::Stores::Factory.instance(options, policy)
+        # Get the result store from the Stores module and pass the retention policy
+        result_store = Awfy::Stores.create(options.storage_backend, options, policy)
         result_store.clean_results
 
         # Show info if verbose
@@ -69,8 +69,9 @@ module Awfy
       # @param group_name [String, nil] Optional group name to run
       # @param report_name [String, nil] Optional report name to run
       # @param test_name [String, nil] Optional test name to run
+      # @param extra_options [Hash] Additional command-line options to pass
       # @return [Boolean] Whether the command succeeded
-      def run_in_fresh_process(command_type, group_name = nil, report_name = nil, test_name = nil)
+      def run_in_fresh_process(command_type, group_name = nil, report_name = nil, test_name = nil, extra_options = {})
         # Build the command to run the benchmark in a separate process
         cmd = ["ruby", "-r", "./lib/awfy", "exe/awfy", command_type]
 
@@ -79,12 +80,28 @@ module Awfy
         cmd << report_name if report_name
         cmd << test_name if test_name
 
-        # Add options
+        # Add standard options
         cmd << "--save"   # Always save results for collection
         cmd << "--runtime=#{options.runtime}" if options.runtime
         cmd << "--test-time=#{options.test_time}" if options.test_time
         cmd << "--test-warm-up=#{options.test_warm_up}" if options.test_warm_up
         cmd << "--verbose" if options.verbose?
+        cmd << "--classic-style" if options.classic_style?
+        cmd << "--ascii-only" if options.ascii_only?
+        cmd << "--no-color" if options.no_color?
+        
+        # Add storage options
+        cmd << "--storage-backend=#{options.storage_backend}" if options.storage_backend
+        cmd << "--storage-name=#{options.storage_name}" if options.storage_name
+        
+        # Add any extra options
+        extra_options.each do |key, value|
+          if value == true
+            cmd << "--#{key}"
+          elsif value != false && !value.nil?
+            cmd << "--#{key}=#{value}"
+          end
+        end
 
         # Execute and capture output
         system(*cmd)
@@ -124,7 +141,6 @@ module Awfy
         @start_time = Time.now.to_i
         say_configuration
         configure_benchmark_run
-        prepare_output_directory
         run_cleanup_with_retention_policy
       end
 
@@ -171,16 +187,6 @@ module Awfy
 
         require expanded_setup_file_path
         test_files.each { |file| require file }
-      end
-
-      # Prepare output directories for results
-      def prepare_output_directory
-        temp_dir = options.temp_output_directory
-        FileUtils.mkdir_p(temp_dir) unless Dir.exist?(temp_dir)
-        Dir.glob("#{temp_dir}/*.json").each { |file| File.delete(file) }
-
-        results_dir = options.results_directory
-        FileUtils.mkdir_p(results_dir) unless Dir.exist?(results_dir)
       end
     end
   end

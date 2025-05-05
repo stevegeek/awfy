@@ -34,7 +34,10 @@ module Awfy
     desc "list [GROUP]", "List all tests in a group"
     option :table_format, type: :boolean, desc: "Display output in table format", default: false
     def list(group = nil)
-      runner.start(group) { Commands::List.new(runner, shell, options: awfy_options).list(_1) }
+      # List command always uses single run runner
+      runner.run(group) do |group_data|
+        Commands::List.new(runner, shell, options: awfy_options).list(group_data)
+      end
     end
 
     desc "ips [GROUP] [REPORT] [TEST]", "Run IPS benchmarks. Can generate summary across implementations, runtimes and branches."
@@ -42,7 +45,40 @@ module Awfy
       say "Running IPS for:"
       say "> #{requested_tests(group, report, test)}..."
 
-      runner.start(group) { Commands::IPS.new(runner, shell, git_client: git_client, options: awfy_options).benchmark(_1, report, test) }
+      # Run the benchmark using the appropriate runner
+      if awfy_options.compare_with_branch
+        # Branch comparison runner expects main_branch and comparison_branch
+        current_branch = git_client.current_branch
+        comparison_branch = awfy_options.compare_with_branch
+        runner.run(current_branch, comparison_branch, group) do |results|
+          # Display results using appropriate view
+          display_ips_results(results)
+        end
+      elsif awfy_options.commit_range
+        # Commit range runner expects start_commit and end_commit
+        commits = awfy_options.commit_range.split("..")
+        start_commit = commits[0]
+        end_commit = commits[1] || "HEAD"
+        runner.run(start_commit, end_commit, group) do |results|
+          # Display results using appropriate view
+          display_ips_results(results)
+        end
+      else
+        # Single run runner just needs a group
+        runner.run(group) do |group_data|
+          # Run the IPS command with the group data
+          Commands::IPS.new(runner, shell, git_client: git_client, options: awfy_options).benchmark(group_data, report, test)
+        end
+      end
+    end
+    
+    # Display IPS benchmark results using the appropriate view
+    def display_ips_results(results)
+      if awfy_options.summary
+        require "awfy/views/ips/composite_view"
+        view = Awfy::Views::IPS::CompositeView.new(results, shell, awfy_options)
+        view.render
+      end
     end
 
     desc "memory [GROUP] [REPORT] [TEST]", "Run memory profiling. Can generate summary across implementations, runtimes and branches."
@@ -50,7 +86,40 @@ module Awfy
       say "Running memory profiling for:"
       say "> #{requested_tests(group, report, test)}..."
 
-      runner.start(group) { Commands::Memory.new(runner, shell, git_client: git_client, options: awfy_options).benchmark(_1, report, test) }
+      # Run the benchmark using the appropriate runner
+      if awfy_options.compare_with_branch
+        # Branch comparison runner expects main_branch and comparison_branch
+        current_branch = git_client.current_branch
+        comparison_branch = awfy_options.compare_with_branch
+        runner.run(current_branch, comparison_branch, group) do |results|
+          # Display results using appropriate view
+          display_memory_results(results)
+        end
+      elsif awfy_options.commit_range
+        # Commit range runner expects start_commit and end_commit
+        commits = awfy_options.commit_range.split("..")
+        start_commit = commits[0]
+        end_commit = commits[1] || "HEAD"
+        runner.run(start_commit, end_commit, group) do |results|
+          # Display results using appropriate view
+          display_memory_results(results)
+        end
+      else
+        # Single run runner just needs a group
+        runner.run(group) do |group_data|
+          # Run the memory command with the group data
+          Commands::Memory.new(runner, shell, git_client: git_client, options: awfy_options).benchmark(group_data, report, test)
+        end
+      end
+    end
+    
+    # Display memory benchmark results using the appropriate view
+    def display_memory_results(results)
+      if awfy_options.summary
+        require "awfy/views/memory/composite_view"
+        view = Awfy::Views::Memory::CompositeView.new(results, shell, awfy_options)
+        view.render
+      end
     end
 
     desc "flamegraph GROUP REPORT TEST", "Run flamegraph profiling"
@@ -58,7 +127,10 @@ module Awfy
       say "Creating flamegraph for:"
       say "> #{requested_tests(group, report, test)}..."
 
-      runner.start(group) { Commands::Flamegraph.new(runner, shell, git_client: git_client, options: awfy_options).generate(_1, report, test) }
+      # Flamegraph always uses single run runner
+      runner.run(group) do |group_data|
+        Commands::Flamegraph.new(runner, shell, git_client: git_client, options: awfy_options).generate(group_data, report, test)
+      end
     end
 
     desc "profile [GROUP] [REPORT] [TEST]", "Run CPU profiling"
@@ -66,7 +138,10 @@ module Awfy
       say "Run profiling of:"
       say "> #{requested_tests(group, report, test)}..."
 
-      runner.start(group) { Commands::Profiling.new(runner, shell).generate(_1, report, test) }
+      # Profiling always uses single run runner
+      runner.run(group) do |group_data|
+        Commands::Profiling.new(runner, shell).generate(group_data, report, test)
+      end
     end
 
     desc "yjit-stats [GROUP] [REPORT] [TEST]", "Run YJIT stats"
@@ -79,7 +154,10 @@ module Awfy
       say "Running YJIT stats for:"
       say "> #{requested_tests(group, report, test)}..."
 
-      runner.start(group) { Commands::YJITStats.new(runner, shell).benchmark(_1, report, test) }
+      # YJIT stats always uses single run runner
+      runner.run(group) do |group_data|
+        Commands::YJITStats.new(runner, shell).benchmark(group_data, report, test)
+      end
     end
 
     desc "clean", "Clean up benchmark results based on retention policy"
@@ -113,8 +191,26 @@ module Awfy
       say "Comparing #{benchmark_type} benchmarks across commits #{commit_range}:"
       say "> #{requested_tests(group, report, test)}..."
 
-      runner.start(group) do |group_data|
-        Commands::CommitRange.new(runner, shell, git_client, custom_options).benchmark(benchmark_type, group_data, report, test)
+      # Create a commit range runner specifically for this command
+      commit_runner = Runners.commit_range(Awfy.suite, shell, git_client, custom_options)
+      
+      # Parse the commit range
+      commits = commit_range.split("..")
+      start_commit = commits[0]
+      end_commit = commits[1] || "HEAD"
+      
+      # Run across the commit range
+      commit_runner.run(start_commit, end_commit, group) do |results|
+        # Display results based on benchmark type
+        case benchmark_type
+        when "ips"
+          display_ips_results(results)
+        when "memory"
+          display_memory_results(results)
+        when "profile"
+          # Profile results are displayed by the profile command
+          # We don't need to do anything special here
+        end
       end
     end
 
@@ -129,7 +225,14 @@ module Awfy
     end
 
     def runner
-      @runner ||= Runner.new(Awfy.suite, shell, git_client, awfy_options)
+      # Create the appropriate runner based on options
+      @runner ||= if awfy_options.commit_range
+                    Runners.commit_range(Awfy.suite, shell, git_client, awfy_options)
+                  elsif awfy_options.compare_with_branch
+                    Runners.on_branches(Awfy.suite, shell, git_client, awfy_options)
+                  else
+                    Runners.single(Awfy.suite, shell, git_client, awfy_options)
+                  end
     end
 
     def requested_tests(group, report = nil, test = nil)
@@ -139,7 +242,7 @@ module Awfy
     end
 
     def git_client
-      @_git_client ||= ::Git.open(Dir.pwd)
+      @_git_client ||= GitClient.new(Dir.pwd)
     end
 
     def git_current_branch_name = git_client.current_branch

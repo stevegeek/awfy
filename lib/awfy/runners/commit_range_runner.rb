@@ -63,23 +63,26 @@ module Awfy
       # Run benchmarks on a specific commit
       # @param commit [String] The commit hash to run on
       # @param group [String, nil] Optional group name to run
+      # @param report_name [String, nil] Optional report name to run
+      # @param test_name [String, nil] Optional test name to run
+      # @param command_type [String] The command type (ips, memory, etc.)
       # @return [Hash] Results from the run
-      def run_on_commit(commit, group = nil)
+      def run_on_commit(commit, group = nil, report_name = nil, test_name = nil, command_type = nil)
         results = nil
         commit_message = nil
 
         # Checkout the commit and run benchmarks in a fresh process
         safe_checkout(commit) do
           # Get commit metadata
-          commit_message = git_client.lib.command("log", "-1", "--pretty=%s", commit).strip
+          commit_message = git_client.commit_message(commit)
 
           if options.verbose?
             shell.say "Running benchmarks on commit: #{commit.slice(0, 8)} - #{commit_message}"
           end
 
           # Run the benchmark command in a fresh process
-          command_type = options.command || "ips"
-          run_in_fresh_process(command_type, group)
+          cmd_type = command_type || options.command || "ips"
+          run_in_fresh_process(cmd_type, group, report_name, test_name)
 
           # Load the results
           results = load_results(commit, commit_message)

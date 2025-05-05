@@ -32,28 +32,12 @@ module Awfy
 
       def say_error(...) = @shell.say_error(...)
 
-      def git_current_branch_name = git_client.current_branch
-
       def verbose? = options.verbose?
 
       def show_summary? = options.show_summary?
 
       def generate_test_label(test, runtime)
         "[#{runtime}] #{test[:control] ? CONTROL_MARKER : TEST_MARKER} #{test[:name]}"
-      end
-
-      def git_change_branch(branch)
-        # TODO: git to checkout branch (and stash first, then pop after)
-        previous_branch = git_current_branch_name
-        say "Switching to branch '#{branch}'" if verbose?
-        git_client.lib.stash_save("awfy auto stash")
-        git_client.checkout(branch)
-        yield
-      ensure
-        say "Switching back to branch '#{previous_branch}'" if verbose?
-        git_client.checkout(previous_branch)
-        # Git client does not have a pop method so send our own command
-        git_client.lib.send(:command, "stash", "pop")
       end
 
       def output_summary_table(report, rows, *headings)
@@ -138,16 +122,8 @@ module Awfy
       end
 
       def execute_on_branch(group, report_name, runtime, &)
-        compare_with = options.compare_with_branch
-        # run on current branch, then checkout to compare branch and run again
-        say "| git Branch: '#{git_current_branch_name}'" if verbose?
-        execute_group(group, report_name, runtime, &)
-        if compare_with
-          git_change_branch(compare_with) do
-            say "| compare with git Branch: '#{git_current_branch_name}'" if verbose?
-            execute_group(group, report_name, runtime, options.compare_control?, &)
-          end
-        end
+        # Just execute the group - branch switching is handled by the runner
+        execute_group(group, report_name, runtime, true, &)
       end
 
       def execute_group(group, report_name, runtime, include_control = true)
@@ -210,8 +186,11 @@ module Awfy
       # TODO extract this to a separate class and then we can start to refactor, this parses result data into
       # something to pass to view?
       def read_reports_for_summary(type)
-        # Get the result store
-        result_store = Awfy::Stores::Factory.instance(options)
+        # Create retention policy
+        policy = Awfy::RetentionPolicy::Factory.create(options)
+
+        # Get the result store with the policy
+        result_store = Awfy::Stores::Factory.instance(options, policy)
 
         # Get all metadata for this benchmark type
         metadata_entries = result_store.query_results(type:)
@@ -270,19 +249,6 @@ module Awfy
       end
 
       def save_to(type, group, report, runtime)
-        current_branch = git_current_branch_name
-
-        # Get current commit hash - use public API or fall back to safe defaults
-        begin
-          commit_hash = git_client.object("HEAD").sha
-          commit_msg = git_client.object("HEAD").message.lines.first.strip
-        rescue => e
-          say_error "Failed to get current commit hash: #{e.message}"
-          # Fall back to safer defaults if git operations fail
-          commit_hash = "unknown"
-          commit_msg = "unknown commit message"
-        end
-
         ruby_version = RUBY_VERSION
         timestamp = runner.start_time
 
@@ -293,15 +259,19 @@ module Awfy
           report: report[:name],
           runtime: runtime,
           timestamp: timestamp,
-          branch: current_branch,
-          commit: commit_hash,
-          commit_message: commit_msg,
+          branch: nil,         # Branch info is handled by the runner
+          commit: nil,         # Commit info is handled by the runner
+          commit_message: nil, # Commit message is handled by the runner
           ruby_version: ruby_version,
-          result_id: nil,  # This will be set by the result store
-          result_data: nil # This will be set by the result store
+          result_id: nil,      # This will be set by the result store
+          result_data: nil     # This will be set by the result store
         )
 
-        result_store = Awfy::Stores::Factory.instance(options)
+        # Create retention policy
+        policy = Awfy::RetentionPolicy::Factory.create(options)
+
+        # Get the result store with the policy
+        result_store = Awfy::Stores::Factory.instance(options, policy)
 
         result_id = result_store.save_result(metadata) do
           yield
@@ -313,10 +283,9 @@ module Awfy
       end
 
       def choose_baseline_test(results)
-        base_branch = git_current_branch_name
+        # Find the baseline test based on timestamp and runtime
         baseline = results.find do |r|
-          r[:branch] == base_branch &&
-            r[:timestamp] == runner.start_time && # Must be current run. Previous runs cant be the baseline
+          r[:timestamp] == runner.start_time && # Must be current run. Previous runs cant be the baseline
             !r[:control] &&
             r[:runtime] == (options.yjit_only? ? "yjit" : "mri") # Baseline is mri baseline unless yjit only
         end

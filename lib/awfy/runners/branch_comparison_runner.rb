@@ -34,8 +34,11 @@ module Awfy
       # Run benchmarks on a specific branch
       # @param branch [String] The branch to run on
       # @param group [String, nil] Optional group name to run
+      # @param report_name [String, nil] Optional report name to run
+      # @param test_name [String, nil] Optional test name to run
+      # @param command_type [String] The command type (ips, memory, etc.)
       # @return [Hash] Results from the run
-      def run_on_branch(branch, group = nil)
+      def run_on_branch(branch, group = nil, report_name = nil, test_name = nil, command_type = nil)
         results = nil
 
         # Checkout the branch and run benchmarks in a fresh process
@@ -43,8 +46,8 @@ module Awfy
           shell.say "Running benchmarks on branch: #{branch}" if options.verbose?
 
           # Run the benchmark command in a fresh process
-          command_type = options.command || "ips"
-          run_in_fresh_process(command_type, group)
+          cmd_type = command_type || options.command || "ips"
+          run_in_fresh_process(cmd_type, group, report_name, test_name)
 
           # Load the results
           results = load_results(branch)
