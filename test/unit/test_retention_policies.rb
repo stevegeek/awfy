@@ -39,15 +39,15 @@ class RetentionPoliciesTest < Minitest::Test
 
     assert policy.retain?(result)
   end
-  
+
   def test_keep_none_policy
     options = Awfy::Options.new
     policy = Awfy::RetentionPolicies::KeepNone.new(options)
-    
+
     # KeepNone policy should always return false
     refute policy.retain?(nil)
     refute policy.retain?(Object.new)
-    
+
     # Test with a Result object
     result = Awfy::Result.new(
       type: :test,
@@ -62,7 +62,7 @@ class RetentionPoliciesTest < Minitest::Test
       result_id: "test",
       result_data: {}
     )
-    
+
     refute policy.retain?(result)
   end
 
@@ -155,41 +155,41 @@ class RetentionPoliciesTest < Minitest::Test
   def test_module_functions
     # Create an Options instance for testing
     options = Awfy::Options.new
-    
+
     # Test creation via module function with explicit options
     policy = Awfy::RetentionPolicies.create("keep_all", options)
     assert_instance_of Awfy::RetentionPolicies::KeepAll, policy
-    
+
     # Test module function aliases
     policy = Awfy::RetentionPolicies.create("none", options)
     assert_instance_of Awfy::RetentionPolicies::KeepNone, policy
-    
+
     policy = Awfy::RetentionPolicies.create("keep_none", options)
     assert_instance_of Awfy::RetentionPolicies::KeepNone, policy
-    
+
     policy = Awfy::RetentionPolicies.create("keep_all", options)
     assert_instance_of Awfy::RetentionPolicies::KeepAll, policy
-    
+
     policy = Awfy::RetentionPolicies.create("date_based", options)
     assert_instance_of Awfy::RetentionPolicies::DateBased, policy
-    
+
     policy = Awfy::RetentionPolicies.create("date", options)
     assert_instance_of Awfy::RetentionPolicies::DateBased, policy
-    
+
     # Test convenience methods with explicit options
-    policy = Awfy::RetentionPolicies.none()
+    policy = Awfy::RetentionPolicies.none
     assert_instance_of Awfy::RetentionPolicies::KeepNone, policy
-    
-    policy = Awfy::RetentionPolicies.keep_none()
+
+    policy = Awfy::RetentionPolicies.keep_none
     assert_instance_of Awfy::RetentionPolicies::KeepNone, policy
-    
-    policy = Awfy::RetentionPolicies.keep()
+
+    policy = Awfy::RetentionPolicies.keep
     assert_instance_of Awfy::RetentionPolicies::KeepAll, policy
-    
-    policy = Awfy::RetentionPolicies.keep_all()
+
+    policy = Awfy::RetentionPolicies.keep_all
     assert_instance_of Awfy::RetentionPolicies::KeepAll, policy
   end
-  
+
   def test_create_function
     # Test default policy
     options = Awfy::Options.new
@@ -200,7 +200,7 @@ class RetentionPoliciesTest < Minitest::Test
     options = Awfy::Options.new(retention_policy: "none")
     policy = Awfy::RetentionPolicies.create(options.retention_policy, options)
     assert_instance_of Awfy::RetentionPolicies::KeepNone, policy
-    
+
     # Test "keep_none" policy
     options = Awfy::Options.new(retention_policy: "keep_none")
     policy = Awfy::RetentionPolicies.create(options.retention_policy, options)

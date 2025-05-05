@@ -9,18 +9,11 @@ module Awfy
 
       instance = case backend
       when :json
-        Json.new(options, retention_policy)
+        json(options, retention_policy)
       when :sqlite
-        # Check if SQLite is available directly without instantiating
-        begin
-          require "sqlite3"
-          Sqlite.new(options, retention_policy)
-        rescue LoadError
-          raise "SQLite backend requested but sqlite3 gem is not available. " \
-                  "Please install it with: gem install sqlite3"
-        end
+        sqlite(options, retention_policy)
       when :memory
-        Memory.new(options, retention_policy)
+        memory(options, retention_policy)
       else
         raise "Unsupported backend: #{backend}"
       end
@@ -29,6 +22,24 @@ module Awfy
       @@instances[backend] = instance
 
       instance
+    end
+
+    def json(options = nil, retention_policy = nil)
+      Json.new(options, retention_policy)
+    end
+
+    def sqlite(options = nil, retention_policy = nil)
+      # Check if SQLite is available directly without instantiating
+
+      require "sqlite3"
+      Sqlite.new(options, retention_policy)
+    rescue LoadError
+      raise "SQLite backend requested but sqlite3 gem is not available. " \
+              "Please install it with: gem install sqlite3"
+    end
+
+    def memory(options = nil, retention_policy = nil)
+      Memory.new(options, retention_policy)
     end
 
     def instance(backend = DEFAULT_BACKEND)
@@ -42,6 +53,6 @@ module Awfy
       @@instances = {}
     end
 
-    module_function :create, :instance, :reset!
+    module_function :create, :json, :sqlite, :memory, :instance, :reset!
   end
 end

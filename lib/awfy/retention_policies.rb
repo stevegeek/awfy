@@ -5,27 +5,27 @@ module Awfy
     def create(policy_name, options = {})
       case policy_name
       when "none", "keep_none"
-        KeepNone.new(options)
+        none(options)
       when "date", "date_based"
-        DateBased.new(options)
+        date_based(options)
       else
         # Default to keep_all if an unknown policy is specified
-        KeepAll.new(options)
+        keep(options)
       end
     end
 
-    def none
-      create("none")
+    def none(options = {})
+      KeepNone.new(options)
     end
     alias_method :keep_none, :none
 
-    def keep
-      create("keep_all")
+    def keep(options = {})
+      KeepAll.new(options)
     end
     alias_method :keep_all, :keep
 
-    def date_based
-      create("date_based")
+    def date_based(options = {})
+      DateBased.new(options)
     end
     alias_method :date, :date_based
 
