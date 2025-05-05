@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module Awfy
+  DEFAULT_BACKEND = "json"
+
   Options = Data.define(
     # Display options
     :verbose,         # Boolean: verbose output
@@ -11,9 +13,6 @@ module Awfy
     :classic_style,   # Boolean: use classic style instead of modern style
     :ascii_only,      # Boolean: use ASCII characters only (no Unicode)
     :no_color,        # Boolean: don't use colored output
-    # Output options
-    :temp_output_directory, # String: directory to store temporary output files
-    :results_directory,     # String: directory to store benchmark results
     # Input paths
     :setup_file_path, # String: path to the setup file
     :tests_path,      # String: path to the tests files
@@ -47,8 +46,6 @@ module Awfy
       classic_style: false,
       ascii_only: false,
       no_color: false,
-      temp_output_directory: "./benchmarks/tmp",
-      results_directory: "./benchmarks/saved",
       setup_file_path: "./benchmarks/setup",
       tests_path: "./benchmarks/tests",
       compare_with_branch: nil,

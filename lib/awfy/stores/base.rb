@@ -6,9 +6,8 @@ module Awfy
   module Stores
     # Abstract base class for result storage
     class Base
-      def initialize(options, retention_policy = nil)
-        @options = options
-        @storage_name = options.storage_name || "benchmark_history"
+      def initialize(storage_name, retention_policy = nil)
+        @storage_name = storage_name || "benchmark_history"
         @retention_policy = retention_policy || RetentionPolicies.keep
       end
 

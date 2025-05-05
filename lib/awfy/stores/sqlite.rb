@@ -35,12 +35,9 @@ module Awfy
         );
       SQL
 
-      def initialize(options, retention_policy = nil)
+      def initialize(storage_name, retention_policy = nil)
         super
-        # SQLite library availability is checked at factory level before instantiation
-        ensure_results_directory(options.results_directory)
-        db_filename = "#{storage_name}.db"
-        @db_path = File.join(options.results_directory, db_filename)
+        @db_path = "#{storage_name}.db"
         setup_database
       end
 
@@ -122,10 +119,6 @@ module Awfy
         end
 
         results
-      end
-
-      def ensure_results_directory(directory)
-        FileUtils.mkdir_p(directory)
       end
 
       def with_database_connection

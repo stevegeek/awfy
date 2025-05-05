@@ -5,12 +5,12 @@ require "json"
 
 module Awfy
   module Stores
+    AWFY_RESULT_EXTENSION = ".awfy-result.json".freeze
+
     # JSON file-based implementation of Base
     class Json < Base
-      def initialize(options, retention_policy = nil)
+      def initialize(storage_name, retention_policy = nil)
         super
-        # Create a subdirectory for the storage name to keep files organized
-        @storage_dir = File.join(options.results_directory, storage_name)
         ensure_directory_exists
       end
 
@@ -61,7 +61,7 @@ module Awfy
         return nil unless metadata_obj
 
         # Check for separate result data file (not used currently but kept for compatibility)
-        file_path = File.join(@storage_dir, "#{result_id}.json")
+        file_path = result_file_path(result_id)
         if File.exist?(file_path)
           result_data = load_json_file(file_path)
           return Result.new(
@@ -83,7 +83,7 @@ module Awfy
       # Apply retention policy to all files in the storage directory
       def apply_retention_policy_to_files
         # Only process JSON files
-        Dir.glob(File.join(@storage_dir, "*.json")).each do |file_path|
+        result_files.each do |file_path|
           # Parse the metadata and apply the retention policy
 
           metadata_json = JSON.parse(File.read(file_path))
@@ -105,30 +105,12 @@ module Awfy
       end
 
       def ensure_directory_exists
-        FileUtils.mkdir_p(@storage_dir)
-      end
-
-      def metadata_file_path(type, group, report, timestamp)
-        # Include storage name in the filename to easily identify which storage repository it belongs to
-        File.join(
-          @storage_dir,
-          "#{timestamp}-#{storage_name}-#{type}-#{encode_component(group)}-#{encode_component(report)}.json"
-        )
+        FileUtils.mkdir_p(storage_name)
       end
 
       def find_metadata_files(type, group, report)
         pattern = build_metadata_pattern(type, group, report)
         Dir.glob(pattern)
-      end
-
-      def build_metadata_pattern(type, group, report)
-        pattern = "#{@storage_dir}/*-#{storage_name}-"
-        pattern += "#{type}-" if type
-        pattern += "*" if !group && !report # If no group/report specified, match all
-        pattern += encode_component(group).to_s if group
-        pattern += "-#{encode_component(report)}" if report
-        pattern += ".json"
-        pattern
       end
 
       def process_metadata_file(file, results, type, group, report, runtime, commit)
@@ -152,7 +134,7 @@ module Awfy
 
       def find_metadata_by_id(result_id)
         # Look in the storage directory for metadata files
-        Dir.glob("#{@storage_dir}/*.json").each do |file|
+        result_files.each do |file|
           metadata_entries = load_json_file(file)
           next unless metadata_entries
 
@@ -165,16 +147,6 @@ module Awfy
         nil
       end
 
-      def clean_directory(directory)
-        # Make sure the directory exists before trying to clean it
-        return unless File.directory?(directory)
-
-        # Delete all JSON files in the directory
-        Dir.glob("#{directory}/*.json").each do |file|
-          File.delete(file)
-        end
-      end
-
       def load_json_file(file_path)
         return [] unless File.exist?(file_path)
 
@@ -183,6 +155,30 @@ module Awfy
 
       def write_json_file(file_path, data)
         File.write(file_path, data.to_json)
+      end
+
+      def result_files
+        Dir.glob(result_file_path("*"))
+      end
+
+      def result_file_path(result_id)
+        File.join(storage_name, "#{result_id}#{AWFY_RESULT_EXTENSION}")
+      end
+
+      def metadata_file_path(type, group, report, timestamp)
+        result_file_path(
+          "#{timestamp}-#{type}-#{encode_component(group)}-#{encode_component(report)}"
+        )
+      end
+
+      def build_metadata_pattern(type, group, report)
+        pattern = "#{storage_name}/*"
+        pattern += "#{type}-" if type
+        pattern += "*" if !group && !report # If no group/report specified, match all
+        pattern += encode_component(group).to_s if group
+        pattern += "-#{encode_component(report)}" if report
+        pattern += AWFY_RESULT_EXTENSION
+        pattern
       end
     end
   end

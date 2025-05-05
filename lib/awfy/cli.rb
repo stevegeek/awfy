@@ -21,13 +21,11 @@ module Awfy
     class_option :test_warm_up, type: :numeric, default: 1, desc: "Number of seconds to warmup the IPS benchmark"
     class_option :test_time, type: :numeric, default: 3, desc: "Number of seconds to run the IPS benchmark"
     class_option :test_iterations, type: :numeric, default: 1_000_000, desc: "Number of iterations to run the test"
-    class_option :temp_output_directory, type: :string, default: "./benchmarks/tmp", desc: "Directory to store temporary output files"
-    class_option :results_directory, type: :string, default: "./benchmarks/saved", desc: "Directory to store benchmark results"
     class_option :setup_file_path, type: :string, default: "./benchmarks/setup", desc: "Path to the setup file"
     class_option :tests_path, type: :string, default: "./benchmarks/tests", desc: "Path to the tests files"
-    class_option :storage_backend, type: :string, default: "json", desc: "Storage backend for benchmark results (json or sqlite)"
+    class_option :storage_backend, type: :string, default: DEFAULT_BACKEND, desc: "Storage backend for benchmark results (json or sqlite)"
     class_option :storage_name, type: :string, default: "benchmark_history", desc: "Name for the storage repository (database name or directory)"
-    class_option :retention_policy, type: :string, default: "all", desc: "Retention policy for benchmark results (all or date)"
+    class_option :retention_policy, type: :string, default: "keep", desc: "Retention policy for benchmark results (keep or date)"
     class_option :retention_days, type: :numeric, default: 30, desc: "Number of days to keep results (only used with 'date' policy)"
 
     # TODO: implement assert option
@@ -85,20 +83,17 @@ module Awfy
     end
 
     desc "clean", "Clean up benchmark results based on retention policy"
-    option :ignore_retention, type: :boolean, desc: "Clean all results regardless of retention policy", default: false
     def clean
-      # Get the result store
-      result_store = Stores::Factory.instance(awfy_options)
+      # Create the retention policy first
+      policy = RetentionPolicies.create(awfy_options.retention_policy)
+
+      # Get the result store and pass the retention policy
+      result_store = Stores.create(awfy_options.storage_backend, awfy_options, policy)
 
       # Clean results
-      result_store.clean_results(ignore_retention: options[:ignore_retention])
+      result_store.clean_results
 
-      if options[:ignore_retention]
-        say "Cleaned all benchmark results (ignoring retention policy)"
-      else
-        policy = RetentionPolicy::Factory.create(awfy_options)
-        say "Cleaned benchmark results using '#{policy.name}' retention policy"
-      end
+      say "Cleaned benchmark results using '#{policy.name}' retention policy"
     end
 
     desc "compare <benchmark_type> <COMMIT_RANGE> [GROUP] [REPORT] [TEST]", "Run benchmarks across a range of commits"
