@@ -1,39 +1,32 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require_relative "integration_test_helper"
+require "tmpdir"
+require "fileutils"
 
-class SqliteResultStoreTest < Minitest::Test
-  include IntegrationTestHelper
-
+class SqliteStoreTest < Minitest::Test
   def setup
-    setup_test_environment
-
-    # Create specific directories for this test
-    @temp_dir = File.join(@test_dir, "temp_results")
-    @results_dir = File.join(@test_dir, "saved_results")
-    FileUtils.mkdir_p(@temp_dir)
-    FileUtils.mkdir_p(@results_dir)
-
-    # Create options with our test directories
-    @options = Awfy::Options.new(
-      temp_output_directory: @temp_dir,
-      results_directory: @results_dir,
-      storage_name: "test_results"
-    )
+    # Create a temporary directory for testing
+    @test_dir = Dir.mktmpdir
+    
+    # Set the database path
+    @db_path = File.join(@test_dir, "test_results")
+    
+    # Create retention policy
+    retention_policy = Awfy::RetentionPolicies.keep_all
 
     # Create the Sqlite store instance to test
-    @store = Awfy::Stores::Sqlite.new(@options)
+    @store = Awfy::Stores::Sqlite.new(@db_path, retention_policy)
 
     # SQLite is required for these tests
-    # The factory should raise an error if SQLite is not available
 
     # Verify the database file was created
-    assert File.exist?(File.join(@results_dir, "test_results.db")), "Database file should exist"
+    assert File.exist?("#{@db_path}.db"), "Database file should exist"
   end
 
   def teardown
-    teardown_test_environment
+    # Clean up the temporary directory
+    FileUtils.remove_entry(@test_dir) if Dir.exist?(@test_dir)
   end
 
   def test_save_result
@@ -88,41 +81,6 @@ class SqliteResultStoreTest < Minitest::Test
     assert_equal "ruby", our_entry.runtime
     assert_equal "main", our_entry.branch
     assert_equal "abc123", our_entry.commit
-  end
-
-  def test_save_result_with_save_flag
-    # Create test metadata (save flag has been removed)
-    metadata = Awfy::Result.new(
-      type: :memory,
-      group: "Test Group",
-      report: "#memory_test",
-      runtime: "ruby",
-      timestamp: Time.now.to_i,
-      branch: "main",
-      commit: "def456",
-      commit_message: "Test commit",
-      ruby_version: "3.1.0",
-      result_id: nil
-    )
-
-    # Sample benchmark result data
-    result_data = {
-      memory: 1024,
-      objects: 50
-    }
-
-    # Store the result
-    result_id = @store.save_result(metadata) do
-      result_data
-    end
-
-    # Assert that the result_id is returned
-    assert result_id, "Result ID should be returned"
-
-    # Query results and verify it's found correctly
-    metadata_entries = @store.query_results(type: :memory)
-    our_entry = metadata_entries.find { |entry| entry.result_id == result_id }
-    assert our_entry, "Should find our metadata entry"
   end
 
   def test_query_results
@@ -290,20 +248,23 @@ class SqliteResultStoreTest < Minitest::Test
     results = @store.query_results(type: :clean_test)
     assert_equal 2, results.length, "Should have 2 results before cleaning"
 
-    # With the save flag removed, clean_results behavior has changed
-    # Clean with retention policy (cleantup is based on timestamp now, not save flag)
+    # Clean with KeepAll retention policy (should keep everything)
     @store.clean_results
 
     # Verify results after cleaning
     results = @store.query_results(type: :clean_test)
-    # With our current implementation, retention policy should keep both results
-    assert_equal 2, results.length, "Both results should remain with current retention policy"
+    # With KeepAll retention policy, all results should be kept
+    assert_equal 2, results.length, "Both results should remain with KeepAll retention policy"
 
-    # Clean all results regardless of retention policy
-    @store.clean_results(ignore_retention: true)
+    # Create a store with KeepNone policy to remove all results
+    keep_none_policy = Awfy::RetentionPolicies.keep_none
+    keep_none_store = Awfy::Stores::Sqlite.new(@db_path, keep_none_policy)
+    
+    # Clean with KeepNone policy
+    keep_none_store.clean_results
 
     # Verify no results remain
-    results = @store.query_results(type: :clean_test)
-    assert_equal 0, results.length, "Should have 0 results after cleaning all"
+    results = keep_none_store.query_results(type: :clean_test)
+    assert_equal 0, results.length, "Should have 0 results after cleaning with KeepNone policy"
   end
 end

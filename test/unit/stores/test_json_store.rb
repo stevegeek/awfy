@@ -1,33 +1,27 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require_relative "integration_test_helper"
+require "fileutils"
+require "tmpdir"
 
-class JsonResultStoreTest < Minitest::Test
-  include IntegrationTestHelper
-
+class JsonStoreTest < Minitest::Test
   def setup
-    setup_test_environment
-
-    # Create specific directories for this test
-    @results_dir = File.join(@test_dir, "saved_results")
-    FileUtils.mkdir_p(@results_dir)
-
-    # Create options with our test directories
-    @options = Awfy::Options.new(
-      results_directory: @results_dir,
-      storage_name: "test_json_store"
-    )
+    # Create a temporary directory for testing
+    @test_dir = Dir.mktmpdir
+    
+    # Create storage path
+    @storage_dir = File.join(@test_dir, "test_json_store")
+    
+    # Create retention policy
+    @retention_policy = Awfy::RetentionPolicies.keep_all
 
     # Create the Json store instance to test
-    @store = Awfy::Stores::Json.new(@options)
-
-    # Define the storage directory for easier access
-    @storage_dir = File.join(@results_dir, "test_json_store")
+    @store = Awfy::Stores::Json.new(@storage_dir, @retention_policy)
   end
 
   def teardown
-    teardown_test_environment
+    # Clean up the temporary directory
+    FileUtils.remove_entry(@test_dir) if Dir.exist?(@test_dir)
   end
 
   def test_save_result
@@ -70,8 +64,7 @@ class JsonResultStoreTest < Minitest::Test
     assert_equal result_data[:ips], result_metadata["result_data"]["ips"]
 
     # Verify the metadata file exists and contains our entry
-    metadata_glob = File.join(@storage_dir, "*-test_json_store-ips-*")
-    metadata_files = Dir.glob(metadata_glob)
+    metadata_files = Dir.glob(File.join(@storage_dir, "*#{Awfy::Stores::AWFY_RESULT_EXTENSION}"))
     assert_equal 1, metadata_files.length, "Expected one metadata file"
 
     # Verify metadata content
@@ -114,17 +107,16 @@ class JsonResultStoreTest < Minitest::Test
       result_data
     end
 
-    # Assert the result file exists in results_dir
+    # Assert the result file exists
     assert File.exist?(result_path), "Result file was not created"
-    assert_match(/#{@results_dir}/, result_path, "Result should be in results directory")
+    assert_match(/#{@test_dir}/, result_path, "Result should be in the test directory")
 
-    # Verify metadata file exists
-    metadata_glob = File.join(@storage_dir, "*-test_json_store-memory-*")
-    metadata_files = Dir.glob(metadata_glob)
+    # Verify metadata file exists - using the new file extension
+    metadata_files = Dir.glob(File.join(@storage_dir, "*memory*#{Awfy::Stores::AWFY_RESULT_EXTENSION}"))
     assert_equal 1, metadata_files.length, "Expected one metadata file in results directory"
   end
 
-  def test_get_results
+  def test_query_results
     # Store multiple results first
     timestamp = Time.now.to_i
 
@@ -186,20 +178,20 @@ class JsonResultStoreTest < Minitest::Test
     results = @store.query_results(type: :ips)
     assert results.length > 0, "Should find ips results"
 
-    # Since we may get 0-3 results due to file system and encoding issues in tests,
-    # let's just verify we can query by different criteria without strict count checks
+    # Note: The Json store may sometimes have issues with exact file search in tests
+    # due to filesystem and encoding issues, so we're making these tests more lenient
 
     # Query with group filter
-    @store.query_results(type: :ips, group: "Query Group")
-
+    group_results = @store.query_results(type: :ips, group: "Query Group")
+    
     # Query with runtime filter
     runtime_results = @store.query_results(type: :ips, runtime: "yjit")
-
-    # If we got YJIT results, check the value
+    
+    # If we got yjit results, check the value
     if runtime_results.length > 0
       assert_equal 1500.0, runtime_results.first.result_data["ips"], "Should find the correct result"
     end
-
+    
     # Query with combination of filters
     combo_results = @store.query_results(
       type: :ips,
@@ -207,7 +199,7 @@ class JsonResultStoreTest < Minitest::Test
       report: "#method1",
       runtime: "ruby"
     )
-
+    
     # If we got combo results, check the value
     if combo_results.length > 0
       assert_equal 1000.0, combo_results.first.result_data["ips"], "Should find the correct result"
@@ -253,32 +245,40 @@ class JsonResultStoreTest < Minitest::Test
   def test_clean_results
     # Create test files in the storage directory
     FileUtils.mkdir_p(@storage_dir)
-    test_file = File.join(@storage_dir, "test-results.json")
-    File.write(test_file, '{"test": "results"}')
+    test_file = File.join(@storage_dir, "test-results#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
+    # Create a valid result metadata format
+    metadata = {
+      "type": "test",
+      "group": "test_group",
+      "report": "test_report",
+      "runtime": "ruby",
+      "timestamp": Time.now.to_i,
+      "branch": "main",
+      "commit": "test",
+      "commit_message": "test",
+      "ruby_version": "3.0.0",
+      "result_id": "test-results",
+      "result_data": {"test": "results"}
+    }
+    File.write(test_file, JSON.dump([metadata]))
 
     # Verify file exists before cleaning
     assert File.exist?(test_file), "Test file should exist"
 
-    # Clean results with default parameters (shouldn't delete due to retention policy)
+    # Clean results with default parameters (KeepAll policy shouldn't delete anything)
     @store.clean_results
 
-    # Verify file still exists (with current implementation, retention policy keeps everything)
-    assert File.exist?(test_file), "Test file should still exist with current retention policy"
+    # Verify file still exists (with KeepAll retention policy, everything is kept)
+    assert File.exist?(test_file), "Test file should still exist with KeepAll retention policy"
 
-    # Now clean with ignore_retention which should delete everything
-    @store.clean_results(ignore_retention: true)
+    # Now create a store with KeepNone policy which should delete everything
+    keep_none_policy = Awfy::RetentionPolicies.keep_none
+    keep_none_store = Awfy::Stores::Json.new(@storage_dir, keep_none_policy)
+    
+    # Clean with KeepNone retention policy
+    keep_none_store.clean_results
 
     # Verify file is deleted
-    refute File.exist?(test_file), "Test file should be deleted when ignore_retention is true"
-
-    # Create another test file
-    File.write(test_file, '{"test": "results2"}')
-    assert File.exist?(test_file), "Test file should exist again"
-
-    # Clean with ignore_retention: true explicitly
-    @store.clean_results(ignore_retention: true)
-
-    # Verify file is deleted again
-    refute File.exist?(test_file), "Test file should be deleted"
+    refute File.exist?(test_file), "Test file should be deleted with KeepNone retention policy"
   end
 end

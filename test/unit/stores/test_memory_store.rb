@@ -1,26 +1,14 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require_relative "integration_test_helper"
 
-class MemoryResultStoreTest < Minitest::Test
-  include IntegrationTestHelper
-
+class MemoryStoreTest < Minitest::Test
   def setup
-    setup_test_environment
-
-    # Create options with our test directories
-    @options = Awfy::Options.new(
-      storage_backend: :memory,
-      storage_name: "test_memory_store"
-    )
-
+    # Create retention policy
+    retention_policy = Awfy::RetentionPolicies.keep_all
+    
     # Create the Memory store instance to test
-    @store = Awfy::Stores::Memory.new(@options)
-  end
-
-  def teardown
-    teardown_test_environment
+    @store = Awfy::Stores::Memory.new("test_memory_store", retention_policy)
   end
 
   def test_save_result
@@ -221,10 +209,23 @@ class MemoryResultStoreTest < Minitest::Test
     # Verify result was added
     refute_empty @store.stored_results, "Result should be added to store"
 
-    # Clean results with ignore_retention to ensure all results are removed
-    @store.clean_results(ignore_retention: true)
+    # Clean results with KeepAll policy (should keep everything)
+    @store.clean_results
+    
+    # Verify results are still there
+    refute_empty @store.stored_results, "Results should be kept with KeepAll policy"
+    
+    # Create a store with KeepNone policy to remove all results
+    keep_none_policy = Awfy::RetentionPolicies.keep_none
+    keep_none_store = Awfy::Stores::Memory.new("test_memory_store", keep_none_policy)
+    
+    # Copy results to the new store
+    keep_none_store.instance_variable_set(:@stored_results, @store.stored_results.dup)
+    
+    # Clean results with KeepNone policy
+    keep_none_store.clean_results
 
     # Verify store is now empty
-    assert_empty @store.stored_results, "Store should be empty after cleaning with ignore_retention"
+    assert_empty keep_none_store.stored_results, "Store should be empty after cleaning with KeepNone policy"
   end
 end

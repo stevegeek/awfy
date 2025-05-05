@@ -1,43 +1,37 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require_relative "integration_test_helper"
+require "tmpdir"
+require "fileutils"
 
-class JsonResultStoreDatePolicyTest < Minitest::Test
-  include IntegrationTestHelper
-
+class JsonStoreDatePolicyTest < Minitest::Test
   def setup
-    setup_test_environment
-
-    # Create specific directories for this test
-    @temp_dir = File.join(@test_dir, "temp_results")
-    @results_dir = File.join(@test_dir, "saved_results")
-    FileUtils.mkdir_p(@temp_dir)
-    FileUtils.mkdir_p(@results_dir)
+    # Create a temporary directory for testing
+    @test_dir = Dir.mktmpdir
   end
 
   def teardown
-    teardown_test_environment
+    # Clean up the temporary directory
+    FileUtils.remove_entry(@test_dir) if Dir.exist?(@test_dir)
   end
 
   def test_clean_results_with_date_based_policy
-    # Create options with DateBased retention policy (7 days)
-    options = Awfy::Options.new(
-      temp_output_directory: @temp_dir,
-      results_directory: @results_dir,
-      retention_policy: "date_based",
-      retention_days: 7,
-      storage_name: "test_date_policy"
-    )
+    # Create DateBased retention policy (7 days)
+    date_options = Awfy::Options.new(retention_days: 7)
+    date_policy = Awfy::RetentionPolicies.create("date_based", date_options)
 
+    # Create storage path
+    storage_path = File.join(@test_dir, "test_date_policy")
+  
     # Create the store
-    store = Awfy::Stores::Json.new(options)
+    store = Awfy::Stores::Json.new(storage_path, date_policy)
 
     # Create test files
-    storage_dir = store.instance_variable_get(:@storage_dir)
+    # Ensure directory exists
+    FileUtils.mkdir_p(storage_path)
 
     # 1. Recent file (3 days ago) - should be kept
-    recent_file = File.join(storage_dir, "recent.json")
+    recent_file = File.join(storage_path, "recent#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
     recent_metadata = {
       "type" => "test",
       "group" => "test_group",
@@ -50,7 +44,7 @@ class JsonResultStoreDatePolicyTest < Minitest::Test
     File.write(recent_file, JSON.dump([recent_metadata]))
 
     # 2. Old file (14 days ago) - should be deleted
-    old_file = File.join(storage_dir, "old.json")
+    old_file = File.join(storage_path, "old#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
     old_metadata = {
       "type" => "test",
       "group" => "test_group",
@@ -75,20 +69,17 @@ class JsonResultStoreDatePolicyTest < Minitest::Test
   end
 
   def test_clean_results_with_keep_all_policy
-    # Create options with KeepAll retention policy
-    options = Awfy::Options.new(
-      temp_output_directory: @temp_dir,
-      results_directory: @results_dir,
-      retention_policy: "keep_all",
-      storage_name: "test_keep_all"
-    )
+    # Create KeepAll retention policy
+    keep_all_policy = Awfy::RetentionPolicies.keep_all
 
+    # Create storage path
+    storage_path = File.join(@test_dir, "test_keep_all")
+  
     # Create the store
-    store = Awfy::Stores::Json.new(options)
+    store = Awfy::Stores::Json.new(storage_path, keep_all_policy)
 
     # Create a test file
-    storage_dir = store.instance_variable_get(:@storage_dir)
-    test_file = File.join(storage_dir, "test_file.json")
+    test_file = File.join(storage_path, "test_file#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
 
     # Create a valid JSON metadata file with a timestamp
     metadata = {
@@ -101,6 +92,8 @@ class JsonResultStoreDatePolicyTest < Minitest::Test
       "result_id" => "test_id"
     }
 
+    # Ensure storage directory exists
+    FileUtils.mkdir_p(storage_path)
     File.write(test_file, JSON.dump([metadata]))
 
     # Verify file exists before cleaning

@@ -119,8 +119,8 @@ module IntegrationTestHelper
     # Force classic style for tests to maintain expected output format
     thor_options[:classic_style] = true
 
-    # Reset the result store factory before each command
-    Awfy::Stores::Factory.reset!
+    # Reset the stores before each command
+    Awfy::Stores.reset!
 
     # Start the CLI with command and all processed args
     capture_command_output do
