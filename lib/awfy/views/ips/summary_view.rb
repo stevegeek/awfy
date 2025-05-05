@@ -11,13 +11,37 @@ module Awfy
           # Sort by iterations (higher is better)
           sorted_results = sort_results(result_diffs, ->(result) { result[:iter] })
 
+          # Find max IPS value for performance bar scaling
+          max_ips = sorted_results.map do |result|
+            result_stats = Benchmark::IPS::Stats::SD.new(result[:samples])
+            result_stats.central_tendency
+          end.max
+
           # Generate table rows
           rows = generate_table_rows(sorted_results)
 
           # Generate and display the table
           report_data = report.first
           title = table_title(report_data["group"], report_data["report"])
-          table = format_table(title, ["Branch", "Runtime", "Name", "IPS", "Vs baseline"], rows)
+
+          table = if use_modern_style?
+            # For modern style, add max values for performance bars
+            format_modern_table(
+              Rainbow(title).bright,
+              [
+                Rainbow("Branch").bright,
+                Rainbow("Runtime").bright,
+                Rainbow("Name").bright,
+                Rainbow("IPS").bright,
+                Rainbow("Vs baseline").bright
+              ],
+              rows,
+              {ips: max_ips}
+            )
+          else
+            # Classic style
+            format_table(title, ["Branch", "Runtime", "Name", "IPS", "Vs baseline"], rows)
+          end
 
           # Output the table
           if @options.quiet? && show_summary?

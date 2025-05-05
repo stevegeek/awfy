@@ -48,6 +48,32 @@ module Awfy
       shell.say
       shell.say "| on branch '#{git_client.current_branch}', and #{options.compare_with_branch ? "compare with branch: '#{options.compare_with_branch}', and " : ""}Runtime: #{options.humanized_runtime} and assertions: #{options.assert? || "skip"}", :cyan
       shell.say "| Timestamp #{@start_time}", :cyan
+
+      # Terminal capability detection and display
+      term = ENV["TERM"] || "not set"
+      lang = ENV["LANG"] || "not set"
+      no_color = ENV["NO_COLOR"] || "not set"
+      stdout_tty = $stdout.tty?
+
+      # Check for Unicode support
+      term_unicode = (term.include?("xterm") || term.include?("256color") ||
+                      lang.include?("UTF") || lang.include?("utf")) ? "likely" : "unlikely"
+      # Check for color support
+      term_color = if no_color != "not set"
+        "disabled by env"
+      elsif !stdout_tty
+        "disabled (not a TTY)"
+      else
+        (term.include?("color") || term == "xterm") ? "likely" : "unlikely"
+      end
+
+      shell.say "| Display: " +
+        "#{options.classic_style? ? "classic style" : "modern style"}, " +
+        "Unicode: #{options.ascii_only? ? "disabled by flag" : term_unicode} [TERM=#{term}, LANG=#{lang}], " +
+        "Color: #{options.no_color? ? "disabled by flag" : term_color} [NO_COLOR=#{(no_color == "not set") ? "not set" : "set"}, TTY=#{stdout_tty}]", :cyan
+
+      # Display progress bar information
+      shell.say "| Progress bar: #{options.test_warm_up}s warmup + #{options.test_time}s runtime per test", :cyan
       shell.say
     end
 

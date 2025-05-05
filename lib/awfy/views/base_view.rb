@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "terminal-table"
+require "rainbow"
 
 module Awfy
   module Views
@@ -8,6 +9,7 @@ module Awfy
     class BaseView
       include TableFormatter
       include ComparisonFormatters
+      include ModernFormatters
 
       def initialize(shell, options)
         @shell = shell
@@ -30,7 +32,14 @@ module Awfy
         @options.show_summary?
       end
 
+      def use_modern_style?
+        # Always use modern style unless explicitly disabled
+        !@options.respond_to?(:classic_style?) || !@options.classic_style?
+      end
+
       def format_table(title, headings, rows)
+        return format_modern_table(title, headings, rows) if use_modern_style?
+
         table = ::Terminal::Table.new(title: title, headings: headings)
 
         rows.each do |row|

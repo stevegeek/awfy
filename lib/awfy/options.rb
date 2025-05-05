@@ -8,6 +8,9 @@ module Awfy
     :summary,         # Boolean: generate a summary of the results
     :summary_order,   # String: sort order for summary tables - "desc", "asc", "leader"
     :table_format,    # Boolean: display output in table format
+    :classic_style,   # Boolean: use classic style instead of modern style
+    :ascii_only,      # Boolean: use ASCII characters only (no Unicode)
+    :no_color,        # Boolean: don't use colored output
     # Output options
     :temp_output_directory, # String: directory to store temporary output files
     :results_directory,     # String: directory to store benchmark results
@@ -41,6 +44,9 @@ module Awfy
       summary: true,
       summary_order: "leader",
       table_format: false,
+      classic_style: false,
+      ascii_only: false,
+      no_color: false,
       temp_output_directory: "./benchmarks/tmp",
       results_directory: "./benchmarks/saved",
       setup_file_path: "./benchmarks/setup",
@@ -79,5 +85,10 @@ module Awfy
 
     def humanized_runtime = runtime.upcase
 
+    def classic_style? = classic_style
+
+    def ascii_only? = ascii_only
+
+    def no_color? = no_color
   end
 end

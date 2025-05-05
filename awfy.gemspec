@@ -42,4 +42,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "stackprof", ">= 0.2", "< 1.0"
   spec.add_dependency "zeitwerk", ">= 2.6", "< 3.0"
   spec.add_dependency "ruby-progressbar", ">= 1.13", "< 2.0"
+  spec.add_dependency "rainbow", ">= 3.0", "< 4.0"
 end
