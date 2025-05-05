@@ -28,6 +28,8 @@ loader.inflector.inflect(
 loader.setup
 
 module Awfy
+  DEFAULT_BACKEND = "json"
+
   class << self
     # Include the DSL methods from the DSL module
     include Awfy::Dsl

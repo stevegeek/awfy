@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 module Awfy
-  DEFAULT_BACKEND = "json"
-
   Options = Data.define(
     # Display options
     :verbose,         # Boolean: verbose output
@@ -18,6 +16,7 @@ module Awfy
     :tests_path,      # String: path to the tests files
     # Comparison options
     :compare_with_branch, # String: name of branch to compare with
+    :commit_range,        # String: commit range to compare (e.g., "HEAD~5..HEAD")
     :compare_control,     # Boolean: when comparing branches, also re-run control blocks
     :assert,              # Boolean: assert that results are within thresholds
     # Runtime options
@@ -49,6 +48,7 @@ module Awfy
       setup_file_path: "./benchmarks/setup",
       tests_path: "./benchmarks/tests",
       compare_with_branch: nil,
+      commit_range: nil,
       compare_control: false,
       assert: nil,
       runtime: "both",
@@ -58,7 +58,7 @@ module Awfy
       ignore_commits: nil,
       use_cached: true,
       results_only: false,
-      storage_backend: "json",
+      storage_backend: DEFAULT_BACKEND,
       storage_name: "benchmark_history",
       retention_policy: "keep_all",
       retention_days: 30

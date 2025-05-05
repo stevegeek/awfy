@@ -71,15 +71,6 @@ module Awfy
         end
       end
     end
-    
-    # Display IPS benchmark results using the appropriate view
-    def display_ips_results(results)
-      if awfy_options.summary
-        require "awfy/views/ips/composite_view"
-        view = Awfy::Views::IPS::CompositeView.new(results, shell, awfy_options)
-        view.render
-      end
-    end
 
     desc "memory [GROUP] [REPORT] [TEST]", "Run memory profiling. Can generate summary across implementations, runtimes and branches."
     def memory(group = nil, report = nil, test = nil)
@@ -110,15 +101,6 @@ module Awfy
           # Run the memory command with the group data
           Commands::Memory.new(runner, shell, git_client: git_client, options: awfy_options).benchmark(group_data, report, test)
         end
-      end
-    end
-    
-    # Display memory benchmark results using the appropriate view
-    def display_memory_results(results)
-      if awfy_options.summary
-        require "awfy/views/memory/composite_view"
-        view = Awfy::Views::Memory::CompositeView.new(results, shell, awfy_options)
-        view.render
       end
     end
 
@@ -193,12 +175,12 @@ module Awfy
 
       # Create a commit range runner specifically for this command
       commit_runner = Runners.commit_range(Awfy.suite, shell, git_client, custom_options)
-      
+
       # Parse the commit range
       commits = commit_range.split("..")
       start_commit = commits[0]
       end_commit = commits[1] || "HEAD"
-      
+
       # Run across the commit range
       commit_runner.run(start_commit, end_commit, group) do |results|
         # Display results based on benchmark type
@@ -227,12 +209,12 @@ module Awfy
     def runner
       # Create the appropriate runner based on options
       @runner ||= if awfy_options.commit_range
-                    Runners.commit_range(Awfy.suite, shell, git_client, awfy_options)
-                  elsif awfy_options.compare_with_branch
-                    Runners.on_branches(Awfy.suite, shell, git_client, awfy_options)
-                  else
-                    Runners.single(Awfy.suite, shell, git_client, awfy_options)
-                  end
+        Runners.commit_range(Awfy.suite, shell, git_client, awfy_options)
+      elsif awfy_options.compare_with_branch
+        Runners.on_branches(Awfy.suite, shell, git_client, awfy_options)
+      else
+        Runners.single(Awfy.suite, shell, git_client, awfy_options)
+      end
     end
 
     def requested_tests(group, report = nil, test = nil)
@@ -254,5 +236,23 @@ module Awfy
     def verbose? = options[:verbose]
 
     def show_summary? = options[:summary]
+
+    # Display IPS benchmark results using the appropriate view
+    def display_ips_results(results)
+      if awfy_options.summary
+        require "awfy/views/ips/composite_view"
+        view = Awfy::Views::IPS::CompositeView.new(results, shell, awfy_options)
+        view.render
+      end
+    end
+
+    # Display memory benchmark results using the appropriate view
+    def display_memory_results(results)
+      if awfy_options.summary
+        require "awfy/views/memory/composite_view"
+        view = Awfy::Views::Memory::CompositeView.new(results, shell, awfy_options)
+        view.render
+      end
+    end
   end
 end

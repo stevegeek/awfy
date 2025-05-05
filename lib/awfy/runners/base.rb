@@ -54,7 +54,7 @@ module Awfy
         policy = Awfy::RetentionPolicies.create(options.retention_policy, options.to_h)
 
         # Get the result store from the Stores module and pass the retention policy
-        result_store = Awfy::Stores.create(options.storage_backend, options, policy)
+        result_store = Awfy::Stores.create(options.storage_backend, options.storage_name, policy)
         result_store.clean_results
 
         # Show info if verbose
@@ -89,11 +89,11 @@ module Awfy
         cmd << "--classic-style" if options.classic_style?
         cmd << "--ascii-only" if options.ascii_only?
         cmd << "--no-color" if options.no_color?
-        
+
         # Add storage options
         cmd << "--storage-backend=#{options.storage_backend}" if options.storage_backend
         cmd << "--storage-name=#{options.storage_name}" if options.storage_name
-        
+
         # Add any extra options
         extra_options.each do |key, value|
           if value == true
