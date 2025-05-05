@@ -22,16 +22,26 @@ module Awfy
               benchmark_job.item(test_label, &test[:block])
             end
 
-            # After defining all benchmark items, start the progress bar
-            # Only show the progress bar in non-verbose mode
+            # After defining all benchmark items, set up the progress bar
             benchmark_count = benchmark_job.list.size
-            if !verbose?
-              title = "#{group[:name]}/#{report[:name]} [#{runtime}]"
-              progress_bar = Awfy::ProgressBar.new(@shell, benchmark_count, options.test_warm_up, options.test_time, title: title)
-              progress_bar.start
-            else
-              say "> Running #{benchmark_count} benchmarks (est. #{(benchmark_count * (options.test_warm_up + options.test_time)).round(1)}s)", :cyan
+            estimated_time = (benchmark_count * (options.test_warm_up + options.test_time)).round(1)
+
+            # Always display estimated time in verbose mode
+            if verbose?
+              say "> Running #{benchmark_count} benchmarks (est. #{estimated_time}s)", :cyan
             end
+
+            # Create progress bar in all modes
+            title_with_info = "#{group[:name]}/#{report[:name]} [#{runtime}] #{benchmark_count} tests, ~#{estimated_time}s"
+
+            # Set progress bar options, including ascii_only flag
+            progress_bar_opts = {
+              title: title_with_info,
+              ascii_only: options.respond_to?(:ascii_only?) && options.ascii_only?
+            }
+
+            progress_bar = Awfy::ProgressBar.new(@shell, benchmark_count, options.test_warm_up, options.test_time, **progress_bar_opts)
+            progress_bar.start
 
             # We can persist the results to a file to use to later generate a summary
             save_to(:ips, group, report, runtime) do
