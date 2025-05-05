@@ -11,7 +11,7 @@ class TestProgressBar < Minitest::Test
   end
 
   def test_progress_bar_initialization
-    progress_bar = Awfy::ProgressBar.new(
+    progress_bar = Awfy::Views::ProgressBar.new(
       @shell,
       @total_benchmarks,
       @warmup_time,
@@ -19,11 +19,11 @@ class TestProgressBar < Minitest::Test
       title: "Test Progress"
     )
 
-    assert_instance_of Awfy::ProgressBar, progress_bar
+    assert_instance_of Awfy::Views::ProgressBar, progress_bar
   end
 
   def test_progress_bar_lifecycle
-    progress_bar = Awfy::ProgressBar.new(
+    progress_bar = Awfy::Views::ProgressBar.new(
       @shell,
       @total_benchmarks,
       @warmup_time,

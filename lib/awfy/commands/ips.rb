@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require "ruby-progressbar"
-require_relative "../progress_bar"
-
 module Awfy
   module Commands
     class IPS < Base
@@ -40,7 +37,7 @@ module Awfy
               ascii_only: options.respond_to?(:ascii_only?) && options.ascii_only?
             }
 
-            progress_bar = Awfy::ProgressBar.new(@shell, benchmark_count, options.test_warm_up, options.test_time, **progress_bar_opts)
+            progress_bar = Awfy::Views::ProgressBar.new(@shell, benchmark_count, options.test_warm_up, options.test_time, **progress_bar_opts)
             progress_bar.start
 
             # We can persist the results to a file to use to later generate a summary
