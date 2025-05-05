@@ -21,8 +21,8 @@ class JsonResultStoreTest < Minitest::Test
       results_directory: @results_dir
     )
 
-    # Create the JsonResultStore instance to test
-    @store = Awfy::JsonResultStore.new(@options)
+    # Create the Json store instance to test
+    @store = Awfy::Stores::Json.new(@options)
   end
 
   def teardown
@@ -31,7 +31,7 @@ class JsonResultStoreTest < Minitest::Test
 
   def test_save_result
     # Create test metadata
-    metadata = Awfy::ResultMetadata.new(
+    metadata = Awfy::Result.new(
       type: :ips,
       group: "Test Group",
       report: "#method_name",
@@ -90,7 +90,7 @@ class JsonResultStoreTest < Minitest::Test
 
   def test_save_result_with_save_flag
     # Create test metadata with save=true
-    metadata = Awfy::ResultMetadata.new(
+    metadata = Awfy::Result.new(
       type: :memory,
       group: "Test Group",
       report: "#memory_test",
@@ -130,7 +130,7 @@ class JsonResultStoreTest < Minitest::Test
     timestamp = Time.now.to_i
 
     # Store result 1
-    metadata1 = Awfy::ResultMetadata.new(
+    metadata1 = Awfy::Result.new(
       type: :ips,
       group: "Query Group",
       report: "#method1",
@@ -149,7 +149,7 @@ class JsonResultStoreTest < Minitest::Test
     end
 
     # Store result 2 with different runtime
-    metadata2 = Awfy::ResultMetadata.new(
+    metadata2 = Awfy::Result.new(
       type: :ips,
       group: "Query Group",
       report: "#method1",
@@ -168,7 +168,7 @@ class JsonResultStoreTest < Minitest::Test
     end
 
     # Store result 3 with different group
-    metadata3 = Awfy::ResultMetadata.new(
+    metadata3 = Awfy::Result.new(
       type: :ips,
       group: "Another Group",
       report: "#method2",
@@ -220,7 +220,7 @@ class JsonResultStoreTest < Minitest::Test
 
   def test_load_result
     # Store a result to load later
-    metadata = Awfy::ResultMetadata.new(
+    metadata = Awfy::Result.new(
       type: :ips,
       group: "Load Test",
       report: "#load_method",
@@ -247,8 +247,8 @@ class JsonResultStoreTest < Minitest::Test
     # Load the result by ID
     loaded_result = @store.load_result(result_id)
 
-    # Verify loaded result is a ResultMetadata object
-    assert_instance_of Awfy::ResultMetadata, loaded_result
+    # Verify loaded result is a Result object
+    assert_instance_of Awfy::Result, loaded_result
 
     # Verify loaded data matches original
     assert_equal result_data[:ips], loaded_result.result_data["ips"]

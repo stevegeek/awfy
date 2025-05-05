@@ -14,8 +14,8 @@ class MemoryResultStoreTest < Minitest::Test
       storage_backend: :memory
     )
 
-    # Create the MemoryResultStore instance to test
-    @store = Awfy::MemoryResultStore.new(@options)
+    # Create the Memory store instance to test
+    @store = Awfy::Stores::Memory.new(@options)
   end
 
   def teardown
@@ -24,7 +24,7 @@ class MemoryResultStoreTest < Minitest::Test
 
   def test_save_result
     # Create test metadata
-    metadata = Awfy::ResultMetadata.new(
+    metadata = Awfy::Result.new(
       type: :ips,
       group: "Test Group",
       report: "#method_name",
@@ -62,7 +62,7 @@ class MemoryResultStoreTest < Minitest::Test
 
     # Check stored data structure
     stored_result = @store.stored_results[result_id]
-    assert_instance_of Awfy::ResultMetadata, stored_result, "Stored result should be a ResultMetadata object"
+    assert_instance_of Awfy::Result, stored_result, "Stored result should be a Result object"
     assert_equal :ips, stored_result.type, "Result type should match"
     assert_equal "Test Group", stored_result.group, "Result group should match"
     assert_equal "ruby", stored_result.runtime, "Result runtime should match"
@@ -75,7 +75,7 @@ class MemoryResultStoreTest < Minitest::Test
     timestamp = Time.now.to_i
 
     # Store result 1
-    metadata1 = Awfy::ResultMetadata.new(
+    metadata1 = Awfy::Result.new(
       type: :ips,
       group: "Query Group",
       report: "#method1",
@@ -95,7 +95,7 @@ class MemoryResultStoreTest < Minitest::Test
     end
 
     # Store result 2 with different runtime
-    metadata2 = Awfy::ResultMetadata.new(
+    metadata2 = Awfy::Result.new(
       type: :ips,
       group: "Query Group",
       report: "#method1",
@@ -115,7 +115,7 @@ class MemoryResultStoreTest < Minitest::Test
     end
 
     # Store result 3 with different group
-    metadata3 = Awfy::ResultMetadata.new(
+    metadata3 = Awfy::Result.new(
       type: :ips,
       group: "Another Group",
       report: "#method2",
@@ -145,7 +145,7 @@ class MemoryResultStoreTest < Minitest::Test
     # Query with runtime filter
     results = @store.query_results(type: :ips, runtime: "yjit")
     assert_equal 1, results.length, "Should find 1 result for yjit runtime"
-    assert_instance_of Awfy::ResultMetadata, results.first
+    assert_instance_of Awfy::Result, results.first
     assert_equal 1500.0, results.first.result_data[:ips], "Should find the correct result"
 
     # Query with combination of filters
@@ -156,7 +156,7 @@ class MemoryResultStoreTest < Minitest::Test
       runtime: "ruby"
     )
     assert_equal 1, results.length, "Should find 1 result matching all criteria"
-    assert_instance_of Awfy::ResultMetadata, results.first
+    assert_instance_of Awfy::Result, results.first
     assert_equal 1000.0, results.first.result_data[:ips], "Should find the correct result"
 
     # Query with commit filter
@@ -166,7 +166,7 @@ class MemoryResultStoreTest < Minitest::Test
 
   def test_load_result
     # Store a result to load later
-    metadata = Awfy::ResultMetadata.new(
+    metadata = Awfy::Result.new(
       type: :ips,
       group: "Load Test",
       report: "#load_method",
@@ -191,8 +191,8 @@ class MemoryResultStoreTest < Minitest::Test
     # Load the result by ID
     loaded_result = @store.load_result(result_id)
 
-    # Verify loaded result is a ResultMetadata object
-    assert_instance_of Awfy::ResultMetadata, loaded_result
+    # Verify loaded result is a Result object
+    assert_instance_of Awfy::Result, loaded_result
 
     # Verify loaded data matches original
     assert_equal result_data[:ips], loaded_result.result_data[:ips]
@@ -204,7 +204,7 @@ class MemoryResultStoreTest < Minitest::Test
 
   def test_clean_results
     # Add a result to the store
-    metadata = Awfy::ResultMetadata.new(
+    metadata = Awfy::Result.new(
       type: :ips,
       group: "Clean Test",
       report: "#clean_method",

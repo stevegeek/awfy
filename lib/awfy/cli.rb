@@ -83,8 +83,7 @@ module Awfy
     option :saved, type: :boolean, desc: "Also clean saved results", default: false
     def clean
       # Get the result store
-      backend = options[:storage_backend]&.to_sym || :json
-      result_store = ResultStoreFactory.create(awfy_options, backend)
+      result_store = Stores::Factory.instance(awfy_options)
 
       # Clean results
       result_store.clean_results(temp_only: !options[:saved])

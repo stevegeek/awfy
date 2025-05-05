@@ -211,7 +211,7 @@ module Awfy
       # something to pass to view?
       def read_reports_for_summary(type)
         # Get the result store
-        result_store = Awfy::ResultStoreFactory.instance(options)
+        result_store = Awfy::Stores::Factory.instance(options)
 
         # Get all metadata for this benchmark type
         metadata_entries = result_store.query_results(type:)
@@ -286,8 +286,8 @@ module Awfy
         ruby_version = RUBY_VERSION
         timestamp = runner.start_time
 
-        # Create metadata for this result using the ResultMetadata data object
-        metadata = Awfy::ResultMetadata.new(
+        # Create metadata for this result using the Result data object
+        metadata = Awfy::Result.new(
           type: type,
           group: group[:name],
           report: report[:name],
@@ -302,7 +302,7 @@ module Awfy
           result_data: nil # This will be set by the result store
         )
 
-        result_store = Awfy::ResultStoreFactory.instance(options)
+        result_store = Awfy::Stores::Factory.instance(options)
 
         result_id = result_store.save_result(metadata) do
           yield

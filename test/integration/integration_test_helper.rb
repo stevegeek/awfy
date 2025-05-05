@@ -115,9 +115,12 @@ module IntegrationTestHelper
 
     # Make sure we're using our memory result store for tests
     thor_options[:storage_backend] = :memory
-
+    
+    # Force classic style for tests to maintain expected output format
+    thor_options[:classic_style] = true
+    
     # Reset the result store factory before each command
-    Awfy::ResultStoreFactory.reset!
+    Awfy::Stores::Factory.reset!
 
     # Start the CLI with command and all processed args
     capture_command_output do

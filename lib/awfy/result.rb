@@ -2,7 +2,7 @@
 
 module Awfy
   # Data object for benchmark result metadata
-  ResultMetadata = Data.define(
+  Result = Data.define(
     :type,
     :group,
     :report,
@@ -37,9 +37,9 @@ module Awfy
       super.compact
     end
 
-    # Factory method to create ResultMetadata from a hash
+    # Factory method to create Result from a hash
     def self.from_hash(hash)
-      # Valid keys for ResultMetadata
+      # Valid keys for Result
       valid_keys = %i[type group report runtime timestamp branch commit commit_message
         ruby_version save result_id result_data]
 
@@ -56,7 +56,7 @@ module Awfy
         filtered_hash[:type] = filtered_hash[:type].to_sym
       end
 
-      # Create the ResultMetadata object
+      # Create the Result object
       new(**filtered_hash)
     end
   end
