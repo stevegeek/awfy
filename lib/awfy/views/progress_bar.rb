@@ -10,21 +10,23 @@ module Awfy
     # It estimates total runtime based on the number of benchmarks and their
     # expected runtime, then animates progress during execution.
     class ProgressBar
-      def initialize(shell, total_benchmarks, warmup_time, test_time, title: "Running Benchmarks", ascii_only: false)
-        @shell = shell
-        @total_benchmarks = total_benchmarks
-        @ascii_only = ascii_only
+      extend Literal::Properties
 
-        # Calculate total estimated time in seconds
-        # Each benchmark runs warmup + test time for each item
-        @total_time = total_benchmarks * (warmup_time + test_time)
+      prop :shell, Awfy::Session::ShellType
+      prop :total_benchmarks, Integer
+      prop :warmup_time, Integer
+      prop :test_time, Integer
+      prop :title, String, default: "Running"
+      prop :ascii_only, _Boolean, default: false
 
-        @title = title
+      def after_initialize
         @start_time = nil
         @thread = nil
         @progressbar = nil
         @running = false
       end
+
+      def say(...) = @shell.say(...)
 
       # Start the progress bar
       def start
@@ -80,8 +82,11 @@ module Awfy
       def update_progress
         return unless @start_time && @progressbar
 
+        # Calculate total estimated time in seconds
+        # Each benchmark runs warmup + test time for each item
+        total_time = @total_benchmarks * (@warmup_time + @test_time)
         elapsed = Time.now - @start_time
-        percent_complete = [(elapsed / @total_time * 100).to_i, 100].min
+        percent_complete = [(elapsed / total_time * 100).to_i, 100].min
 
         # Only update if progress increased
         if percent_complete > @progressbar.progress
