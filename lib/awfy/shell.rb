@@ -17,6 +17,11 @@ module Awfy
       @shell.say_error(message, *args)
     end
 
+    def say_error_and_exit(...)
+      say_error(...)
+      exit(1)
+    end
+
     # Forward all method calls to the underlying Thor shell
     def method_missing(method_name, *args, &block)
       if @shell.respond_to?(method_name)

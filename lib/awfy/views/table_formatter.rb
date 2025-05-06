@@ -1,9 +1,29 @@
 # frozen_string_literal: true
 
+require "terminal-table"
+
 module Awfy
   module Views
     # Common table formatting methods shared across view classes
     module TableFormatter
+      def format_table(title, headings, rows)
+        table = ::Terminal::Table.new(title: title, headings: headings)
+
+        rows.each do |row|
+          table.add_row(row)
+        end
+
+        # Right-align numeric columns (2nd column and beyond)
+        (1...headings.size).each do |i|
+          # Only right-align if all values in column are numeric
+          if rows.all? { |row| row[i].is_a?(Numeric) || (row[i].is_a?(String) && (row[i] =~ /^\s*-?\d+(\.\d+)?/) || row[i] == "-") }
+            table.align_column(i, :right)
+          end
+        end
+
+        table
+      end
+
       def table_title(group, report = nil, test = nil)
         tests = [group, report, test].compact
         return "Run: (all)" if tests.empty?

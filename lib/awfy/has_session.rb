@@ -14,6 +14,10 @@ module Awfy
 
     def say_error(...) = session.say_error(...)
 
+    def color_supported? = session.color_supported?
+
+    def unicode_supported? = session.unicode_supported?
+
     def verbose? = session.verbose?
   end
 end

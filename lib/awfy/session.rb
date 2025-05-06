@@ -11,6 +11,10 @@ module Awfy
 
     def say_error(...) = shell.say_error(...)
 
+    def color_supported? = shell.color_supported?
+
+    def unicode_supported? = shell.unicode_supported?
+
     def verbose? = config.verbose?
 
     # Output configuration information

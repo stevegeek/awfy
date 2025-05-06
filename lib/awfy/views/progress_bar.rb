@@ -12,7 +12,7 @@ module Awfy
     class ProgressBar
       extend Literal::Properties
 
-      prop :shell, Awfy::Session::ShellType
+      prop :shell, Awfy::Shell
       prop :total_benchmarks, Integer
       prop :warmup_time, Integer
       prop :test_time, Integer
@@ -32,14 +32,8 @@ module Awfy
       def start
         @start_time = Time.now
 
-        # Use instance variable for ascii_only flag
-        # Fall back to environment check if not specified
-        term = ENV["TERM"] || ""
-        lang = ENV["LANG"] || ""
-        detected_unicode = term.include?("xterm") || term.include?("256color") ||
-          lang.include?("UTF") || lang.include?("utf")
-
-        use_unicode = @ascii_only ? false : detected_unicode
+        # Check if shell supports unicode, respecting the ascii_only flag
+        use_unicode = !@ascii_only && @shell.unicode_supported?
 
         # Set proper progress marks based on terminal capabilities
         progress_mark = use_unicode ? "█" : "#"

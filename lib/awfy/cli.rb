@@ -23,15 +23,13 @@ module Awfy
       suite = Suites::Loader.new(session:).load
       result_manager = Awfy::ResultManager.new(session:)
       unless suite.tests?
-        say_error "Test suite (in '#{config.tests_path}') has no tests defined..."
-        exit(1)
+        shell.say_error_and_exit "Test suite (in '#{config.tests_path}') has no tests defined..."
       end
       Runners.immediate(suite:, session:).run(group_name) do |group|
         Commands::List.new(session:, group:, benchmarker: Benchmarker.new(session:, result_manager:))
       end
     rescue ArgumentError => e
-      shell.say_error e.message
-      exit(1)
+      shell.say_error_and_exit e.message
     end
   end
 end
