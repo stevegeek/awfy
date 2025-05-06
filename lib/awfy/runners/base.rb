@@ -133,9 +133,6 @@ module Awfy
           end
         end
       end
-
-      protected
-
       # Start a benchmark run and set up the environment
       def start!
         @start_time = Time.now.to_i
