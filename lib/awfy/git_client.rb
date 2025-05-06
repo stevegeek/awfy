@@ -6,37 +6,28 @@ module Awfy
   # GitClient provides a wrapper around the Git gem to interact with Git repositories
   # This class provides a common interface for all Git operations needed in the application
   class GitClient
-    # Initialize a new GitClient with a path to a Git repository
-    # @param path [String] The path to the Git repository
-    def initialize(path)
-      @client = Git.open(path)
-    end
+    extend Literal::Properties
+
+    prop :path, String, reader: :private
 
     # Get the current branch name
     # @return [String] The name of the current branch
     def current_branch
-      @client.current_branch
+      client.current_branch
     end
 
     # Checkout a branch or commit
     # @param reference [String] The branch name or commit hash to checkout
     # @return [Object] The result of the checkout operation
     def checkout(reference)
-      @client.checkout(reference)
-    end
-
-    # Access to the library command interface
-    # This allows executing raw Git commands
-    # @return [GitLibWrapper] A wrapper for Git library commands
-    def lib
-      @lib ||= GitLibWrapper.new(@client.lib)
+      client.checkout(reference)
     end
 
     # Get a Git object by reference
     # @param reference [String] The reference to look up (e.g., "HEAD", a commit hash, etc.)
     # @return [Git::Object] The requested Git object
     def object(reference)
-      @client.object(reference)
+      client.object(reference)
     end
 
     # Get the full SHA hash for a Git reference
@@ -68,31 +59,25 @@ module Awfy
       log("-1", "--pretty=#{format}", commit).strip
     end
 
-    # GitLibWrapper provides access to raw Git commands through the lib interface
-    # This is a wrapper around Git::Lib to provide the necessary command methods
-    class GitLibWrapper
-      # Initialize with a Git::Lib instance
-      # @param lib [Git::Lib] The Git library instance
-      def initialize(lib)
-        @lib = lib
-      end
+    private
 
-      # Execute a Git command with arguments
-      # @param cmd [String] The Git command to execute
-      # @param args [Array<String>] The arguments to pass to the command
-      # @return [String] The output of the command
-      def command(cmd, *args)
-        @lib.send(:command, cmd, *args)
-      end
-
-      # Create a Git stash with a message
-      # @param message [String] The stash message (optional)
-      # @return [String] The output of the stash command
-      def stash_save(message = nil)
-        args = ["stash", "save"]
-        args << message if message
-        @lib.send(:command, *args)
-      end
+    def after_initialize
+      @client = Git.open(path)
+      @client_lib = client.lib
     end
+
+    # Execute a Git command with arguments
+    def command(cmd, *args)
+      client_lib.send(:command, cmd, *args)
+    end
+
+    # Create a Git stash with a message
+    def stash_save(message = nil)
+      args = ["stash", "save"]
+      args << message if message
+      client_lib.send(:command, *args)
+    end
+
+    attr_reader :client, :client_lib
   end
 end

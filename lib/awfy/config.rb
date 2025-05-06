@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Awfy
-  Options = Data.define(
+  Config = Data.define(
     # Display options
     :verbose,         # Boolean: verbose output
     :quiet,           # Boolean: silence output

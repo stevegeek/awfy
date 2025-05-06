@@ -2,34 +2,18 @@
 
 module Awfy
   # Data object for benchmark result metadata
-  Result = Data.define(
-    :type,
-    :group,
-    :report,
-    :runtime,
-    :timestamp,
-    :branch,
-    :commit,
-    :commit_message,
-    :ruby_version,
-    :result_id,
-    :result_data
-  ) do
-    def initialize(
-      type: nil,
-      group: nil,
-      report: nil,
-      runtime: nil,
-      timestamp: nil,
-      branch: nil,
-      commit: nil,
-      commit_message: nil,
-      ruby_version: nil,
-      result_id: nil,
-      result_data: nil
-    )
-      super
-    end
+  class Result < Literal::Data
+    prop :type, Symbol
+    prop :group, String
+    prop :report, String
+    prop :runtime, Awfy::Runtimes, default: Awfy::Runtimes::MRI
+    prop :timestamp, Time
+    prop :branch, String
+    prop :commit, String
+    prop :commit_message, String
+    prop :ruby_version, String, default: RUBY_VERSION
+    prop :result_id, String
+    prop :result_data, Hash
 
     def to_h
       super.compact
@@ -47,7 +31,7 @@ module Awfy
       end
 
       # Filter hash to only include valid keys
-      filtered_hash = hash_with_symbol_keys.select { |k, _| valid_keys.include?(k) }
+      filtered_hash = hash_with_symbol_keys.slice(*valid_keys)
 
       # Convert type to symbol if present and is a string
       if filtered_hash[:type].is_a?(String)
