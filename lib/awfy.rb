@@ -1,18 +1,9 @@
 # frozen_string_literal: true
 
 require "literal"
-
 require "thor"
-require "git"
-require "json"
-require "terminal-table"
-require "benchmark/ips"
-require "stackprof"
-require "vernier"
-require "memory_profiler"
-
-# Set up Zeitwerk autoloading
 require "zeitwerk"
+
 loader = Zeitwerk::Loader.for_gem
 
 # Configure inflections

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "vernier"
+
 module Awfy
   module Commands
     class Flamegraph < Base

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "stackprof"
+
 module Awfy
   module Commands
     class Profiling < Base

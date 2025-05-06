@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "memory_profiler"
+
 module Awfy
   module Commands
     class Memory < Base

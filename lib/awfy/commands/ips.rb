@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "benchmark/ips"
+
 module Awfy
   module Commands
     class IPS < Base
