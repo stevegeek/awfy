@@ -5,30 +5,28 @@ require "uri"
 module Awfy
   module Stores
     # Abstract base class for result storage
+    # TODO: we could turn this into an Enumerable
     class Base
-      def initialize(storage_name, retention_policy = nil)
-        @storage_name = storage_name || "benchmark_history"
-        @retention_policy = retention_policy || RetentionPolicies.keep
-      end
+      extend Literal::Properties
 
-      # Get the storage name (could be a database name or directory name)
-      attr_reader :storage_name, :retention_policy
+      prop :storage_name, String, reader: :private
+      prop :retention_policy, RetentionPolicies::Base, reader: :private
 
       # Abstract methods that subclasses must implement
       def save_result(metadata, &block)
-        raise NotImplementedError, "Subclasses must implement save_result"
+        raise NoMethodError, "Subclasses must implement save_result"
       end
 
       def load_result(result_id)
-        raise NotImplementedError, "Subclasses must implement load_result"
+        raise NoMethodError, "Subclasses must implement load_result"
       end
 
       def query_results(type: nil, group: nil, report: nil, runtime: nil, commit: nil)
-        raise NotImplementedError, "Subclasses must implement query_results"
+        raise NoMethodError, "Subclasses must implement query_results"
       end
 
       def clean_results
-        raise NotImplementedError, "Subclasses must implement clean_results"
+        raise NoMethodError, "Subclasses must implement clean_results"
       end
 
       private

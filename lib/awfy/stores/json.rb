@@ -9,8 +9,7 @@ module Awfy
 
     # JSON file-based implementation of Base
     class Json < Base
-      def initialize(storage_name, retention_policy = nil)
-        super
+      def after_initialize
         ensure_directory_exists
       end
 

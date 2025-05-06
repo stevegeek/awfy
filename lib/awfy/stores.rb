@@ -2,9 +2,7 @@
 
 module Awfy
   module Stores
-    def create(backend = DEFAULT_BACKEND, storage_name = nil, retention_policy = nil)
-      backend = backend&.to_sym
-
+    def create(backend, storage_name, retention_policy)
       case StoreAliases[backend]
       when StoreAliases::JSON
         json(storage_name, retention_policy)
@@ -17,12 +15,12 @@ module Awfy
       end
     end
 
-    def json(storage_name = nil, retention_policy = nil)
+    def json(storage_name, retention_policy)
       require "json"
       Json.new(storage_name, retention_policy)
     end
 
-    def sqlite(storage_name = nil, retention_policy = nil)
+    def sqlite(storage_name, retention_policy)
       require "sqlite3"
       Sqlite.new(storage_name, retention_policy)
     rescue LoadError
@@ -30,7 +28,7 @@ module Awfy
               "Please install it with: gem install sqlite3"
     end
 
-    def memory(storage_name = nil, retention_policy = nil)
+    def memory(storage_name, retention_policy)
       Memory.new(storage_name, retention_policy)
     end
 

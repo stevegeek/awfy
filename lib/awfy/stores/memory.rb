@@ -7,8 +7,7 @@ module Awfy
     class Memory < Base
       attr_reader :stored_results
 
-      def initialize(storage_name, retention_policy = nil)
-        super
+      def after_initialize
         initialize_store
       end
 

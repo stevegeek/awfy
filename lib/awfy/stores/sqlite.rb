@@ -35,9 +35,7 @@ module Awfy
         );
       SQL
 
-      def initialize(storage_name, retention_policy = nil)
-        super
-        @db_path = "#{storage_name}.db"
+      def after_initialize
         setup_database
       end
 
@@ -131,7 +129,7 @@ module Awfy
       end
 
       def connect_db
-        db = SQLite3::Database.new(@db_path)
+        db = SQLite3::Database.new("#{storage_name}.db")
         db.busy_timeout = 5000 # 5 seconds timeout for busy database
         db
       end
