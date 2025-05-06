@@ -16,7 +16,7 @@ module Awfy
     desc "list [GROUP]", "List all tests in a group"
     def list(group_name = nil)
       # List command always uses single run runner
-      shell = Thor::Shell::Basic.new
+      shell = Awfy::Shell.new(config:)
       git_client = GitClient.new(path: Dir.pwd)
       results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
       session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
@@ -29,6 +29,9 @@ module Awfy
       Runners.immediate(suite:, session:).run(group_name) do |group|
         Commands::List.new(session:, group:, benchmarker: Benchmarker.new(session:, result_manager:))
       end
+    rescue ArgumentError => e
+      shell.say_error e.message
+      exit(1)
     end
   end
 end
