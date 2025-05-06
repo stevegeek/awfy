@@ -6,9 +6,7 @@ module Awfy
   module Stores
     # Abstract base class for result storage
     # TODO: we could turn this into an Enumerable
-    class Base
-      extend Literal::Properties
-
+    class Base < Literal::Object
       prop :storage_name, String, reader: :private
       prop :retention_policy, RetentionPolicies::Base, reader: :private
 

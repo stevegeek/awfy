@@ -3,15 +3,12 @@
 module Awfy
   module Commands
     class List < Base
-      def list(group)
-        # Create the list view directly
-        view = Views::ListView.new(@shell, @options)
-
-        # Display the list using the view based on options
-        if @options&.table_format
-          view.display_table(group)
+      def list
+        view = Views::ListView.new(session:)
+        if session.config.table_format
+          view.display_table(@group)
         else
-          view.display_group(group)
+          view.display_group(@group)
         end
       end
     end

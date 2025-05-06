@@ -17,8 +17,8 @@ module Awfy
     end
 
     # Create a SingleRunRunner for running in the current environment
-    def single(suite, shell, git_client, options)
-      SingleRunRunner.new(suite, shell, git_client, options)
+    def single(suite:, session:)
+      SingleRunRunner.new(suite:, session:)
     end
 
     # Create a BranchComparisonRunner for comparing branches
