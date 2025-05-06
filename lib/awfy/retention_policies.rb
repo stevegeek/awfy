@@ -3,23 +3,23 @@
 module Awfy
   module RetentionPolicies
     def create(policy_name, ...)
-      case PolicyAliases[policy_name]
-      when PolicyAliases::None, PolicyAliases::KeepNone
-        none(...)
-      when PolicyAliases::Date, PolicyAliases::DateBased
+      case RetentionPolicyAliases[policy_name]
+      when RetentionPolicyAliases::None, RetentionPolicyAliases::KeepNone
+        none
+      when RetentionPolicyAliases::Date, RetentionPolicyAliases::DateBased
         date_based(...)
       else
-        keep(...)
+        keep
       end
     end
 
-    def none(...)
-      KeepNone.new(...)
+    def none
+      KeepNone.new
     end
     alias_method :keep_none, :none
 
-    def keep(...)
-      KeepAll.new(...)
+    def keep
+      KeepAll.new
     end
     alias_method :keep_all, :keep
 

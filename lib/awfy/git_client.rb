@@ -5,9 +5,7 @@ require "git"
 module Awfy
   # GitClient provides a wrapper around the Git gem to interact with Git repositories
   # This class provides a common interface for all Git operations needed in the application
-  class GitClient
-    extend Literal::Properties
-
+  class GitClient < Literal::Object
     prop :path, String, reader: :private
 
     # Get the current branch name
@@ -19,8 +17,29 @@ module Awfy
     # Checkout a branch or commit
     # @param reference [String] The branch name or commit hash to checkout
     # @return [Object] The result of the checkout operation
-    def checkout(reference)
+    def checkout!(reference)
       client.checkout(reference)
+    end
+
+    # Checkout a git reference shashing changes, run a block, and return to the original state
+    # @param ref [String] The git reference (branch, commit, etc.) to checkout
+    # @yield Execute the given block with the reference checked out
+    def stashed_checkout(ref)
+      # Save the current state
+      before_branch = client.current_branch
+      stash_save("awfy auto stash")
+
+      begin
+        # Checkout the reference (branch or commit)
+        checkout!(ref)
+        # Run the block with the ref checked out
+        yield
+      ensure
+        # Return to original branch
+        checkout!(before_branch)
+        # Pop stashed changes
+        stash_pop
+      end
     end
 
     # Get a Git object by reference
@@ -76,6 +95,13 @@ module Awfy
       args = ["stash", "save"]
       args << message if message
       client_lib.send(:command, *args)
+    end
+
+    def stash_pop
+      client_lib.send(:command, "stash", "pop")
+    rescue
+      # TODO: Handle this error gracefully
+      raise StandardError, "Failed to pop stash"
     end
 
     attr_reader :client, :client_lib
