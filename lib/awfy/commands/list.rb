@@ -3,12 +3,12 @@
 module Awfy
   module Commands
     class List < Base
-      def list
+      def call
         view = Views::ListView.new(session:)
-        if session.config.table_format
-          view.display_table(@group)
-        else
+        if session.config.list
           view.display_group(@group)
+        else
+          view.display_table(@group)
         end
       end
     end

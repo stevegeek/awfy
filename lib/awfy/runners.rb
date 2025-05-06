@@ -12,21 +12,18 @@ module Awfy
       elsif options.compare_with_branch
         on_branches(suite, shell, git_client, options)
       else
-        single(suite, shell, git_client, options)
+        immediate(suite, shell, git_client, options)
       end
     end
 
-    # Create a SingleRunRunner for running in the current environment
-    def single(suite:, session:)
-      SingleRunRunner.new(suite:, session:)
+    def immediate(suite:, session:)
+      ImmediateRunner.new(suite:, session:)
     end
 
-    # Create a BranchComparisonRunner for comparing branches
     def on_branches(suite, shell, git_client, options)
       BranchComparisonRunner.new(suite, shell, git_client, options)
     end
 
-    # Create a CommitRangeRunner for running across commits
     def commit_range(suite, shell, git_client, options)
       CommitRangeRunner.new(suite, shell, git_client, options)
     end

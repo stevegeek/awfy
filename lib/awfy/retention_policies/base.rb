@@ -7,9 +7,7 @@ module Awfy
     # Retention policies determine which benchmark results are kept in storage
     # and which ones can be cleaned up. Each policy implementation must define
     # the `retain?` method that takes a result and returns true or false.
-    class Base
-      extend Literal::Properties
-
+    class Base < Literal::Object
       def retain?(result)
         raise NoMethodError, "#{self.class} must implement the retain? method"
       end

@@ -12,8 +12,8 @@ module Awfy
     prop :summary, _Boolean, default: true
     # sort order for summary tables - "desc", "asc", "leader"
     prop :summary_order, String, default: "leader"
-    # display output in table format
-    prop :table_format, _Boolean, default: false
+    # display output in list instead of table format
+    prop :list, _Boolean, default: false
     # use classic style instead of modern style
     prop :classic_style, _Boolean, default: false
     # use ASCII characters only (no Unicode)
