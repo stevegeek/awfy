@@ -2,15 +2,6 @@
 
 module Awfy
   module RetentionPolicies
-    class PolicyAliases < Literal::Enum(String)
-      None = new("none")
-      KeepNone = new("keep_none")
-      Keep = new("keep")
-      KeepAll = new("keep_all")
-      Date = new("date")
-      DateBased = new("date_based")
-    end
-
     def create(policy_name, ...)
       case PolicyAliases[policy_name]
       when PolicyAliases::None, PolicyAliases::KeepNone

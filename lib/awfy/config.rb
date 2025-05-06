@@ -1,70 +1,45 @@
 # frozen_string_literal: true
 
 module Awfy
-  Config = Data.define(
+  class Config < Literal::Data
     # Display options
-    :verbose,         # Boolean: verbose output
-    :quiet,           # Boolean: silence output
-    :summary,         # Boolean: generate a summary of the results
-    :summary_order,   # String: sort order for summary tables - "desc", "asc", "leader"
-    :table_format,    # Boolean: display output in table format
-    :classic_style,   # Boolean: use classic style instead of modern style
-    :ascii_only,      # Boolean: use ASCII characters only (no Unicode)
-    :no_color,        # Boolean: don't use colored output
+    prop :verbose, _Boolean, default: false         # verbose output
+    prop :quiet, _Boolean, default: false           # silence output
+    prop :summary, _Boolean, default: true          # generate a summary of the results
+    prop :summary_order, String, default: "leader" # sort order for summary tables - "desc", "asc", "leader"
+    prop :table_format, _Boolean, default: false    # display output in table format
+    prop :classic_style, _Boolean, default: false   # use classic style instead of modern style
+    prop :ascii_only, _Boolean, default: false      # use ASCII characters only (no Unicode)
+    prop :no_color, _Boolean, default: false        # don't use colored output
+
     # Input paths
-    :setup_file_path, # String: path to the setup file
-    :tests_path,      # String: path to the tests files
+    prop :setup_file_path, String, default: "./benchmarks/setup" # path to the setup file
+    prop :tests_path, String, default: "./benchmarks/tests"      # path to the tests files
+
     # Comparison options
-    :compare_with_branch, # String: name of branch to compare with
-    :commit_range,        # String: commit range to compare (e.g., "HEAD~5..HEAD")
-    :compare_control,     # Boolean: when comparing branches, also re-run control blocks
-    :assert,              # Boolean: assert that results are within thresholds
+    prop :compare_with_branch, _Nilable(String)                  # name of branch to compare with
+    prop :commit_range, _Nilable(String)                         # commit range to compare (e.g., "HEAD~5..HEAD")
+    prop :compare_control, _Boolean, default: false      # when comparing branches, also re-run control blocks
+    prop :assert, _Boolean, default: false               # assert that results are within thresholds
+
     # Runtime options
-    :runtime,         # String: "both", "yjit", or "mri"
-    :test_time,       # Integer: seconds to run IPS benchmarks
-    :test_iterations, # Integer: iterations to run tests
-    :test_warm_up,    # Integer: seconds to warmup IPS benchmarks
+    prop :runtime, String, default: "both"              # "both", "yjit", or "mri"
+    prop :test_time, Integer, default: 3                # Integer: seconds to run IPS benchmarks
+    prop :test_iterations, Integer, default: 1_000_000  # Integer: iterations to run tests
+    prop :test_warm_up, Integer, default: 1             # Integer: seconds to warmup IPS benchmarks
+
     # Commit range options
-    :ignore_commits,  # String: commits to ignore
-    :use_cached,      # Boolean: use cached results if available
-    :results_only,    # Boolean: only display previously saved results
+    prop :ignore_commits, _Nilable(String)          # commits to ignore
+    prop :use_cached, _Boolean, default: true            # use cached results if available
+    prop :results_only, _Boolean, default: false         # only display previously saved results
+
     # Storage options
-    :storage_backend, # String: storage backend for results - "json", "sqlite", or "memory"
-    :storage_name,    # String: name for the storage repository (database name or directory)
+    prop :storage_backend, String, default: -> { DEFAULT_BACKEND }  # storage backend for results - "json", "sqlite", or "memory"
+    prop :storage_name, String, default: "benchmark_history"        # name for the storage repository (database name or directory)
+
     # Retention policy options
-    :retention_policy, # String: the retention policy to use - "keep_all" or "date_based"
-    :retention_days    # Integer: number of days to keep results (used by date_based policy)
-  ) do
-    # Default values
-    def initialize(
-      verbose: false,
-      quiet: false,
-      summary: true,
-      summary_order: "leader",
-      table_format: false,
-      classic_style: false,
-      ascii_only: false,
-      no_color: false,
-      setup_file_path: "./benchmarks/setup",
-      tests_path: "./benchmarks/tests",
-      compare_with_branch: nil,
-      commit_range: nil,
-      compare_control: false,
-      assert: nil,
-      runtime: "both",
-      test_time: 3,
-      test_iterations: 1_000_000,
-      test_warm_up: 1,
-      ignore_commits: nil,
-      use_cached: true,
-      results_only: false,
-      storage_backend: DEFAULT_BACKEND,
-      storage_name: "benchmark_history",
-      retention_policy: "keep_all",
-      retention_days: 30
-    )
-      super
-    end
+    prop :retention_policy, RetentionPolicyAliases, default: RetentionPolicyAliases::KeepAll, &RetentionPolicyAliases
+    prop :retention_days, Integer, default: 30           # Integer: number of days to keep results (used by date_based policy)
 
     def yjit_only? = runtime == "yjit"
 
@@ -87,5 +62,12 @@ module Awfy
     def ascii_only? = ascii_only
 
     def no_color? = no_color
+
+    def current_retention_policy
+      retention_policy_options = {
+        retention_days: retention_days
+      }.compact
+      Awfy::RetentionPolicies.create(retention_policy, **retention_policy_options)
+    end
   end
 end
