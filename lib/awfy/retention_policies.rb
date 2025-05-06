@@ -2,30 +2,38 @@
 
 module Awfy
   module RetentionPolicies
-    def create(policy_name, options = {})
-      case policy_name
-      when "none", "keep_none"
-        none(options)
-      when "date", "date_based"
-        date_based(options)
+    class PolicyAliases < Literal::Enum(String)
+      None = new("none")
+      KeepNone = new("keep_none")
+      Keep = new("keep")
+      KeepAll = new("keep_all")
+      Date = new("date")
+      DateBased = new("date_based")
+    end
+
+    def create(policy_name, ...)
+      case PolicyAliases[policy_name]
+      when PolicyAliases::None, PolicyAliases::KeepNone
+        none(...)
+      when PolicyAliases::Date, PolicyAliases::DateBased
+        date_based(...)
       else
-        # Default to keep_all if an unknown policy is specified
-        keep(options)
+        keep(...)
       end
     end
 
-    def none(options = {})
-      KeepNone.new(options)
+    def none(...)
+      KeepNone.new(...)
     end
     alias_method :keep_none, :none
 
-    def keep(options = {})
-      KeepAll.new(options)
+    def keep(...)
+      KeepAll.new(...)
     end
     alias_method :keep_all, :keep
 
-    def date_based(options = {})
-      DateBased.new(options)
+    def date_based(...)
+      DateBased.new(...)
     end
     alias_method :date, :date_based
 

@@ -11,12 +11,7 @@ module Awfy
     # the last 30 days.
     class DateBased < Base
       # @return [Integer] Number of days to retain results
-      attr_reader :retention_days
-
-      def initialize(options)
-        super
-        @retention_days = options.retention_days || 30
-      end
+      prop :retention_days, Integer, default: 30
 
       def retain?(result)
         return true unless result.respond_to?(:timestamp)
@@ -26,7 +21,7 @@ module Awfy
       end
 
       def name
-        "date_based_#{retention_days}_days"
+        "#{super}_#{retention_days}_days"
       end
     end
   end

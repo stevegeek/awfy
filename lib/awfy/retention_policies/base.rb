@@ -8,12 +8,10 @@ module Awfy
     # and which ones can be cleaned up. Each policy implementation must define
     # the `retain?` method that takes a result and returns true or false.
     class Base
-      def initialize(options)
-        @options = options
-      end
+      extend Literal::Properties
 
       def retain?(result)
-        raise NotImplementedError, "#{self.class} must implement the retain? method"
+        raise NoMethodError, "#{self.class} must implement the retain? method"
       end
 
       def name
