@@ -6,7 +6,7 @@ module Awfy
     prop :type, Symbol
     prop :group, String
     prop :report, String
-    prop :runtime, Awfy::Runtimes, default: Awfy::Runtimes::MRI
+    prop :runtime, Awfy::Runtimes, default: Awfy::Runtimes::MRI, &Awfy::Runtimes
     prop :timestamp, Time
     prop :branch, String
     prop :commit, String

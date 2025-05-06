@@ -2,7 +2,9 @@
 
 module Awfy
   class Session < Literal::Data
-    prop :shell, _Interface(:ask, :say, :say_error, :say_status, :mute, :mute?), default: -> { Thor::Shell::Basic.new }
+    ShellType = _Interface(:ask, :say, :say_error, :say_status, :mute, :mute?)
+
+    prop :shell, ShellType, default: -> { Thor::Shell::Basic.new }
     prop :config, Awfy::Config
     prop :git_client, Awfy::GitClient, default: -> { Awfy::GitClient.new(Dir.pwd) }
     prop :results_store, Awfy::Stores::Base
