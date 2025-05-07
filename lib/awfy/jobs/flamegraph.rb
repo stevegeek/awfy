@@ -3,7 +3,7 @@
 require "vernier"
 
 module Awfy
-  module Commands
+  module Jobs
     class Flamegraph < Base
       def generate(group, report_name, test_name)
         execute_report(group, report_name) do |report, runtime|

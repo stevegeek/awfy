@@ -2,15 +2,20 @@
 
 module Awfy
   class Suite
-    def initialize
-      @groups = {}
+    def initialize(initial_groups = [])
+      @groups_store = {}
+      initial_groups.each do |group|
+        @groups_store[group.name] = group
+      end
     end
 
-    attr_reader :groups
+    def groups
+      @groups_store.values
+    end
 
     def group(name, &)
-      @groups[name] ||= Suites::Group.new(name:, reports: [])
-      @current_group = @groups[name]
+      @groups_store[name] ||= Suites::Group.new(name:, reports: [])
+      @current_group = @groups_store[name]
       instance_eval(&)
     end
 
@@ -27,12 +32,42 @@ module Awfy
       current_report! << Suites::Test.new(name:, block:)
     end
 
+    def groups?
+      !@groups_store.empty?
+    end
+
     def tests?
-      @groups.any? do |_, group|
+      @groups_store.any? do |_, group|
         group.reports? do |report|
           report.tests?
         end
       end
+    end
+
+    def filter(group_names)
+      self.class.new(groups.select { |name, _| group_names.include?(name) })
+    end
+
+    def valid_group?(name)
+      @groups_store.key?(name)
+    end
+
+    def find_group(name)
+      raise Errors::GroupNotFoundError unless valid_group?(name)
+
+      @groups_store[name]
+    end
+
+    def find_report(group, report_name)
+      group = find_group(group)
+      report = group.reports.find { |r| r.name == report_name }
+      report || raise(Errors::ReportNotFoundError.new(group.name, report_name))
+    end
+
+    def find_test(group, report_name, test_name)
+      report = find_report(group, report_name)
+      test = report.tests.find { |t| t.name == test_name }
+      test || raise(Errors::ReportNotFoundError.new(group.name, report_name, test_name))
     end
 
     private

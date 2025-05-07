@@ -3,7 +3,7 @@
 require "benchmark/ips"
 
 module Awfy
-  module Commands
+  module Jobs
     class IPS < Base
       def benchmark(group, report_name, test_name)
         if verbose?
@@ -11,13 +11,15 @@ module Awfy
           say "> #{group[:name]}...", :cyan
         end
 
-        execute_report(group, report_name) do |report, runtime|
+        # Use the group_runner to run the tests with different runtimes
+        benchmarker.run_report(group, report_name) do |report, runtime|
           # Create a progress bar for this benchmark run
           progress_bar = nil
 
           Benchmark.ips(time: options.test_time, warmup: options.test_warm_up, quiet: show_summary? || verbose?) do |benchmark_job|
-            execute_tests(report, test_name, output: false) do |test, _|
-              test_label = generate_test_label(test, runtime)
+            # Use the group_runner to run the tests
+            benchmarker.run_tests(report, test_name, output: false) do |test, _|
+              test_label = benchmarker.generate_test_label(test, runtime)
               benchmark_job.item(test_label, &test[:block])
             end
 
@@ -33,17 +35,17 @@ module Awfy
             # Create progress bar in all modes
             title_with_info = "#{group[:name]}/#{report[:name]} [#{runtime}] #{benchmark_count} tests, ~#{estimated_time}s"
 
+            say title_with_info, :cyan if verbose?
             # Set progress bar options, including ascii_only flag
             progress_bar_opts = {
-              title: title_with_info,
               ascii_only: options.respond_to?(:ascii_only?) && options.ascii_only?
             }
 
             progress_bar = Awfy::Views::ProgressBar.new(@shell, benchmark_count, options.test_warm_up, options.test_time, **progress_bar_opts)
             progress_bar.start
 
-            # We can persist the results to a file to use to later generate a summary
-            save_to(:ips, group, report, runtime) do
+            # Use the group_runner to save the results
+            benchmarker.save_results(:ips, group, report, runtime) do
               # Force the job to run before we save, as normally jobs are run after this block yields
               benchmark_job.load_held_results
               benchmark_job.run
@@ -84,10 +86,8 @@ module Awfy
       end
 
       def generate_ips_summary
-        view = Views::IPS::CompositeView.new(@shell, options)
-        # Process reports and use the view to display
-        read_reports_for_summary(:ips) do |report, results, baseline|
-          view.summary_table(report, results, baseline)
+        benchmarker.load_results(:ips) do |report, results, baseline|
+          Views::IPS::SummaryView.new(session).summary_table(report, results, baseline)
         end
       end
     end

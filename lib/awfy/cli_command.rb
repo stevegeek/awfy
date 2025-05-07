@@ -23,4 +23,3 @@ module Awfy
     end
   end
 end
-

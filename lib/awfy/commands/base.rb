@@ -7,12 +7,7 @@ module Awfy
     class Base < Literal::Object
       include Awfy::HasSession
 
-      prop :group, Suites::Group
-      prop :benchmarker, Awfy::Benchmarker
-
-      def call
-        raise NoMethodError, "You must implement the call method in your command class"
-      end
+      prop :group_names, _Nilable(_Array(String)), reader: :private
     end
   end
 end

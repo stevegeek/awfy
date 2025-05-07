@@ -13,6 +13,10 @@ module Awfy
       def tests?
         @tests.any?
       end
+
+      def size
+        @tests.size
+      end
     end
   end
 end

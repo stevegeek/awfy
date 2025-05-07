@@ -13,6 +13,14 @@ module Awfy
       def reports?
         @reports.any?
       end
+
+      def tests?
+        @reports.any?(&:tests?)
+      end
+
+      def size
+        @reports.map(&:size).sum
+      end
     end
   end
 end

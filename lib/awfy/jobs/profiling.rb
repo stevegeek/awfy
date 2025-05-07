@@ -3,7 +3,7 @@
 require "stackprof"
 
 module Awfy
-  module Commands
+  module Jobs
     class Profiling < Base
       def generate(group, report_name, test_name)
         if verbose?

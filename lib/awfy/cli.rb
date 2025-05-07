@@ -3,9 +3,8 @@
 module Awfy
   # Suite subcommand for managing test suites
   class SuiteCommand < CLICommand
-
-    desc "list [GROUP]", "List all tests in a group"
-    def list(group_name = nil)
+    desc "list [GROUPS...]", "List all tests in specified groups (if none provided, lists all)"
+    def list(*group_names)
       # Create a shell instance
       shell = Awfy::Shell.new(config:)
 
@@ -13,19 +12,24 @@ module Awfy
       git_client = GitClient.new(path: Dir.pwd)
       results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
       session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
-      suite = Suites::Loader.new(session:).load
-      result_manager = Awfy::ResultManager.new(session:)
 
-      # Check if the test suite has tests
-      unless suite.tests?
-        shell.say_error_and_exit "Test suite (in '#{config.tests_path}') has no tests defined..."
-      end
+      Commands::Suite.new(session:, group_names: group_names).list
+    rescue Errors::SuiteError => e
+      shell.say_error_and_exit e.message
+    end
 
-      # Run the list command
-      Runners.immediate(suite:, session:).run(group_name) do |group|
-        Commands::List.new(session:, group:, benchmarker: Benchmarker.new(session:, result_manager:))
-      end
-    rescue ArgumentError => e
+    desc "debug [GROUPS...]", "Run tests in specified groups (if none provided, runs all)"
+    def debug(*group_names)
+      # Create a shell instance
+      shell = Awfy::Shell.new(config:)
+
+      # Initialize dependencies
+      git_client = GitClient.new(path: Dir.pwd)
+      results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
+      session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
+
+      Commands::Suite.new(session:, group_names: group_names).run
+    rescue Errors::SuiteError => e
       shell.say_error_and_exit e.message
     end
   end

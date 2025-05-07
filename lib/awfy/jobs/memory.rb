@@ -3,7 +3,7 @@
 require "memory_profiler"
 
 module Awfy
-  module Commands
+  module Jobs
     class Memory < Base
       def benchmark(group, report_name, test_name)
         if verbose?
