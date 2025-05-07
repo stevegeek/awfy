@@ -9,12 +9,9 @@ loader = Zeitwerk::Loader.for_gem
 # Configure inflections
 loader.inflector.inflect(
   "cli" => "CLI",
+  "cli_command" => "CLICommand",
   "ips" => "IPS",
-  "yjit_stats" => "YJITStats"
-)
-
-# Configure special inflections for commands directory
-loader.inflector.inflect(
+  "yjit_stats" => "YJITStats",
   "commands/ips" => "Commands::IPS",
   "commands/yjit_stats" => "Commands::YJITStats"
 )
