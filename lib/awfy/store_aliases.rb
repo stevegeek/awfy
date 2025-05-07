@@ -5,5 +5,9 @@ module Awfy
     JSON = new("json")
     SQLite = new("sqlite")
     Memory = new("memory")
+
+    def to_s
+      value
+    end
   end
 end

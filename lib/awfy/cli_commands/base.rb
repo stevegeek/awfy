@@ -9,6 +9,7 @@ module Awfy
       no_commands do
         def invoke_command(command, *args)
           setup_session
+          session.say_configuration if config.verbose?
           super
         end
       end

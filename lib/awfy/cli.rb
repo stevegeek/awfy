@@ -18,7 +18,7 @@ module Awfy
     # class_option :summary, type: :boolean, desc: "Generate a summary of the results", default: true
     # class_option :summary_order, enum: ["desc", "asc", "leader"], default: "leader", desc: "Sort order for summary tables: ascending, descending, or leaderboard (command specific, e.g. fastest to slowest for IPS)"
     # class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
-    # class_option :verbose, type: :boolean, desc: "Verbose output", default: false
+    class_option :verbose, type: :boolean, desc: "Verbose output", default: false
     # class_option :test_warm_up, type: :numeric, default: 1, desc: "Number of seconds to warmup the IPS benchmark"
     # class_option :test_time, type: :numeric, default: 3, desc: "Number of seconds to run the IPS benchmark"
     # class_option :test_iterations, type: :numeric, default: 1_000_000, desc: "Number of iterations to run the test"

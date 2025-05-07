@@ -8,5 +8,9 @@ module Awfy
     KeepAll = new("keep_all")
     Date = new("date")
     DateBased = new("date_based")
+
+    def to_s
+      value
+    end
   end
 end
