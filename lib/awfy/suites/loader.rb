@@ -26,11 +26,11 @@ module Awfy
 
       def apply_filter
         suite_all = ::Awfy.suite
-        # Check if group_names are valid using Suite#valid_group?
+        return suite_all if @group_names.nil? || @group_names.empty?
         @group_names&.each do |group_name|
           raise Errors::GroupNotFoundError.new(group_name) unless suite_all.valid_group?(group_name)
         end
-        @group_names ? suite_all.filter(@group_names) : suite_all
+        suite_all.filter(@group_names)
       end
     end
   end

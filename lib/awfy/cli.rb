@@ -13,7 +13,7 @@ module Awfy
       results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
       session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
 
-      Commands::Suite.new(session:, group_names: group_names).list
+      Commands::Suite.new(session:, group_names:).list
     rescue Errors::SuiteError => e
       shell.say_error_and_exit e.message
     end
@@ -28,7 +28,7 @@ module Awfy
       results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
       session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
 
-      Commands::Suite.new(session:, group_names: group_names).run
+      Commands::Suite.new(session:, group_names:).run
     rescue Errors::SuiteError => e
       shell.say_error_and_exit e.message
     end

@@ -45,7 +45,7 @@ module Awfy
     end
 
     def filter(group_names)
-      self.class.new(groups.select { |name, _| group_names.include?(name) })
+      self.class.new(groups.select { |group| group_names.include?(group.name) })
     end
 
     def valid_group?(name)
