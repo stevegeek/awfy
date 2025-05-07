@@ -4,10 +4,6 @@ module Awfy
   module Commands
     # Command for managing configuration settings
     class Config < Base
-      def initialize(session:)
-        @session = session
-      end
-
       def inspect(location = nil)
         location_to_inspect = location || "current"
         config_loader = ConfigLoader.new(tests_path: @session.config.tests_path)

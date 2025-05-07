@@ -10,6 +10,7 @@ loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect(
   "cli" => "CLI",
   "cli_command" => "CLICommand",
+  "cli_commands" => "CLICommands",
   "ips" => "IPS",
   "yjit_stats" => "YJITStats",
   "commands/ips" => "Commands::IPS",

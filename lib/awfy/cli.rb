@@ -1,71 +1,15 @@
 # frozen_string_literal: true
 
 module Awfy
-  # Suite subcommand for managing test suites
-  class SuiteCommand < CLICommand
-    desc "list [GROUPS...]", "List all tests in specified groups (if none provided, lists all)"
-    def list(*group_names)
-      # Create a shell instance
-      shell = Awfy::Shell.new(config:)
-
-      # Initialize dependencies
-      git_client = GitClient.new(path: Dir.pwd)
-      results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
-      session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
-
-      Commands::Suite.new(session:, group_names:).list
-    rescue Errors::SuiteError => e
-      shell.say_error_and_exit e.message
-    end
-
-    desc "debug [GROUPS...]", "Run tests in specified groups (if none provided, runs all)"
-    def debug(*group_names)
-      # Create a shell instance
-      shell = Awfy::Shell.new(config:)
-
-      # Initialize dependencies
-      git_client = GitClient.new(path: Dir.pwd)
-      results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
-      session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
-
-      Commands::Suite.new(session:, group_names:).run
-    rescue Errors::SuiteError => e
-      shell.say_error_and_exit e.message
-    end
-  end
-
-  # Configuration command subclass
-  class ConfigCommand < CLICommand
-    desc "inspect [LOCATION]", "Show current configuration settings"
-    def inspect(location = nil)
-      shell = Awfy::Shell.new(config:)
-      git_client = GitClient.new(path: Dir.pwd)
-      results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
-      session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
-
-      Commands::Config.new(session:).inspect(location)
-    end
-
-    desc "save [LOCATION]", "Save current configuration to a file"
-    def save(location = nil)
-      shell = Awfy::Shell.new(config:)
-      git_client = GitClient.new(path: Dir.pwd)
-      results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
-      session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
-
-      Commands::Config.new(session:).save(location)
-    end
-  end
-
-  class CLI < CLICommand
+  class CLI < Thor
     def self.exit_on_failure? = true
 
     # Register subcommands
     desc "suite SUBCOMMAND", "Suite-related commands (list, run, etc.)"
-    subcommand "suite", SuiteCommand
+    subcommand "suite", CLICommands::Suite
 
     desc "config SUBCOMMAND", "Configuration-related commands (inspect, save)"
-    subcommand "config", ConfigCommand
+    subcommand "config", CLICommands::Config
     #
     # class_option :runtime, enum: ["both", "yjit", "mri"], default: "both", desc: "Run with and/or without YJIT enabled"
     # class_option :compare_with_branch, type: :string, desc: "Name of branch to compare with results on current branch"
