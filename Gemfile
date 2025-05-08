@@ -13,3 +13,6 @@ gem "standard", "~> 1.3"
 
 # For SQLite storage backend
 gem "sqlite3", "~> 1.6"
+
+# For example benchmarks suite
+gem "monotime"
