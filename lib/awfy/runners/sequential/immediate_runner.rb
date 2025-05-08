@@ -3,22 +3,22 @@
 module Awfy
   module Runners
     module Sequential
-    # ImmediateRunner is the simplest runner implementation that runs benchmarks
-    # in the current branch/environment without any process isolation or git operations
-    class ImmediateRunner < Awfy::Runners::Base
-      # Execute a benchmark run in the current git state and environment
-      def run_group(group, &)
-        # Initialize the environment
-        start!
+      # ImmediateRunner is the simplest runner implementation that runs benchmarks
+      # in the current branch/environment without any process isolation or git operations
+      class ImmediateRunner < Awfy::Runners::Base
+        # Execute a benchmark run in the current git state and environment
+        def run_group(group, &)
+          # Initialize the environment
+          start!
 
-        if block_given?
-          job = yield group
-          job.call
-        else
-          raise ArgumentError, "No block given to run_group"
+          if block_given?
+            job = yield group
+            job.call
+          else
+            raise ArgumentError, "No block given to run_group"
+          end
         end
       end
-    end
     end
   end
 end
