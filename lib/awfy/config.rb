@@ -21,6 +21,11 @@ module Awfy
     # don't use colored output
     prop :no_color, _Boolean, default: false
 
+    # Runner options
+
+    # type of runner - "immediate", "forked", "spawn", "thread"
+    prop :runner, String, default: "immediate"
+
     # Input paths
 
     # path to the setup file

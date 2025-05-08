@@ -12,8 +12,8 @@ module Awfy
     prop :commit, String
     prop :commit_message, String
     prop :ruby_version, String, default: RUBY_VERSION
-    prop :result_id, String
-    prop :result_data, Hash
+    prop :result_id, _Nilable(String)
+    prop :result_data, _Nilable(Hash)
 
     def to_h
       super.compact
@@ -36,6 +36,11 @@ module Awfy
       # Convert type to symbol if present and is a string
       if filtered_hash[:type].is_a?(String)
         filtered_hash[:type] = filtered_hash[:type].to_sym
+      end
+
+      # Convert timestamp to Time if it's an integer
+      if filtered_hash[:timestamp].is_a?(Integer)
+        filtered_hash[:timestamp] = Time.at(filtered_hash[:timestamp])
       end
 
       # Create the Result object

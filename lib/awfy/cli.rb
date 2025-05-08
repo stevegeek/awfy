@@ -19,11 +19,12 @@ module Awfy
     # class_option :summary_order, enum: ["desc", "asc", "leader"], default: "leader", desc: "Sort order for summary tables: ascending, descending, or leaderboard (command specific, e.g. fastest to slowest for IPS)"
     # class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
     class_option :verbose, type: :boolean, desc: "Verbose output", default: false
+    class_option :runner, enum: ["immediate", "forked", "spawn", "thread"], default: "immediate", desc: "Type of runner to use for benchmark execution"
     # class_option :test_warm_up, type: :numeric, default: 1, desc: "Number of seconds to warmup the IPS benchmark"
     # class_option :test_time, type: :numeric, default: 3, desc: "Number of seconds to run the IPS benchmark"
     # class_option :test_iterations, type: :numeric, default: 1_000_000, desc: "Number of iterations to run the test"
     # class_option :setup_file_path, type: :string, default: "./benchmarks/setup", desc: "Path to the setup file"
-    # class_option :tests_path, type: :string, default: "./benchmarks/tests", desc: "Path to the tests files"
+    class_option :tests_path, type: :string, default: "./benchmarks/tests", desc: "Path to the tests files"
     # class_option :storage_backend, type: :string, default: DEFAULT_BACKEND, desc: "Storage backend for benchmark results (json or sqlite)"
     # class_option :storage_name, type: :string, default: "benchmark_history", desc: "Name for the storage repository (database name or directory)"
     # class_option :retention_policy, type: :string, default: "keep", desc: "Retention policy for benchmark results (keep or date)"

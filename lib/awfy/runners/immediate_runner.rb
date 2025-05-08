@@ -11,8 +11,8 @@ module Awfy
         start!
 
         if block_given?
-          command = yield group
-          command.call
+          job = yield group
+          job.call
         else
           raise ArgumentError, "No block given to run_group"
         end

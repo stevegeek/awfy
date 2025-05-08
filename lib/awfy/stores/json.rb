@@ -2,7 +2,6 @@
 
 require "fileutils"
 require "json"
-require "thread"
 
 module Awfy
   module Stores
@@ -104,23 +103,22 @@ module Awfy
         # Only process JSON files
         result_files.each do |file_path|
           # Parse the metadata and apply the retention policy
-          begin
-            metadata_json = JSON.parse(File.read(file_path))
-            next unless metadata_json.is_a?(Array) && !metadata_json.empty?
 
-            # Convert the first entry to a Result object using from_hash
-            metadata_hash = metadata_json.first
-            result = Result.from_hash(metadata_hash)
+          metadata_json = JSON.parse(File.read(file_path))
+          next unless metadata_json.is_a?(Array) && !metadata_json.empty?
 
-            # Check if the result should be kept based on the retention policy
-            unless apply_retention_policy(result)
-              # Delete the file if it doesn't meet the retention policy
-              File.delete(file_path)
-            end
-          rescue => e
-            # Skip files that can't be processed
-            warn "Error processing file #{file_path}: #{e.message}"
+          # Convert the first entry to a Result object using from_hash
+          metadata_hash = metadata_json.first
+          result = Result.from_hash(metadata_hash)
+
+          # Check if the result should be kept based on the retention policy
+          unless apply_retention_policy(result)
+            # Delete the file if it doesn't meet the retention policy
+            File.delete(file_path)
           end
+        rescue => e
+          # Skip files that can't be processed
+          warn "Error processing file #{file_path}: #{e.message}"
         end
       end
 

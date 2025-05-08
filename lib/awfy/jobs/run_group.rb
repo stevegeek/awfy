@@ -4,23 +4,28 @@ module Awfy
   module Jobs
     # Just simply runs the code of the tests, useful for debugging
     class RunGroup < Base
+      prop :report_name, _Nilable(String), reader: :private
+      prop :test_name, _Nilable(String), reader: :private
+
       def call
         if verbose?
-          say "> Running the test for:"
-          say "> #{group[:name]}...", :cyan
+          say "> Running Group:"
+          say "> '#{group.name}'", :cyan
+          say
         end
 
-        benchmarker.run_report(group, report_name) do |report, runtime|
+        benchmarker.run(group, report_name) do |report, runtime|
           # After defining all benchmark items, set up the progress bar
           benchmark_count = group.size
-          title_with_info = "#{group[:name]}/#{report[:name]} [#{runtime}] #{benchmark_count} tests"
+          title_with_info = " - Report '#{report.name}' [#{runtime}] #{benchmark_count} tests"
           say title_with_info, :cyan if verbose?
 
-          progress_bar = Awfy::Views::ProgressBar.new(@shell, benchmark_count, ascii_only: options.ascii_only?)
+          progress_bar = Awfy::Views::ProgressBar.new(shell: session.shell, total: benchmark_count, ascii_only: config.ascii_only?)
 
           benchmarker.run_tests(report, test_name, output: false) do |test, _|
             test_label = benchmarker.generate_test_label(test, runtime)
-            benchmark_job.item(test_label, &test[:block])
+            say "   - #{test_label}", :green if verbose?
+            test.block.call
             progress_bar&.increment
           end
 

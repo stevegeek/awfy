@@ -270,7 +270,7 @@ class MemoryStoreTest < Minitest::Test
     threads.each(&:join)
 
     # Verify the total number of results
-    assert_equal total_results, @store.stored_results.size, 
+    assert_equal total_results, @store.stored_results.size,
       "Should have saved all results from all threads"
 
     # Verify result IDs are unique

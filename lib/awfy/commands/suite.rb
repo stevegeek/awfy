@@ -16,9 +16,10 @@ module Awfy
         end
       end
 
-      def run
-        Runners.immediate(suite: load_suite!, session:).run do |group|
-          Jobs::RunGroup.new(session:, group:, benchmarker: Benchmarker.new(session:, result_manager:))
+      def run(report_name = nil, test_name = nil)
+        result_manager = Awfy::ResultManager.new(session:)
+        Runners.create(suite: load_suite!, session:).run do |group|
+          Jobs::RunGroup.new(session:, group:, report_name:, test_name:, benchmarker: Benchmarker.new(session:, result_manager:))
         end
       end
 
