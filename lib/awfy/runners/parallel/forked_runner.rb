@@ -3,13 +3,12 @@
 module Awfy
   module Runners
     module Parallel
-      # ForkedRunner runs each benchmark group in a separate process using fork
-      # This provides isolation between benchmark runs and prevents memory leaks or state
-      # from affecting subsequent benchmarks
+      # ForkedRunner runs each benchmark group in parallel by forking a new process
+      # for each group. This allows for true parallelism on multi-core systems
+      # as each process has its own Global Interpreter Lock (GIL).
+      # Ideal for CPU-bound tasks that can benefit from multiple cores.
       class ForkedRunner < Awfy::Runners::Base
-        # Execute a benchmark group in a separate forked process
         def run_group(group, &block)
-          # Initialize the environment
           start!
 
           unless block_given?
@@ -18,7 +17,6 @@ module Awfy
 
           say "Running group '#{group.name}' in forked process" if verbose?
 
-          # Store results using process-safe storage (file-based)
           read_pipe, write_pipe = IO.pipe
 
           pid = Process.fork do

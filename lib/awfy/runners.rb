@@ -9,7 +9,7 @@ module Awfy
       elsif session.config.compare_with_branch
         RunnerTypes::BRANCH_COMPARISON
       else
-        config.runner
+        session.config.runner
       end
 
       create_runner(runner_type, suite: suite, session: session)
