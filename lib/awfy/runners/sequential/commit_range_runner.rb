@@ -2,9 +2,10 @@
 
 module Awfy
   module Runners
+    module Sequential
     # CommitRangeRunner runs benchmarks across a range of commits
     # Each commit is checked out and run in a fresh Ruby process for clean results
-    class CommitRangeRunner < Base
+    class CommitRangeRunner < Awfy::Runners::Base
       # Run benchmarks across a range of commits
       # @param start_commit [String] The starting commit of the range
       # @param end_commit [String] The ending commit of the range (defaults to HEAD)
@@ -135,6 +136,7 @@ module Awfy
 
         all_results
       end
+    end
     end
   end
 end

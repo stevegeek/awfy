@@ -2,7 +2,8 @@
 
 module Awfy
   module Runners
-    class ThreadRunner < Base
+    module Parallel
+    class ThreadRunner < Awfy::Runners::Base
       def run_group(group, &block)
         start!
 
@@ -65,6 +66,7 @@ module Awfy
           errors[group.name] = e
         end
       end
+    end
     end
   end
 end

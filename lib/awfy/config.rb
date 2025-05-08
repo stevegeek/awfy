@@ -24,7 +24,8 @@ module Awfy
     # Runner options
 
     # type of runner - "immediate", "forked", "spawn", "thread"
-    prop :runner, String, default: "immediate"
+    # This can be a string or a RunnerTypes enum value
+    prop :runner, RunnerTypes, default: RunnerTypes::IMMEDIATE, &RunnerTypes
 
     # Input paths
 

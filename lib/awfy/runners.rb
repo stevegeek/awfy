@@ -1,58 +1,69 @@
 # frozen_string_literal: true
 
-# With Zeitwerk autoloading, we don't need to explicitly require files
-
 module Awfy
   module Runners
+    # Factory method to create a runner based on configuration
     def create(suite:, session:)
-      if session.config.commit_range
-        commit_range(suite:, session:)
+      runner_type = if session.config.commit_range
+        RunnerTypes::COMMIT_RANGE
       elsif session.config.compare_with_branch
-        on_branches(suite:, session:)
+        RunnerTypes::BRANCH_COMPARISON
       else
-        case session.config.runner
-        when "forked"
-          forked(suite:, session:)
-        when "spawn"
-          spawn(suite:, session:)
-        when "fiber"
-          fiber(suite:, session:)
-        when "thread"
-          thread(suite:, session:)
-        else # default to immediate
-          immediate(suite:, session:)
-        end
+        config.runner
+      end
+
+      create_runner(runner_type, suite: suite, session: session)
+    end
+
+    # Create a runner of the specified type
+    def create_runner(runner_type, suite:, session:)
+      case runner_type
+      when RunnerTypes::IMMEDIATE
+        immediate(suite:, session:)
+      when RunnerTypes::SPAWN
+        spawn(suite:, session:)
+      when RunnerTypes::THREAD
+        thread(suite:, session:)
+      when RunnerTypes::FORKED
+        forked(suite:, session:)
+      when RunnerTypes::BRANCH_COMPARISON
+        on_branches(suite:, session:)
+      when RunnerTypes::COMMIT_RANGE
+        commit_range(suite:, session:)
+      else
+        raise ArgumentError, "Unknown runner type: #{self}"
       end
     end
 
+    # Create a runner that executes benchmarks in the current process
     def immediate(suite:, session:)
-      ImmediateRunner.new(suite:, session:)
+      Runners::Sequential::ImmediateRunner.new(suite:, session:)
     end
 
+    # Create a runner that executes benchmarks in forked processes in parallel
     def forked(suite:, session:)
-      ForkedRunner.new(suite:, session:)
+      Runners::Parallel::ForkedRunner.new(suite:, session:)
     end
 
+    # Create a runner that executes benchmarks by spawning new processes
     def spawn(suite:, session:)
-      SpawnRunner.new(suite:, session:)
+      Runners::Sequential::SpawnRunner.new(suite:, session:)
     end
 
-    def fiber(suite:, session:)
-      FiberRunner.new(suite:, session:)
-    end
-
+    # Create a runner that executes benchmarks in threads concurrently
     def thread(suite:, session:)
-      ThreadRunner.new(suite:, session:)
+      Runners::Parallel::ThreadRunner.new(suite:, session:)
     end
 
+    # Runners for git operations
     def on_branches(suite:, session:)
-      BranchComparisonRunner.new(suite:, session:)
+      Runners::Sequential::BranchComparisonRunner.new(suite:, session:)
     end
 
     def commit_range(suite:, session:)
-      CommitRangeRunner.new(suite:, session:)
+      Runners::Sequential::CommitRangeRunner.new(suite:, session:)
     end
 
-    module_function :create, :immediate, :forked, :spawn, :fiber, :thread, :on_branches, :commit_range
+    module_function :create, :create_runner, :immediate, :forked, :spawn, :thread, :on_branches, :commit_range
   end
 end
