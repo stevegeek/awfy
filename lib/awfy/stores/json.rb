@@ -2,6 +2,7 @@
 
 require "fileutils"
 require "json"
+require "thread"
 
 module Awfy
   module Stores
@@ -11,70 +12,89 @@ module Awfy
     class Json < Base
       def after_initialize
         ensure_directory_exists
+        @mutex = Mutex.new
       end
 
       def save_result(metadata, &block)
         validate_metadata!(metadata)
-
-        timestamp = metadata.timestamp || Time.now.to_i
-        result_id = generate_result_id(metadata)
         result_data = execute_result_block(&block)
 
-        # Get result file and update it
-        result_file = metadata_file_path(
-          metadata.type,
-          metadata.group,
-          metadata.report,
-          timestamp
-        )
+        @mutex.synchronize do
+          timestamp = metadata.timestamp || Time.now.to_i
+          result_id = generate_result_id(metadata)
 
-        # Create metadata object with result data
-        complete_metadata = Result.new(
-          **metadata.to_h,
-          result_id: result_id,
-          result_data: result_data
-        )
+          # Get result file and update it
+          result_file = metadata_file_path(
+            metadata.type,
+            metadata.group,
+            metadata.report,
+            timestamp
+          )
 
-        # Load, update, and save metadata file
-        existing_metadata = load_json_file(result_file) || []
-        existing_metadata << complete_metadata.to_h
-        write_json_file(result_file, existing_metadata)
+          # Create metadata object with result data
+          attributes = metadata.to_h # Get original attributes (with correct types)
+          complete_metadata = Result.new(
+            **attributes,
+            result_id: result_id,
+            result_data: result_data
+          )
 
-        result_file
+          # Prepare hash for JSON storage
+          hash_to_store = complete_metadata.to_h
+          if hash_to_store[:timestamp].is_a?(Time)
+            hash_to_store[:timestamp] = hash_to_store[:timestamp].to_i
+          end
+          if hash_to_store[:runtime].is_a?(Awfy::Runtimes)
+            hash_to_store[:runtime] = hash_to_store[:runtime].value
+          end
+
+          # Load, update, and save metadata file
+          existing_metadata = load_json_file(result_file) || []
+          existing_metadata << hash_to_store
+          write_json_file(result_file, existing_metadata)
+
+          result_file
+        end
       end
 
       def query_results(type: nil, group: nil, report: nil, runtime: nil, commit: nil)
-        # Find metadata files matching the criteria
-        metadata_files = find_metadata_files(type, group, report)
-        results = []
+        @mutex.synchronize do
+          # Find metadata files matching the criteria
+          metadata_files = find_metadata_files(type, group, report)
+          results = []
 
-        metadata_files.each do |file|
-          process_metadata_file(file, results, type, group, report, runtime, commit)
+          metadata_files.each do |file|
+            process_metadata_file(file, results, type, group, report, runtime, commit)
+          end
+
+          results
         end
-
-        results
       end
 
       def load_result(result_id)
-        metadata_obj = find_metadata_by_id(result_id)
-        return nil unless metadata_obj
+        @mutex.synchronize do
+          metadata_obj = find_metadata_by_id(result_id)
+          return nil unless metadata_obj
 
-        # Check for separate result data file (not used currently but kept for compatibility)
-        file_path = result_file_path(result_id)
-        if File.exist?(file_path)
-          result_data = load_json_file(file_path)
-          return Result.new(
-            **metadata_obj.to_h,
-            result_data: result_data
-          )
+          # Check for separate result data file (not used currently but kept for compatibility)
+          file_path = result_file_path(result_id)
+          if File.exist?(file_path)
+            result_data = load_json_file(file_path)
+            return Result.new(
+              **metadata_obj.to_h,
+              result_data: result_data
+            )
+          end
+
+          # If we found metadata but no separate data file, return the metadata as is
+          metadata_obj
         end
-
-        # If we found metadata but no separate data file, return the metadata as is
-        metadata_obj
       end
 
       def clean_results
-        apply_retention_policy_to_files
+        @mutex.synchronize do
+          apply_retention_policy_to_files
+        end
       end
 
       private
@@ -84,22 +104,23 @@ module Awfy
         # Only process JSON files
         result_files.each do |file_path|
           # Parse the metadata and apply the retention policy
+          begin
+            metadata_json = JSON.parse(File.read(file_path))
+            next unless metadata_json.is_a?(Array) && !metadata_json.empty?
 
-          metadata_json = JSON.parse(File.read(file_path))
-          next unless metadata_json.is_a?(Array) && !metadata_json.empty?
+            # Convert the first entry to a Result object using from_hash
+            metadata_hash = metadata_json.first
+            result = Result.from_hash(metadata_hash)
 
-          # Convert the first entry to a Result object
-          metadata_hash = metadata_json.first
-          result = Result.new(**metadata_hash.transform_keys(&:to_sym))
-
-          # Check if the result should be kept based on the retention policy
-          unless apply_retention_policy(result)
-            # Delete the file if it doesn't meet the retention policy
-            File.delete(file_path)
+            # Check if the result should be kept based on the retention policy
+            unless apply_retention_policy(result)
+              # Delete the file if it doesn't meet the retention policy
+              File.delete(file_path)
+            end
+          rescue => e
+            # Skip files that can't be processed
+            warn "Error processing file #{file_path}: #{e.message}"
           end
-        rescue => e
-          # Skip files that can't be processed
-          warn "Error processing file #{file_path}: #{e.message}"
         end
       end
 

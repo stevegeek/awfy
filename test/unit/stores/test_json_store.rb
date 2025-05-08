@@ -16,7 +16,7 @@ class JsonStoreTest < Minitest::Test
     @retention_policy = Awfy::RetentionPolicies.keep_all
 
     # Create the Json store instance to test
-    @store = Awfy::Stores::Json.new(@storage_dir, @retention_policy)
+    @store = Awfy::Stores::Json.new(storage_name: @storage_dir, retention_policy: @retention_policy)
   end
 
   def teardown
@@ -30,13 +30,14 @@ class JsonStoreTest < Minitest::Test
       type: :ips,
       group: "Test Group",
       report: "#method_name",
-      runtime: "ruby",
-      timestamp: Time.now.to_i,
+      runtime: Awfy::Runtimes::MRI,
+      timestamp: Time.now,
       branch: "main",
       commit: "abc123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: nil,
+      result_data: {}
     )
 
     # Sample benchmark result data
@@ -72,7 +73,7 @@ class JsonStoreTest < Minitest::Test
     assert_equal 1, metadata_content.length, "Expected one metadata entry"
     assert_equal "Test Group", metadata_content.first["group"]
     assert_equal "#method_name", metadata_content.first["report"]
-    assert_equal "ruby", metadata_content.first["runtime"]
+    assert_equal "mri", metadata_content.first["runtime"]
     assert_equal "main", metadata_content.first["branch"]
     assert_equal "abc123", metadata_content.first["commit"]
 
@@ -87,13 +88,14 @@ class JsonStoreTest < Minitest::Test
       type: :memory,
       group: "Test Group",
       report: "#memory_test",
-      runtime: "ruby",
-      timestamp: Time.now.to_i,
+      runtime: Awfy::Runtimes::MRI,
+      timestamp: Time.now,
       branch: "main",
       commit: "def456",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: nil,
+      result_data: {}
     )
 
     # Sample benchmark result data
@@ -118,20 +120,21 @@ class JsonStoreTest < Minitest::Test
 
   def test_query_results
     # Store multiple results first
-    timestamp = Time.now.to_i
+    timestamp = Time.now
 
     # Store result 1
     metadata1 = Awfy::Result.new(
       type: :ips,
       group: "Query Group",
       report: "#method1",
-      runtime: "ruby",
+      runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: nil,
+      result_data: {}
     )
 
     @store.save_result(metadata1) do
@@ -143,13 +146,14 @@ class JsonStoreTest < Minitest::Test
       type: :ips,
       group: "Query Group",
       report: "#method1",
-      runtime: "yjit",
+      runtime: Awfy::Runtimes::YJIT,
       timestamp: timestamp,
       branch: "main",
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: nil,
+      result_data: {}
     )
 
     @store.save_result(metadata2) do
@@ -161,13 +165,14 @@ class JsonStoreTest < Minitest::Test
       type: :ips,
       group: "Another Group",
       report: "#method2",
-      runtime: "ruby",
+      runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: nil,
+      result_data: {}
     )
 
     @store.save_result(metadata3) do
@@ -197,7 +202,7 @@ class JsonStoreTest < Minitest::Test
       type: :ips,
       group: "Query Group",
       report: "#method1",
-      runtime: "ruby"
+      runtime: "mri"
     )
 
     # If we got combo results, check the value
@@ -212,13 +217,14 @@ class JsonStoreTest < Minitest::Test
       type: :ips,
       group: "Load Test",
       report: "#load_method",
-      runtime: "ruby",
-      timestamp: Time.now.to_i,
+      runtime: Awfy::Runtimes::MRI,
+      timestamp: Time.now,
       branch: "main",
       commit: "load123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: nil,
+      result_data: {}
     )
 
     result_data = {ips: 3000.0, iterations: 5000}
@@ -248,11 +254,11 @@ class JsonStoreTest < Minitest::Test
     test_file = File.join(@storage_dir, "test-results#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
     # Create a valid result metadata format
     metadata = {
-      type: "test",
+      type: :test,  # Changed from "test" to :test to match Result's type requirement
       group: "test_group",
       report: "test_report",
-      runtime: "ruby",
-      timestamp: Time.now.to_i,
+      runtime: "mri",
+      timestamp: Time.now.to_i,  # This will be converted to Time by Result.from_hash
       branch: "main",
       commit: "test",
       commit_message: "test",
@@ -273,7 +279,7 @@ class JsonStoreTest < Minitest::Test
 
     # Now create a store with KeepNone policy which should delete everything
     keep_none_policy = Awfy::RetentionPolicies.keep_none
-    keep_none_store = Awfy::Stores::Json.new(@storage_dir, keep_none_policy)
+    keep_none_store = Awfy::Stores::Json.new(storage_name: @storage_dir, retention_policy: keep_none_policy)
 
     # Clean with KeepNone retention policy
     keep_none_store.clean_results

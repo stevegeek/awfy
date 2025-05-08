@@ -9,51 +9,57 @@ module Awfy
 
       def after_initialize
         initialize_store
+        @mutex = Mutex.new
       end
 
       # Store a benchmark result in memory
       def save_result(metadata, &block)
         validate_metadata!(metadata)
-
-        result_id = generate_memory_result_id
         result_data = execute_result_block(&block)
-        @stored_results[result_id] = create_complete_metadata(metadata, result_id, result_data)
 
-        result_id
+        @mutex.synchronize do
+          result_id = generate_memory_result_id
+          @stored_results[result_id] = create_complete_metadata(metadata, result_id, result_data)
+          result_id
+        end
       end
 
       # Query stored results with optional filtering
       def query_results(type: nil, group: nil, report: nil, runtime: nil, commit: nil)
-        # Get all stored results and apply filters from base class
-        apply_filters(
-          all_stored_results,
-          type: type,
-          group: group,
-          report: report,
-          runtime: runtime,
-          commit: commit
-        )
+        @mutex.synchronize do
+          # Get all stored results and apply filters from base class
+          apply_filters(
+            all_stored_results,
+            type: type,
+            group: group,
+            report: report,
+            runtime: runtime,
+            commit: commit
+          )
+        end
       end
 
       # Load a specific result by its ID
       def load_result(result_id)
-        @stored_results[result_id]
+        @mutex.synchronize { @stored_results[result_id] }
       end
 
       # Clean results from memory based on retention policy
       def clean_results
-        # Apply retention policy to each result
-        results_to_keep = {}
+        @mutex.synchronize do
+          # Apply retention policy to each result
+          results_to_keep = {}
 
-        @stored_results.each do |result_id, result|
-          if apply_retention_policy(result)
-            # Keep results that match the retention policy
-            results_to_keep[result_id] = result
+          @stored_results.each do |result_id, result|
+            if apply_retention_policy(result)
+              # Keep results that match the retention policy
+              results_to_keep[result_id] = result
+            end
           end
-        end
 
-        # Replace stored results with the filtered list
-        @stored_results = results_to_keep
+          # Replace stored results with the filtered list
+          @stored_results = results_to_keep
+        end
       end
 
       private

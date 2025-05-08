@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "uri"
+require "securerandom"
 
 module Awfy
   module Stores
@@ -49,7 +50,7 @@ module Awfy
         timestamp = metadata.timestamp || Time.now.to_i
         branch = metadata.branch || "unknown"
 
-        "#{timestamp}-#{type}-#{runtime}-#{encode_component(branch)}-#{encode_component(group)}-#{encode_component(report)}"
+        "#{timestamp}-#{SecureRandom.hex(3)}-#{type}-#{runtime}-#{encode_component(branch)}-#{encode_component(group)}-#{encode_component(report)}"
       end
 
       # Common method to get result data from a block
@@ -64,7 +65,8 @@ module Awfy
           match &= result.type == type if type
           match &= result.group == group if group
           match &= result.report == report if report
-          match &= result.runtime == runtime if runtime
+          match &= result.runtime == Awfy::Runtimes[runtime] if runtime.is_a?(String)
+          match &= result.runtime == runtime if runtime.is_a?(Awfy::Runtimes)
           match &= result.commit == commit if commit
           match
         end

@@ -16,7 +16,7 @@ class SqliteStoreTest < Minitest::Test
     retention_policy = Awfy::RetentionPolicies.keep_all
 
     # Create the Sqlite store instance to test
-    @store = Awfy::Stores::Sqlite.new(@db_path, retention_policy)
+    @store = Awfy::Stores::Sqlite.new(storage_name: @db_path, retention_policy: retention_policy)
 
     # SQLite is required for these tests
 
@@ -258,7 +258,7 @@ class SqliteStoreTest < Minitest::Test
 
     # Create a store with KeepNone policy to remove all results
     keep_none_policy = Awfy::RetentionPolicies.keep_none
-    keep_none_store = Awfy::Stores::Sqlite.new(@db_path, keep_none_policy)
+    keep_none_store = Awfy::Stores::Sqlite.new(storage_name: @db_path, retention_policy: keep_none_policy)
 
     # Clean with KeepNone policy
     keep_none_store.clean_results

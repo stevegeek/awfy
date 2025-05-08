@@ -8,7 +8,7 @@ class MemoryStoreTest < Minitest::Test
     retention_policy = Awfy::RetentionPolicies.keep_all
 
     # Create the Memory store instance to test
-    @store = Awfy::Stores::Memory.new("test_memory_store", retention_policy)
+    @store = Awfy::Stores::Memory.new(storage_name: "test_memory_store", retention_policy: retention_policy)
   end
 
   def test_save_result
@@ -17,14 +17,14 @@ class MemoryStoreTest < Minitest::Test
       type: :ips,
       group: "Test Group",
       report: "#method_name",
-      runtime: "ruby",
-      timestamp: Time.now.to_i,
+      runtime: Awfy::Runtimes::MRI,
+      timestamp: Time.now,
       branch: "main",
       commit: "abc123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil,
-      result_data: nil
+      result_id: "test",
+      result_data: {}
     )
 
     # Sample benchmark result data
@@ -53,28 +53,28 @@ class MemoryStoreTest < Minitest::Test
     assert_instance_of Awfy::Result, stored_result, "Stored result should be a Result object"
     assert_equal :ips, stored_result.type, "Result type should match"
     assert_equal "Test Group", stored_result.group, "Result group should match"
-    assert_equal "ruby", stored_result.runtime, "Result runtime should match"
+    assert_equal Awfy::Runtimes::MRI, stored_result.runtime, "Result runtime should match"
     assert_equal "main", stored_result.branch, "Result branch should match"
     assert_equal result_data, stored_result.result_data, "Result data should match"
   end
 
   def test_query_results
     # Store multiple results first
-    timestamp = Time.now.to_i
+    timestamp = Time.now
 
     # Store result 1
     metadata1 = Awfy::Result.new(
       type: :ips,
       group: "Query Group",
       report: "#method1",
-      runtime: "ruby",
+      runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil,
-      result_data: nil
+      result_id: "test",
+      result_data: {}
     )
 
     @store.save_result(metadata1) do
@@ -86,14 +86,14 @@ class MemoryStoreTest < Minitest::Test
       type: :ips,
       group: "Query Group",
       report: "#method1",
-      runtime: "yjit",
+      runtime: Awfy::Runtimes::YJIT,
       timestamp: timestamp,
       branch: "main",
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil,
-      result_data: nil
+      result_id: "test",
+      result_data: {}
     )
 
     @store.save_result(metadata2) do
@@ -105,7 +105,7 @@ class MemoryStoreTest < Minitest::Test
       type: :ips,
       group: "Another Group",
       report: "#method2",
-      runtime: "ruby",
+      runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
       commit: "query1",
@@ -138,7 +138,7 @@ class MemoryStoreTest < Minitest::Test
       type: :ips,
       group: "Query Group",
       report: "#method1",
-      runtime: "ruby"
+      runtime: "mri"
     )
     assert_equal 1, results.length, "Should find 1 result matching all criteria"
     assert_instance_of Awfy::Result, results.first
@@ -155,14 +155,14 @@ class MemoryStoreTest < Minitest::Test
       type: :ips,
       group: "Load Test",
       report: "#load_method",
-      runtime: "ruby",
-      timestamp: Time.now.to_i,
+      runtime: Awfy::Runtimes::YJIT,
+      timestamp: Time.now,
       branch: "main",
       commit: "load123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil,
-      result_data: nil
+      result_id: "test",
+      result_data: {}
     )
 
     result_data = {ips: 3000.0, iterations: 5000}
@@ -192,14 +192,14 @@ class MemoryStoreTest < Minitest::Test
       type: :ips,
       group: "Clean Test",
       report: "#clean_method",
-      runtime: "ruby",
-      timestamp: Time.now.to_i,
+      runtime: Awfy::Runtimes::MRI,
+      timestamp: Time.now,
       branch: "main",
       commit: "clean123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil,
-      result_data: nil
+      result_id: "test",
+      result_data: {}
     )
 
     @store.save_result(metadata) do
@@ -217,7 +217,7 @@ class MemoryStoreTest < Minitest::Test
 
     # Create a store with KeepNone policy to remove all results
     keep_none_policy = Awfy::RetentionPolicies.keep_none
-    keep_none_store = Awfy::Stores::Memory.new("test_memory_store", keep_none_policy)
+    keep_none_store = Awfy::Stores::Memory.new(storage_name: "test_memory_store", retention_policy: keep_none_policy)
 
     # Copy results to the new store
     keep_none_store.instance_variable_set(:@stored_results, @store.stored_results.dup)
@@ -227,5 +227,77 @@ class MemoryStoreTest < Minitest::Test
 
     # Verify store is now empty
     assert_empty keep_none_store.stored_results, "Store should be empty after cleaning with KeepNone policy"
+  end
+
+  def test_concurrent_save_results
+    # Number of threads to use
+    thread_count = 10
+    results_per_thread = 100
+    total_results = thread_count * results_per_thread
+
+    # Create threads that will save results concurrently
+    threads = thread_count.times.map do |thread_index|
+      Thread.new do
+        results_per_thread.times do |i|
+          # Create unique metadata for this thread's result
+          metadata = Awfy::Result.new(
+            type: :ips,
+            group: "Concurrent Test",
+            report: "#thread_#{thread_index}_result_#{i}",
+            runtime: Awfy::Runtimes::MRI,
+            timestamp: Time.now,
+            branch: "main",
+            commit: "concurrent123",
+            commit_message: "Test concurrent saves",
+            ruby_version: "3.1.0",
+            result_id: "test",
+            result_data: {}
+          )
+
+          # Save result with thread-specific data
+          @store.save_result(metadata) do
+            {
+              thread: thread_index,
+              iteration: i,
+              data: "Thread #{thread_index} Result #{i}"
+            }
+          end
+        end
+      end
+    end
+
+    # Wait for all threads to complete
+    threads.each(&:join)
+
+    # Verify the total number of results
+    assert_equal total_results, @store.stored_results.size, 
+      "Should have saved all results from all threads"
+
+    # Verify result IDs are unique
+    result_ids = @store.stored_results.keys
+    assert_equal result_ids.uniq.size, result_ids.size,
+      "All result IDs should be unique"
+
+    # Verify @next_id was properly incremented
+    assert_equal total_results + 1, @store.instance_variable_get(:@next_id),
+      "@next_id should match total number of results"
+
+    # Verify data integrity - each thread's results should be present and correct
+    thread_count.times do |thread_index|
+      results_per_thread.times do |i|
+        # Find the result for this thread and iteration
+        result = @store.query_results(
+          type: :ips,
+          group: "Concurrent Test",
+          report: "#thread_#{thread_index}_result_#{i}"
+        ).first
+
+        assert result, "Should find result for thread #{thread_index}, iteration #{i}"
+        assert_equal thread_index, result.result_data[:thread],
+          "Result should have correct thread index"
+        assert_equal i, result.result_data[:iteration],
+          "Result should have correct iteration number"
+      end
+    end
   end
 end
