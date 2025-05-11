@@ -25,19 +25,15 @@ module Awfy
       # Load configs with precedence from lowest to highest
       configs = []
 
-      # 1. Home directory config (lowest precedence)
       home_config = load_from_home
       configs << home_config if home_config
 
-      # 2. Benchmark suite directory config
       suite_config = load_from_suite_dir
       configs << suite_config if suite_config
 
-      # 3. Current directory config (highest precedence)
       current_config = load_from_current_dir
       configs << current_config if current_config
 
-      # Merge configs with proper precedence
       merged_config = {}
       configs.each do |config|
         merged_config.merge!(config)
