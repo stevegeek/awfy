@@ -6,12 +6,9 @@ require "sqlite3"
 
 module Awfy
   module Stores
-    # SQLite implementation for result storage
     class Sqlite < Base
-      # SQL query parts
-      JOIN_TABLES_SQL = "SELECT m.*, r.data FROM metadata m JOIN results r ON m.result_id = r.result_id"
-      METADATA_TABLE_SCHEMA = <<~SQL
-        CREATE TABLE IF NOT EXISTS metadata (
+      CREATE_RESULTS_TABLE_SCHEMA = <<~SQL
+        CREATE TABLE IF NOT EXISTS results (
           id INTEGER PRIMARY KEY,
           result_id TEXT UNIQUE,
           type TEXT,
@@ -22,16 +19,8 @@ module Awfy
           branch TEXT,
           commit_hash TEXT,
           commit_msg TEXT,
-          ruby_version TEXT
-        );
-      SQL
-
-      RESULTS_TABLE_SCHEMA = <<~SQL
-        CREATE TABLE IF NOT EXISTS results (
-          id INTEGER PRIMARY KEY,
-          result_id TEXT UNIQUE,
-          data TEXT,
-          FOREIGN KEY (result_id) REFERENCES metadata(result_id)
+          ruby_version TEXT,
+          result_data TEXT
         );
       SQL
 
@@ -39,32 +28,23 @@ module Awfy
         setup_database
       end
 
-      def save_result(metadata, &block)
-        validate_metadata!(metadata)
-
-        # Prepare data for storage
-        result_id = generate_result_id(metadata)
-        result_data = execute_result_block(&block)
-
-        # Store result in database
+      def save_result(result)
         with_database_connection do |db|
-          store_benchmark_result(db, metadata, result_id, result_data)
+          store_benchmark_result(db, result)
         end
 
-        result_id
+        result.result_id
       end
 
       def query_results(type: nil, group: nil, report: nil, runtime: nil, commit: nil)
         results = []
 
         with_database_connection do |db|
-          # Setup db to return results as hashes
           db.results_as_hash = true
 
-          # Build and execute the query
           sql, params = build_query_sql(type, group, report, runtime, commit)
           db.execute(sql, params) do |row|
-            results << create_metadata_from_row(row)
+            results << create_result_from_row(row)
           end
         end
 
@@ -77,10 +57,9 @@ module Awfy
         with_database_connection do |db|
           db.results_as_hash = true
 
-          # Build the query to find a specific result
-          sql = "#{JOIN_TABLES_SQL} WHERE m.result_id = ?"
+          sql = "SELECT * FROM results WHERE result_id = ?"
           db.execute(sql, [result_id]) do |row|
-            result = create_metadata_from_row(row)
+            result = create_result_from_row(row)
           end
         end
 
@@ -89,12 +68,9 @@ module Awfy
 
       def clean_results
         with_database_connection do |db|
-          # Apply the retention policy to each result
           query_all_results.each do |result|
             unless apply_retention_policy(result)
-              # Delete the result if it doesn't meet the retention policy
               db.execute("DELETE FROM results WHERE result_id = ?", [result.result_id])
-              db.execute("DELETE FROM metadata WHERE result_id = ?", [result.result_id])
             end
           end
         end
@@ -102,17 +78,14 @@ module Awfy
 
       private
 
-      # Query all results from the database without any filtering
       def query_all_results
         results = []
 
         with_database_connection do |db|
           db.results_as_hash = true
-
-          # Build the query for all results
-          sql = JOIN_TABLES_SQL
+          sql = "SELECT * FROM results"
           db.execute(sql) do |row|
-            results << create_metadata_from_row(row)
+            results << create_result_from_row(row)
           end
         end
 
@@ -136,95 +109,87 @@ module Awfy
 
       def setup_database
         with_database_connection do |db|
-          # Create tables
-          db.execute(METADATA_TABLE_SCHEMA)
-          db.execute(RESULTS_TABLE_SCHEMA)
-
-          # Create indexes for common queries
+          db.execute(CREATE_RESULTS_TABLE_SCHEMA)
           create_indexes(db)
         end
       end
 
       def create_indexes(db)
-        db.execute "CREATE INDEX IF NOT EXISTS idx_metadata_type ON metadata (type);"
-        db.execute "CREATE INDEX IF NOT EXISTS idx_metadata_group ON metadata (group_name);"
-        db.execute "CREATE INDEX IF NOT EXISTS idx_metadata_report ON metadata (report_name);"
-        db.execute "CREATE INDEX IF NOT EXISTS idx_metadata_commit ON metadata (commit_hash);"
+        db.execute "CREATE INDEX IF NOT EXISTS idx_results_type ON results (type);"
+        db.execute "CREATE INDEX IF NOT EXISTS idx_results_group ON results (group_name);"
+        db.execute "CREATE INDEX IF NOT EXISTS idx_results_report ON results (report_name);"
+        db.execute "CREATE INDEX IF NOT EXISTS idx_results_commit ON results (commit_hash);"
+        db.execute "CREATE INDEX IF NOT EXISTS idx_results_timestamp ON results (timestamp);"
       end
 
-      def store_benchmark_result(db, metadata, result_id, result_data)
-        # Use a transaction for atomicity
-        db.transaction do
-          store_metadata(db, metadata, result_id)
-          store_result_data(db, result_id, result_data)
-        end
-      end
-
-      def store_metadata(db, metadata, result_id)
-        timestamp = metadata.timestamp || Time.now.to_i
+      def store_benchmark_result(db, result)
+        timestamp = result.timestamp.to_i
+        result_data_json = result.result_data.to_json
 
         db.execute(
-          "INSERT INTO metadata (result_id, type, group_name, report_name, runtime,
-            timestamp, branch, commit_hash, commit_msg, ruby_version)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO results (result_id, type, group_name, report_name, runtime,
+            timestamp, branch, commit_hash, commit_msg, ruby_version, result_data)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
-            result_id, metadata.type.to_s, metadata.group, metadata.report, metadata.runtime,
-            timestamp, metadata.branch, metadata.commit, metadata.commit_message,
-            metadata.ruby_version
+            result.result_id,
+            result.type.to_s,
+            result.group_name,
+            result.report_name,
+            result.runtime.value,
+            timestamp,
+            result.branch,
+            result.commit,
+            result.commit_message,
+            result.ruby_version,
+            result_data_json
           ]
         )
       end
 
-      def store_result_data(db, result_id, result_data)
-        data_json = result_data.to_json
-        db.execute(
-          "INSERT INTO results (result_id, data) VALUES (?, ?)",
-          [result_id, data_json]
-        )
-      end
-
       def build_query_sql(type, group, report, runtime, commit)
-        sql = "#{JOIN_TABLES_SQL} WHERE 1=1"
+        sql = "SELECT * FROM results WHERE 1=1"
         params = []
 
-        # Add filters conditionally
         if type
-          sql += " AND m.type = ?"
+          sql += " AND type = ?"
           params << type.to_s
         end
 
         if group
-          sql += " AND m.group_name = ?"
+          sql += " AND group_name = ?"
           params << group
         end
 
         if report
-          sql += " AND m.report_name = ?"
+          sql += " AND report_name = ?"
           params << report
         end
 
         if commit
-          sql += " AND m.commit_hash = ?"
+          sql += " AND commit_hash = ?"
           params << commit
         end
 
-        if runtime
-          sql += " AND m.runtime = ?"
+        if runtime.is_a?(String)
+          sql += " AND runtime = ?"
           params << runtime
+        elsif runtime.is_a?(Awfy::Runtimes)
+          sql += " AND runtime = ?"
+          params << runtime.value
         end
+
+        # Order by timestamp descending (newest first)
+        sql += " ORDER BY timestamp DESC"
 
         [sql, params]
       end
 
-      def create_metadata_from_row(row)
-        # Parse result data from JSON
-        data = JSON.parse(row["data"])
-
-        # Convert row data to a hash for the Result constructor
-        metadata_hash = {
+      def create_result_from_row(row)
+        result_data = JSON.parse(row["result_data"]) if row["result_data"]
+        Result.new(
           type: row["type"].to_sym,
-          group: row["group_name"],
-          report: row["report_name"],
+          group_name: row["group_name"],
+          report_name: row["report_name"],
           runtime: row["runtime"],
           timestamp: row["timestamp"],
           branch: row["branch"],
@@ -232,11 +197,8 @@ module Awfy
           commit_message: row["commit_msg"],
           ruby_version: row["ruby_version"],
           result_id: row["result_id"],
-          result_data: data
-        }
-
-        # Create and return the Result object
-        Result.new(**metadata_hash)
+          result_data: result_data
+        )
       end
     end
   end
