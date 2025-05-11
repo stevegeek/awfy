@@ -5,11 +5,6 @@ module Awfy
   class Benchmarker < Literal::Object
     include HasSession
 
-    prop :result_manager, Awfy::ResultManager
-
-    CONTROL_MARKER = "[c]"
-    TEST_MARKER = "[*]"
-
     def run(group, report_name, &block)
       runtime = config.runtime
       if runtime == "both" || runtime == "mri"
@@ -76,18 +71,6 @@ module Awfy
           say
         end
       end
-    end
-
-    def save_results(type, group, report, runtime, &block)
-      result_manager.save_results(type, group, report, runtime, &block)
-    end
-
-    def load_results(type, &block)
-      result_manager.load_results_for_analysis(type, &block)
-    end
-
-    def generate_test_label(test, runtime)
-      "[#{runtime}] #{test.control? ? CONTROL_MARKER : TEST_MARKER} #{test.name}"
     end
   end
 end
