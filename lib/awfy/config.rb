@@ -50,11 +50,11 @@ module Awfy
     # "both", "yjit", or "mri"
     prop :runtime, String, default: "both"
     # seconds to run IPS benchmarks
-    prop :test_time, Integer, default: 3
+    prop :test_time, Float, default: 3.0, &:to_f
     # iterations to run tests
     prop :test_iterations, Integer, default: 1_000_000
     # seconds to warmup IPS benchmarks
-    prop :test_warm_up, Integer, default: 1
+    prop :test_warm_up, Float, default: 1.0, &:to_f
 
     # Commit range options
 

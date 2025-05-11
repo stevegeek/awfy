@@ -14,7 +14,7 @@ module Awfy
         benchmarker.run(group, report_name) do |report, runtime|
           Benchmark.ips(time: config.test_time, warmup: config.test_warm_up, quiet: config.show_summary? || verbose?) do |benchmark_job|
             benchmarker.run_tests(report, test_name, output: false) do |test, _|
-              test_label = benchmarker.generate_test_label(test, runtime)
+              test_label = results_manager.generate_test_label(test, runtime)
               benchmark_job.item(test_label, &test.block)
             end
 
@@ -39,10 +39,8 @@ module Awfy
               say
             end
 
-
             # Use the group_runner to save the results
             results_manager.save_results(:ips, group, report, runtime) do
-              progress_bar.update_progress
               # Force the job to run before we save, as normally jobs are run after this block yields
               benchmark_job.load_held_results
               benchmark_job.run
@@ -56,7 +54,7 @@ module Awfy
             end
 
             # Stop the progress bar once benchmarking is complete
-            progress_bar.stop
+            progress_bar.stop(complete: true)
 
             # Only show comparison if requested
             if verbose? || !config.show_summary?
@@ -74,7 +72,7 @@ module Awfy
       def map_data_to_standard_format(entry)
         {
           label: entry.label,
-          control: entry.label.include?(TEST_MARKER),
+          control: results_manager.marked_as_test?(entry),
           measured_us: entry.microseconds,
           iter: entry.iterations,
           samples: entry.samples, # Benchmark::IPS::Stats::SD.new(entry.samples),
@@ -83,8 +81,8 @@ module Awfy
       end
 
       def generate_ips_summary
-        results_manager.load_results(:ips) do |report, results, baseline|
-          Views::IPS::SummaryView.new(session).summary_table(report, results, baseline)
+        results_manager.load_results(:ips) do |results, baseline|
+          Views::IPS::SummaryView.new(session).summary_table(results, baseline)
         end
       end
     end

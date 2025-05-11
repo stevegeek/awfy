@@ -45,8 +45,8 @@ module Awfy
       def generate_result_id(metadata)
         type = metadata.type
         runtime = metadata.runtime
-        group = metadata.group
-        report = metadata.report
+        group = metadata.group_name
+        report = metadata.report_name
         timestamp = metadata.timestamp || Time.now.to_i
         branch = metadata.branch || "unknown"
 

@@ -25,8 +25,8 @@ module Awfy
           # Get result file and update it
           result_file = metadata_file_path(
             metadata.type,
-            metadata.group,
-            metadata.report,
+            metadata.group_name,
+            metadata.report_name,
             timestamp
           )
 

@@ -3,17 +3,24 @@
 module Awfy
   # Data object for benchmark result metadata
   class Result < Literal::Data
-    prop :type, Symbol
-    prop :group, String
-    prop :report, String
-    prop :runtime, Awfy::Runtimes, default: Awfy::Runtimes::MRI, &Awfy::Runtimes
-    prop :timestamp, Time
-    prop :branch, String
-    prop :commit, String
-    prop :commit_message, String
     prop :ruby_version, String, default: RUBY_VERSION
+
+    prop :type, Symbol
+
+    prop :group_name, String
+    prop :report_name, String
+
+    prop :runtime, Awfy::Runtimes, default: Awfy::Runtimes::MRI, &Awfy::Runtimes
+    prop :timestamp, Time do
+      Time.at(it)
+    end
+
+    prop :branch, _Nilable(String)
+    prop :commit, _Nilable(String)
+    prop :commit_message, _Nilable(String)
+
     prop :result_id, _Nilable(String)
-    prop :result_data, _Nilable(Hash)
+    prop :result_data, _Nilable(_Array(Hash))
 
     def to_h
       super.compact

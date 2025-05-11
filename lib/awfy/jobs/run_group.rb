@@ -20,7 +20,7 @@ module Awfy
           progress_bar = Awfy::Views::ProgressBar.new(shell: session.shell, total: benchmark_count, ascii_only: config.ascii_only?)
 
           benchmarker.run_tests(report, test_name, output: false) do |test, _|
-            test_label = benchmarker.generate_test_label(test, runtime)
+            test_label = results_manager.generate_test_label(test, runtime)
             say "   - #{test_label}", :green if verbose?
             test.block.call
             progress_bar.increment
