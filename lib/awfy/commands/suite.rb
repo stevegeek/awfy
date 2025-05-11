@@ -17,23 +17,10 @@ module Awfy
       end
 
       def run(report_name = nil, test_name = nil)
-        result_manager = Awfy::ResultManager.new(session:)
+        results_manager = Awfy::ResultsManager.new(session:)
         Runners.create(suite: load_suite!, session:).run do |group|
-          Jobs::RunGroup.new(session:, group:, report_name:, test_name:, benchmarker: Benchmarker.new(session:, result_manager:))
+          Jobs::RunGroup.new(session:, group:, report_name:, test_name:, benchmarker: Benchmarker.new(session:), results_manager:)
         end
-      end
-
-      private
-
-      def load_suite!
-        suite = Suites::Loader.new(session:, group_names:).load
-
-        # Check if the test suite has tests
-        unless suite.tests?
-          raise Errors::SuiteEmptyError, "Test suite (in '#{config.tests_path}') has no tests defined..."
-        end
-
-        suite
       end
     end
   end

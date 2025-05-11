@@ -70,15 +70,19 @@ module Awfy
         @progressbar.finish if @progressbar
       end
 
+      def estimated_total_time
+        # Calculate total estimated time in seconds
+        # Each benchmark runs warmup + test time for each item
+        @total_benchmarks * (@warmup_time + @test_time)
+      end
+
       private
 
       # Update progress based on elapsed time
       def update_progress
         return unless @start_time && @progressbar
 
-        # Calculate total estimated time in seconds
-        # Each benchmark runs warmup + test time for each item
-        total_time = @total_benchmarks * (@warmup_time + @test_time)
+        total_time = estimated_total_time
         elapsed = Time.now - @start_time
         percent_complete = [(elapsed / total_time * 100).to_i, 100].min
 

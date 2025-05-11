@@ -8,6 +8,19 @@ module Awfy
       include Awfy::HasSession
 
       prop :group_names, _Nilable(_Array(String)), reader: :private
+
+      private
+
+      def load_suite!
+        suite = Suites::Loader.new(session:, group_names:).load
+
+        # Check if the test suite has tests
+        unless suite.tests?
+          raise Errors::SuiteEmptyError, "Test suite (in '#{config.tests_path}') has no tests defined..."
+        end
+
+        suite
+      end
     end
   end
 end

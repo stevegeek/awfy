@@ -4,9 +4,6 @@ module Awfy
   module Jobs
     # Just simply runs the code of the tests, useful for debugging
     class RunGroup < Base
-      prop :report_name, _Nilable(String), reader: :private
-      prop :test_name, _Nilable(String), reader: :private
-
       def call
         if verbose?
           say "> Running Group:"
@@ -26,10 +23,10 @@ module Awfy
             test_label = benchmarker.generate_test_label(test, runtime)
             say "   - #{test_label}", :green if verbose?
             test.block.call
-            progress_bar&.increment
+            progress_bar.increment
           end
 
-          progress_bar&.finish
+          progress_bar.finish
         end
       end
     end

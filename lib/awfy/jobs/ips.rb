@@ -5,47 +5,44 @@ require "benchmark/ips"
 module Awfy
   module Jobs
     class IPS < Base
-      def benchmark(group, report_name, test_name)
+      def call
         if verbose?
           say "> IPS for:"
-          say "> #{group[:name]}...", :cyan
+          say "> #{group.name}...", :cyan
         end
 
-        # Use the group_runner to run the tests with different runtimes
-        benchmarker.run_report(group, report_name) do |report, runtime|
-          # Create a progress bar for this benchmark run
-          progress_bar = nil
-
-          Benchmark.ips(time: options.test_time, warmup: options.test_warm_up, quiet: show_summary? || verbose?) do |benchmark_job|
-            # Use the group_runner to run the tests
+        benchmarker.run(group, report_name) do |report, runtime|
+          Benchmark.ips(time: config.test_time, warmup: config.test_warm_up, quiet: config.show_summary? || verbose?) do |benchmark_job|
             benchmarker.run_tests(report, test_name, output: false) do |test, _|
               test_label = benchmarker.generate_test_label(test, runtime)
-              benchmark_job.item(test_label, &test[:block])
+              benchmark_job.item(test_label, &test.block)
             end
 
             # After defining all benchmark items, set up the progress bar
-            benchmark_count = benchmark_job.list.size
-            estimated_time = (benchmark_count * (options.test_warm_up + options.test_time)).round(1)
+            total_benchmarks = benchmark_job.list.size
 
-            # Always display estimated time in verbose mode
             if verbose?
-              say "> Running #{benchmark_count} benchmarks (est. #{estimated_time}s)", :cyan
+              say "> Running #{total_benchmarks} benchmarks", :cyan
             end
 
-            # Create progress bar in all modes
-            title_with_info = "#{group[:name]}/#{report[:name]} [#{runtime}] #{benchmark_count} tests, ~#{estimated_time}s"
-
-            say title_with_info, :cyan if verbose?
-            # Set progress bar options, including ascii_only flag
-            progress_bar_opts = {
-              ascii_only: options.respond_to?(:ascii_only?) && options.ascii_only?
-            }
-
-            progress_bar = Awfy::Views::ProgressBar.new(@shell, benchmark_count, options.test_warm_up, options.test_time, **progress_bar_opts)
+            progress_bar = Awfy::Views::TimedProgressBar.new(
+              shell: session.shell,
+              total_benchmarks:,
+              warmup_time: config.test_warm_up,
+              test_time: config.test_time,
+              ascii_only: config.ascii_only?
+            )
             progress_bar.start
 
+            if verbose?
+              say "#{group.name}/#{report.name} [#{runtime}] #{total_benchmarks} tests, ~#{progress_bar.estimated_total_time}s", :cyan
+              say
+            end
+
+
             # Use the group_runner to save the results
-            benchmarker.save_results(:ips, group, report, runtime) do
+            results_manager.save_results(:ips, group, report, runtime) do
+              progress_bar.update_progress
               # Force the job to run before we save, as normally jobs are run after this block yields
               benchmark_job.load_held_results
               benchmark_job.run
@@ -59,17 +56,17 @@ module Awfy
             end
 
             # Stop the progress bar once benchmarking is complete
-            progress_bar&.stop
+            progress_bar.stop
 
             # Only show comparison if requested
-            if verbose? || !show_summary?
-              say "> Benchmark comparison:", :cyan if !verbose?
+            if verbose? || !config.show_summary?
+              say "> Benchmark comparison:", :cyan unless verbose?
               benchmark_job.compare!
             end
           end
         end
 
-        generate_ips_summary if show_summary?
+        generate_ips_summary if config.show_summary?
       end
 
       private
@@ -86,7 +83,7 @@ module Awfy
       end
 
       def generate_ips_summary
-        benchmarker.load_results(:ips) do |report, results, baseline|
+        results_manager.load_results(:ips) do |report, results, baseline|
           Views::IPS::SummaryView.new(session).summary_table(report, results, baseline)
         end
       end
