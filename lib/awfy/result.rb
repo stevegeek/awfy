@@ -22,6 +22,9 @@ module Awfy
     prop :result_id, _Nilable(String)
     prop :result_data, _Nilable(_Array(Hash))
 
+    def baseline? = false
+    def control? = false
+
     def to_h
       super.compact
     end
