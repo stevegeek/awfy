@@ -14,8 +14,8 @@ module Awfy
 
       prop :shell, Awfy::Shell
       prop :total_benchmarks, Integer
-      prop :warmup_time, Integer
-      prop :test_time, Integer
+      prop :warmup_time, Float
+      prop :test_time, Float
       prop :title, String, default: "Running"
       prop :ascii_only, _Boolean, default: false
 
@@ -24,6 +24,7 @@ module Awfy
         @thread = nil
         @progressbar = nil
         @running = false
+        @percent_complete = 0
       end
 
       def say(...) = @shell.say(...)
@@ -60,14 +61,18 @@ module Awfy
       end
 
       # Stop the progress bar
-      def stop
+      def stop(complete: false)
         return unless @running
 
         @running = false
         @thread&.join(1) # Wait up to 1 second for thread to finish
 
         # Ensure progress reaches 100%
-        @progressbar.finish if @progressbar
+        if @progressbar && complete
+          @progressbar.finish
+          @percent_complete = 100
+        end
+        @percent_complete
       end
 
       def estimated_total_time
@@ -84,15 +89,15 @@ module Awfy
 
         total_time = estimated_total_time
         elapsed = Time.now - @start_time
-        percent_complete = [(elapsed / total_time * 100).to_i, 100].min
+        @percent_complete = [(elapsed / total_time * 100).to_i, 100].min
 
         # Only update if progress increased
-        if percent_complete > @progressbar.progress
-          @progressbar.progress = percent_complete
+        if @percent_complete > @progressbar.progress
+          @progressbar.progress = @percent_complete
         end
 
         # Stop when complete
-        if percent_complete >= 100
+        if @percent_complete >= 100
           @running = false
         end
       end
