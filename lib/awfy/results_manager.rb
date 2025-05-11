@@ -1,0 +1,81 @@
+# frozen_string_literal: true
+
+module Awfy
+  class ResultsManager < Literal::Object
+    include HasSession
+
+    def after_initialize
+      @start_time = Time.now
+      @store = Awfy::Stores.create(
+        config.storage_backend,
+        config.storage_name,
+        config.current_retention_policy
+      )
+      run_cleanup_with_retention_policy
+    end
+
+    def save_new_result(type, group, report, runtime, test, result_data, commit: nil, commit_message: nil, branch: nil)
+      Result.new(
+        control: test.control?,
+        baseline: test.baseline?,
+        type:,
+        group_name: group.name,
+        report_name: report.name,
+        runtime:,
+        timestamp: start_time,
+        branch:,
+        commit:,
+        commit_message:,
+        ruby_version: RUBY_VERSION,
+        result_data:
+      )
+      store.save_result(result)
+
+      say "Saved results with Result ID '#{result.result_id}'" if verbose?
+
+      result.result_id
+    end
+
+    # Read and process results for a specific benchmark type
+    def load_results(type)
+      entries = store.query_results(type:)
+      grouped = entries.group_by { |entry| [entry.group_name, entry.report_name] }
+
+      grouped.each do |_, results|
+        # Skip if no results
+        next if results.empty?
+
+        # Choose baseline
+        baseline = choose_baseline_test(results)
+
+        # Yield to the block
+        yield results, baseline
+      end
+    end
+
+    private
+
+    attr_reader :store, :start_time
+
+    # Run cleanup with the current retention policy
+    # This ensures old results are cleaned up before each benchmark run
+    def run_cleanup_with_retention_policy
+      say "| Cleaning old results..." if verbose?
+      store.clean_results
+      say "| Applied '#{store.retention_policy.name}' retention policy\n" if verbose?
+    end
+
+    # Choose the baseline test from a set of results, as the most recent for given runtime
+    def choose_baseline_test(results)
+      # Find the baseline test based on timestamp and runtime
+      baseline = results.sort_by(&:timestamp).filter do |r|
+        r.runtime == (config.yjit_only? ? Runtimes::YJIT : Runtimes::MRI) # Baseline is mri baseline unless yjit only
+      end.filter(&:baseline?).first
+
+      raise "Could not determine baseline test" unless baseline
+
+      say "> Chosen baseline: #{baseline.label}" if verbose?
+      baseline
+    end
+  end
+end

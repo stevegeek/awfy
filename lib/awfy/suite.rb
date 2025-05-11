@@ -32,6 +32,10 @@ module Awfy
       current_report! << Suites::Test.new(name:, block:)
     end
 
+    def baseline(name, &block)
+      current_report! << Suites::BaselineTest.new(name:, block:)
+    end
+
     def groups?
       !@groups_store.empty?
     end

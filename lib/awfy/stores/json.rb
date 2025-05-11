@@ -112,7 +112,7 @@ module Awfy
           result = Result.from_hash(metadata_hash)
 
           # Check if the result should be kept based on the retention policy
-          unless apply_retention_policy(result)
+          unless retained_by_retention_policy?(result)
             # Delete the file if it doesn't meet the retention policy
             File.delete(file_path)
           end

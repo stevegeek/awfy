@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
+require "uri"
+require "securerandom"
+
 module Awfy
   # Data object for benchmark result metadata
   class Result < Literal::Data
     prop :ruby_version, String, default: RUBY_VERSION
 
     prop :type, Symbol
+    prop :baseline, _Boolean, default: false, predicate: :public
+    prop :control, _Boolean, default: false, predicate: :public
 
     prop :group_name, String
     prop :report_name, String
@@ -19,20 +24,12 @@ module Awfy
     prop :commit, _Nilable(String)
     prop :commit_message, _Nilable(String)
 
-    prop :result_id, _Nilable(String)
+    prop :result_id, String, default: -> { generate_new_result_id }
     prop :result_data, _Nilable(_Array(Hash))
 
-    def baseline? = false
-    def control? = false
-
-    def to_h
-      super.compact
-    end
-
-    # Factory method to create Result from a hash
-    def self.from_hash(hash)
-      # Valid keys for Result
-      valid_keys = %i[type group report runtime timestamp branch commit commit_message
+    # Factory method to create Result from a serialized hash
+    def self.deserialize(hash)
+      valid_keys = %i[type control baseline group_name report_name runtime timestamp branch commit commit_message
         ruby_version result_id result_data]
 
       # Convert string keys to symbols
@@ -53,8 +50,23 @@ module Awfy
         filtered_hash[:timestamp] = Time.at(filtered_hash[:timestamp])
       end
 
-      # Create the Result object
-      new(**filtered_hash)
+      Result.new(**filtered_hash)
+    end
+
+    def to_h
+      super.compact
+    end
+    alias_method :serialize, :to_h
+
+    def generate_new_result_id
+      "#{timestamp}-#{SecureRandom.hex(3)}-#{type}-#{runtime.value}-#{encode_component(branch || "unknown")}-#{encode_component(group_name)}-#{encode_component(report_name)}-#{control? ? "control" : "test"}-#{baseline? ? "baseline" : "result"}"
+    end
+
+    private
+
+    def encode_component(component)
+      component = component.to_s unless component.is_a?(String)
+      URI.encode_www_form_component(component)
     end
   end
 end

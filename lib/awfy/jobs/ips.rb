@@ -13,9 +13,11 @@ module Awfy
 
         benchmarker.run(group, report_name) do |report, runtime|
           Benchmark.ips(time: config.test_time, warmup: config.test_warm_up, quiet: config.show_summary? || verbose?) do |benchmark_job|
+            tests = {}
             benchmarker.run_tests(report, test_name, output: false) do |test, _|
-              test_label = results_manager.generate_test_label(test, runtime)
+              test_label = generate_test_label(test, runtime)
               benchmark_job.item(test_label, &test.block)
+              tests[test_label] = test
             end
 
             # After defining all benchmark items, set up the progress bar
@@ -39,18 +41,24 @@ module Awfy
               say
             end
 
-            # Use the group_runner to save the results
-            results_manager.save_results(:ips, group, report, runtime) do
-              # Force the job to run before we save, as normally jobs are run after this block yields
-              benchmark_job.load_held_results
-              benchmark_job.run
+            # Force the job to run before we save, as normally jobs are run after this block yields
+            benchmark_job.load_held_results
+            benchmark_job.run
 
-              # The override definition of run to prevent it happening again after this block completes
-              # This is a hack but it works
-              benchmark_job.define_singleton_method(:run) do
-              end
+            # The override definition of run to prevent it happening again after this block completes
+            # This is a hack but it works
+            benchmark_job.define_singleton_method(:run) do
+            end
 
-              benchmark_job.full_report.entries.map { |entry| map_data_to_standard_format(entry) }
+            # At this point we actually have all the results, but to join that returned data back to a test
+            # we have to look at the label of the Entry cause BM.item does not actually run the BM at that point
+            report_result_data = benchmark_job.full_report.entries.map { |entry| map_result_data_to_standard_format(entry) }
+
+            # Now join back together with test instances
+            report_result_data.each do |result_data|
+              test = tests[result_data[:label]]
+              # FIXME: signature
+              results_manager.save_new_result(:ips, group, report, runtime, test, result_data)
             end
 
             # Stop the progress bar once benchmarking is complete
@@ -69,10 +77,33 @@ module Awfy
 
       private
 
-      def map_data_to_standard_format(entry)
+      # These hacks allow us to find sometheng in the results from the benchmark tool when it runs in a way that we can
+      # only get results async
+      CONTROL_MARKER = "[c]"
+      TEST_MARKER = "[*]"
+      BASELINE_MARKER = "[b]"
+
+      def generate_test_label(test, runtime)
+        "[#{runtime}] #{test.control? ? CONTROL_MARKER : TEST_MARKER}#{test.baseline? ? BASELINE_MARKER : ""} #{test.name}"
+      end
+
+      def marked_as_control?(test)
+        test.label.include?(CONTROL_MAKER)
+      end
+
+      def marked_as_test?(test)
+        test.label.include?(TEST_MARKER)
+      end
+
+      def marked_as_baseline?(test)
+        test.label.include?(BASELINE_MARKER)
+      end
+
+      def map_result_data_to_standard_format(entry)
         {
           label: entry.label,
-          control: results_manager.marked_as_test?(entry),
+          control: marked_as_control?(entry),
+          baseline: marked_as_baseline?(entry),
           measured_us: entry.microseconds,
           iter: entry.iterations,
           samples: entry.samples, # Benchmark::IPS::Stats::SD.new(entry.samples),

@@ -8,6 +8,8 @@ module Awfy
       include Awfy::HasSession
 
       prop :group_names, _Nilable(_Array(String)), reader: :private
+      prop :report_name, _Nilable(String), reader: :private
+      prop :test_name, _Nilable(String), reader: :private
 
       private
 

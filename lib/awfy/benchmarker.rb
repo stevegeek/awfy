@@ -67,9 +67,7 @@ module Awfy
         end
         test.block.call # run once to lazy load etc
         yield test, iterations
-        if output
-          say
-        end
+        say if output
       end
     end
   end

@@ -23,6 +23,10 @@ module Awfy
       suite.test(name, &)
     end
 
+    def baseline(name, &)
+      suite.baseline(name, &)
+    end
+
     def suite
       @suite ||= Suite.new
     end

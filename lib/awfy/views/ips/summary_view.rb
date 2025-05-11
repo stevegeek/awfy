@@ -4,9 +4,9 @@ module Awfy
   module Views
     module IPS
       class SummaryView < BaseView
-        def summary_table(report, results, baseline)
+        def summary_table(results, baseline)
           # Process results for comparison
-          result_diffs = compute_result_diffs(results, baseline)
+          result_diffs = result_data_with_diffs(results, baseline)
 
           # Sort by iterations (higher is better)
           sorted_results = sort_results(result_diffs, ->(result) { result[:iter] })
@@ -21,8 +21,8 @@ module Awfy
           rows = generate_table_rows(sorted_results)
 
           # Generate and display the table
-          report_data = report.first
-          title = table_title(report_data["group"], report_data["report"])
+          result = results.first
+          title = table_title(result.group_name, result.report_name)
 
           table = if use_modern_style?
             # For modern style, add max values for performance bars
@@ -54,17 +54,20 @@ module Awfy
 
         private
 
-        def compute_result_diffs(results, baseline)
+        def result_data_with_diffs(results, baseline)
+          baseline_data = baseline.result_data
           results.map do |result|
-            baseline_stats = Benchmark::IPS::Stats::SD.new(baseline[:samples])
-            result_stats = Benchmark::IPS::Stats::SD.new(result[:samples])
+            result_data = result.result_data
+            baseline_stats = Benchmark::IPS::Stats::SD.new(baseline_data[:samples])
+            result_stats = Benchmark::IPS::Stats::SD.new(result_data[:samples])
             overlaps = result_stats.overlaps?(baseline_stats)
             diff_x = if baseline_stats.central_tendency > result_stats.central_tendency
               -1.0 * result_stats.speedup(baseline_stats).first
             else
               result_stats.slowdown(baseline_stats).first
             end
-            result.merge(
+            result_data.merge(
+              is_baseline: result == baseline,
               overlaps: overlaps,
               diff_times: diff_x.round(2)
             )

@@ -11,6 +11,8 @@ module Awfy
         CREATE TABLE IF NOT EXISTS results (
           id INTEGER PRIMARY KEY,
           result_id TEXT UNIQUE,
+          control BOOLEAN DEFAULT 0,
+          baseline BOOLEAN DEFAULT 0,
           type TEXT,
           group_name TEXT,
           report_name TEXT,
@@ -18,7 +20,7 @@ module Awfy
           timestamp INTEGER,
           branch TEXT,
           commit_hash TEXT,
-          commit_msg TEXT,
+          commit_message TEXT,
           ruby_version TEXT,
           result_data TEXT
         );
@@ -69,7 +71,7 @@ module Awfy
       def clean_results
         with_database_connection do |db|
           query_all_results.each do |result|
-            unless apply_retention_policy(result)
+            unless retained_by_retention_policy?(result)
               db.execute("DELETE FROM results WHERE result_id = ?", [result.result_id])
             end
           end
@@ -127,12 +129,14 @@ module Awfy
         result_data_json = result.result_data.to_json
 
         db.execute(
-          "INSERT INTO results (result_id, type, group_name, report_name, runtime,
-            timestamp, branch, commit_hash, commit_msg, ruby_version, result_data)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO results (result_id, type, control, baseline, group_name, report_name, runtime,
+            timestamp, branch, commit_hash, commit_message, ruby_version, result_data)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             result.result_id,
             result.type.to_s,
+            result.control? ? 1 : 0,
+            result.baseline? ? 1 : 0,
             result.group_name,
             result.report_name,
             result.runtime.value,
@@ -186,17 +190,8 @@ module Awfy
 
       def create_result_from_row(row)
         result_data = JSON.parse(row["result_data"]) if row["result_data"]
-        Result.new(
-          type: row["type"].to_sym,
-          group_name: row["group_name"],
-          report_name: row["report_name"],
-          runtime: row["runtime"],
-          timestamp: row["timestamp"],
-          branch: row["branch"],
-          commit: row["commit_hash"],
-          commit_message: row["commit_msg"],
-          ruby_version: row["ruby_version"],
-          result_id: row["result_id"],
+        Result.deserialize(
+          **row.transform_keys(&:to_sym),
           result_data: result_data
         )
       end

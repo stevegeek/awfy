@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require "uri"
-require "securerandom"
-
 module Awfy
   module Stores
     # Abstract base class for result storage
@@ -12,7 +9,7 @@ module Awfy
       prop :retention_policy, RetentionPolicies::Base, reader: :private
 
       # Abstract methods that subclasses must implement
-      def save_result(metadata, &block)
+      def save_result(result)
         raise NoMethodError, "Subclasses must implement save_result"
       end
 
@@ -30,27 +27,8 @@ module Awfy
 
       private
 
-      def apply_retention_policy(result)
+      def retained_by_retention_policy?(result)
         retention_policy.retain?(result)
-      end
-
-      # Common method to validate metadata
-      def validate_metadata!(metadata)
-        unless metadata.is_a?(Result)
-          raise ArgumentError, "Expected Result object, got #{metadata.class.name}"
-        end
-      end
-
-      # Common method to generate a result ID
-      def generate_result_id(metadata)
-        type = metadata.type
-        runtime = metadata.runtime
-        group = metadata.group_name
-        report = metadata.report_name
-        timestamp = metadata.timestamp || Time.now.to_i
-        branch = metadata.branch || "unknown"
-
-        "#{timestamp}-#{SecureRandom.hex(3)}-#{type}-#{runtime}-#{encode_component(branch)}-#{encode_component(group)}-#{encode_component(report)}"
       end
 
       # Common method to get result data from a block
@@ -70,12 +48,6 @@ module Awfy
           match &= result.commit == commit if commit
           match
         end
-      end
-
-      # Helper method to safely encode URI components
-      def encode_component(component)
-        component = component.to_s unless component.is_a?(String)
-        URI.encode_www_form_component(component)
       end
     end
   end

@@ -7,6 +7,7 @@ module Awfy
       prop :block, Proc
 
       def control? = false
+      def baseline? = false
     end
   end
 end

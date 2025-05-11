@@ -51,7 +51,7 @@ module Awfy
           results_to_keep = {}
 
           @stored_results.each do |result_id, result|
-            if apply_retention_policy(result)
+            if retained_by_retention_policy?(result)
               # Keep results that match the retention policy
               results_to_keep[result_id] = result
             end

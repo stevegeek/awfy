@@ -28,11 +28,11 @@ module Awfy
         raise NoMethodError, "#{self.class} must implement #run_group"
       end
 
+      private
 
       # Start a benchmark run and set up the environment
       def start!
         @start_time = Time.now.to_i
-        # run_cleanup_with_retention_policy
       end
     end
   end
