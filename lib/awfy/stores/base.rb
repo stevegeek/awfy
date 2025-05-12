@@ -6,7 +6,7 @@ module Awfy
     # TODO: we could turn this into an Enumerable
     class Base < Literal::Object
       prop :storage_name, String, reader: :private
-      prop :retention_policy, RetentionPolicies::Base, reader: :private
+      prop :retention_policy, RetentionPolicies::Base, reader: :public
 
       # Abstract methods that subclasses must implement
       def save_result(result)

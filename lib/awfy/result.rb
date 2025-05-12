@@ -25,12 +25,18 @@ module Awfy
     prop :commit_message, _Nilable(String)
 
     prop :result_id, String, default: -> { generate_new_result_id }
-    prop :result_data, _Nilable(_Array(Hash))
+    prop :result_data, _Nilable(Hash)
 
     # Factory method to create Result from a serialized hash
     def self.deserialize(hash)
       valid_keys = %i[type control baseline group_name report_name runtime timestamp branch commit commit_message
         ruby_version result_id result_data]
+
+      # Convert integer 1, 0 to true, false for control and baseline
+      hash[:control] = true if hash[:control] == 1
+      hash[:control] = false if hash[:control] == 0
+      hash[:baseline] = true if hash[:baseline] == 1
+      hash[:baseline] = false if hash[:baseline] == 0
 
       # Convert string keys to symbols
       hash_with_symbol_keys = hash.transform_keys do |key|

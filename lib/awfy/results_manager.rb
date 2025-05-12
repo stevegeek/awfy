@@ -15,7 +15,7 @@ module Awfy
     end
 
     def save_new_result(type, group, report, runtime, test, result_data, commit: nil, commit_message: nil, branch: nil)
-      Result.new(
+      result = Result.new(
         control: test.control?,
         baseline: test.baseline?,
         type:,
@@ -67,12 +67,12 @@ module Awfy
 
     # Choose the baseline test from a set of results, as the most recent for given runtime
     def choose_baseline_test(results)
-      # Find the baseline test based on timestamp and runtime
-      baseline = results.sort_by(&:timestamp).filter do |r|
+      candidates = results.filter do |r|
         r.runtime == (config.yjit_only? ? Runtimes::YJIT : Runtimes::MRI) # Baseline is mri baseline unless yjit only
-      end.filter(&:baseline?).first
+      end
+      baseline = candidates.sort_by(&:timestamp).reverse.filter(&:baseline?).first
 
-      raise "Could not determine baseline test" unless baseline
+      raise Errors::NoBaselineError, "Could not determine baseline test. Are you sure your benchmark group has a 'baseline' test definition?" unless baseline
 
       say "> Chosen baseline: #{baseline.label}" if verbose?
       baseline

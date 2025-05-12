@@ -88,7 +88,7 @@ module Awfy
       end
 
       def marked_as_control?(test)
-        test.label.include?(CONTROL_MAKER)
+        test.label.include?(CONTROL_MARKER)
       end
 
       def marked_as_test?(test)
