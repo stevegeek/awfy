@@ -12,7 +12,7 @@ module Awfy
       extend Literal::Properties
 
       prop :shell, Awfy::Shell
-      prop :total, Integer
+      prop :total_benchmarks, Integer
       prop :title, String, default: "Progress"
       prop :ascii_only, _Boolean, default: false
 
@@ -28,7 +28,7 @@ module Awfy
 
         @progressbar = ::ProgressBar.create(
           title: @title,
-          total: @total,
+          total: @total_benchmarks,
           format: "%t %c/%C |%w>%i| %p%% %e",
           output: @shell.mute? ? StringIO.new : $stdout,
           length: 80,
@@ -42,21 +42,21 @@ module Awfy
       # Increment the progress by a specific amount
       def increment(amount = 1)
         # Calculate new progress but cap it at total
-        new_progress = [@current + amount, @total].min
+        new_progress = [@current + amount, @total_benchmarks].min
         @current = new_progress
         @progressbar.progress = @current
 
         # Automatically finish if we've reached the total
-        finish if @current >= @total
+        finish if @current >= @total_benchmarks
       end
 
       # Set the progress to a specific value
       def progress=(value)
-        @current = [[value, 0].max, @total].min
+        @current = [[value, 0].max, @total_benchmarks].min
         @progressbar.progress = @current
 
         # Automatically finish if we've reached the total
-        finish if @current >= @total
+        finish if @current >= @total_benchmarks
       end
 
       # Get the current progress
@@ -67,12 +67,12 @@ module Awfy
       # Finish the progress bar (set to 100%)
       def finish
         @progressbar.finish
-        @current = @total
+        @current = @total_benchmarks
       end
 
       # Whether the progress is complete
       def complete?
-        @current >= @total
+        @current >= @total_benchmarks
       end
     end
   end

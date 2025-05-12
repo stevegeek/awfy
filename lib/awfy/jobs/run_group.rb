@@ -17,7 +17,7 @@ module Awfy
           title_with_info = " - Report '#{report.name}' [#{runtime}] #{benchmark_count} tests"
           say title_with_info, :cyan if verbose?
 
-          progress_bar = Awfy::Views::ProgressBar.new(shell: session.shell, total: benchmark_count, ascii_only: config.ascii_only?)
+          progress_bar = Awfy::Views::ProgressBar.new(shell: session.shell, total_benchmarks: benchmark_count, ascii_only: config.ascii_only?)
 
           benchmarker.run_tests(report, test_name, output: false) do |test, _|
             test_label = results_manager.generate_test_label(test, runtime)

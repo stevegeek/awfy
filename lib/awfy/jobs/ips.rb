@@ -77,28 +77,6 @@ module Awfy
 
       private
 
-      # These hacks allow us to find sometheng in the results from the benchmark tool when it runs in a way that we can
-      # only get results async
-      CONTROL_MARKER = "[c]"
-      TEST_MARKER = "[*]"
-      BASELINE_MARKER = "[b]"
-
-      def generate_test_label(test, runtime)
-        "[#{runtime}] #{test.control? ? CONTROL_MARKER : TEST_MARKER}#{test.baseline? ? BASELINE_MARKER : ""} #{test.name}"
-      end
-
-      def marked_as_control?(test)
-        test.label.include?(CONTROL_MARKER)
-      end
-
-      def marked_as_test?(test)
-        test.label.include?(TEST_MARKER)
-      end
-
-      def marked_as_baseline?(test)
-        test.label.include?(BASELINE_MARKER)
-      end
-
       def map_result_data_to_standard_format(entry)
         {
           label: entry.label,
