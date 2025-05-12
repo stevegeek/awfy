@@ -8,8 +8,15 @@ module Awfy
           # Process results for comparison
           result_diffs = result_data_with_diffs(results, baseline)
 
-          # Sort by iterations (higher is better)
-          sorted_results = sort_results(results, ->(result) { result.result_data[:iter] })
+          sorted_results = results.sort_by do |result|
+            diff_data = result_diffs[result]
+            diff_value = if result == baseline || diff_data[:overlaps] || diff_data[:diff_times].zero?
+              0  # "same" results
+            else
+              diff_data[:diff_times] || Float::INFINITY  # Other results by diff, nil diffs last
+            end
+            [diff_value, -result.timestamp.to_i]  # Negative timestamp for desc order
+          end
 
           # Find max IPS value for performance bar scaling
           max_ips = sorted_results.map do |result|
@@ -24,23 +31,26 @@ module Awfy
           result = results.first
           title = table_title(result.group_name, result.report_name)
 
+          headings = [
+            Rainbow("Timestamp").bright,
+            Rainbow("Branch").bright,
+            Rainbow("Runtime").bright,
+            Rainbow("Name").bright,
+            Rainbow("IPS").bright,
+            Rainbow("Vs test").bright
+          ]
+
           table = if use_modern_style?
             # For modern style, add max values for performance bars
             format_modern_table(
               Rainbow(title).bright,
-              [
-                Rainbow("Branch").bright,
-                Rainbow("Runtime").bright,
-                Rainbow("Name").bright,
-                Rainbow("IPS").bright,
-                Rainbow("Vs test").bright
-              ],
+              headings,
               rows,
               {ips: max_ips}
             )
           else
             # Classic style
-            format_table(title, ["Branch", "Runtime", "Name", "IPS", "Vs test"], rows)
+            format_table(title, ["Timestamp", "Branch", "Runtime", "Name", "IPS", "Vs test"], rows)
           end
 
           # Output the table
@@ -76,11 +86,13 @@ module Awfy
 
         def generate_table_rows(results, result_diffs, baseline)
           results.map do |result|
+            is_baseline = result == baseline
             diff_message = format_result_diff(result, result_diffs[result], baseline)
-            test_name = result == baseline ? "(test) #{result.label}" : result.label
+            test_name = is_baseline ? "(test) #{result.label}" : result.label
             result_stats = Benchmark::IPS::Stats::SD.new(result.result_data[:samples])
 
             [
+              result.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
               result.branch || "unknown",
               result.runtime.value,
               test_name,

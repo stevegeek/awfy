@@ -37,7 +37,7 @@ module Awfy
             progress_bar.start
 
             if verbose?
-              say "#{group.name}/#{report.name} [#{runtime}] #{total_benchmarks} tests, ~#{progress_bar.estimated_total_time}s", :cyan
+              say "#{group.name}/#{report.name} [#{runtime}] #{total_benchmarks} tests, ~#{"%.1fs" % progress_bar.estimated_total_time}s", :cyan
               say
             end
 
