@@ -15,6 +15,10 @@ module Awfy
       suite.report(name, &)
     end
 
+    def assert(**configuration)
+      # NOP for now...
+    end
+
     def control(name, &)
       suite.control(name, &)
     end

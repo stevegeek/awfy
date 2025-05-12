@@ -27,6 +27,10 @@ Awfy.group "Numerics" do
       rational_1 + rational_2
     end
 
+    assert(
+      memory: {total_allocated_memory: {eq: 0.0}},
+      ips: {within: {times: 2.0, of: "Rational"}}
+    )
     test "Complex" do
       complex_1 + complex_2
     end
