@@ -24,6 +24,8 @@ module Awfy
       instance_eval(&)
     end
 
+    # TODO: check name is unique for runtime, report combo
+
     # A control is a benchmark that should not change between runs. It is checking something that is unaffected by
     # changes you are making.
     def control(name, &block)
@@ -39,6 +41,11 @@ module Awfy
     # implementation that you are working with at the same time as your main 'test'
     def alternative(name, &block)
       current_report! << Suites::Test.new(name:, block:)
+    end
+
+    # Assert that results match conditions
+    def assert(**configuration)
+      # NOP for now...
     end
 
     def groups?
