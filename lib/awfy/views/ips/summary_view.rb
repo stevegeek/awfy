@@ -44,7 +44,7 @@ module Awfy
           end
 
           # Output the table
-          if @options.quiet? && show_summary?
+          if config.quiet? && show_summary?
             puts table
           else
             say table

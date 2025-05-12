@@ -113,7 +113,7 @@ module Awfy
 
       def generate_ips_summary
         results_manager.load_results(:ips) do |results, baseline|
-          Views::IPS::SummaryView.new(session).summary_table(results, baseline)
+          Views::IPS::SummaryView.new(session:).summary_table(results, baseline)
         end
       end
     end

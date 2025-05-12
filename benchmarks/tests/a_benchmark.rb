@@ -1,4 +1,4 @@
-Awfy.group "Testing Awfy - example with Complex" do
+Awfy.group "Numerics" do
   report "#+" do
     big_decimal_1 = BigDecimal("1.0")
     big_decimal_2 = BigDecimal("2.0")

@@ -23,8 +23,8 @@ module Awfy
       suite.test(name, &)
     end
 
-    def baseline(name, &)
-      suite.baseline(name, &)
+    def alternative(name, &)
+      suite.alternative(name, &)
     end
 
     def suite

@@ -31,7 +31,7 @@ module Awfy
       end
 
       def order_description(is_memory = false)
-        case @options.summary_order
+        case config.summary_order
         when "asc"
           is_memory ? "Results displayed in ascending order (lowest memory first)" : "Results displayed in ascending order"
         when "desc"
@@ -43,7 +43,7 @@ module Awfy
 
       def sort_results(results, value_extractor, invert = false)
         results.sort_by do |result|
-          factor = (@options.summary_order == "asc") ? 1 : -1
+          factor = (config.summary_order == "asc") ? 1 : -1
           factor *= -1 if invert
           factor * value_extractor.call(result)
         end

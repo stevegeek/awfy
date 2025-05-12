@@ -27,6 +27,10 @@ module Awfy
     prop :result_id, String, default: -> { generate_new_result_id }
     prop :result_data, _Nilable(Hash)
 
+    def after_initialize
+      @result_data = @result_data&.transform_keys(&:to_sym)
+    end
+
     # Factory method to create Result from a serialized hash
     def self.deserialize(hash)
       valid_keys = %i[type control baseline group_name report_name runtime timestamp branch commit commit_message
@@ -59,16 +63,28 @@ module Awfy
       Result.new(**filtered_hash)
     end
 
+    def label
+      if result_data && result_data.key?(:label)
+        result_data[:label]
+      else
+        label_from_attributes
+      end
+    end
+
     def to_h
       super.compact
     end
     alias_method :serialize, :to_h
 
     def generate_new_result_id
-      "#{timestamp}-#{SecureRandom.hex(3)}-#{type}-#{runtime.value}-#{encode_component(branch || "unknown")}-#{encode_component(group_name)}-#{encode_component(report_name)}-#{control? ? "control" : "test"}-#{baseline? ? "baseline" : "result"}"
+      "#{timestamp}-#{SecureRandom.hex(3)}-#{label_from_attributes}"
     end
 
     private
+
+    def label_from_attributes
+      "#{type}-#{runtime.value}-#{encode_component(branch || "unknown")}-#{encode_component(group_name)}-#{encode_component(report_name)}-#{control? ? "control" : "test"}-#{baseline? ? "baseline" : "result"}"
+    end
 
     def encode_component(component)
       component = component.to_s unless component.is_a?(String)

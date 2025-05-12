@@ -24,16 +24,21 @@ module Awfy
       instance_eval(&)
     end
 
+    # A control is a benchmark that should not change between runs. It is checking something that is unaffected by
+    # changes you are making.
     def control(name, &block)
       current_report! << Suites::ControlTest.new(name:, block:)
     end
 
+    # A test is benchmarking the actual change of interest. It is checking something that should change between runs.
     def test(name, &block)
-      current_report! << Suites::Test.new(name:, block:)
+      current_report! << Suites::BaselineTest.new(name:, block:)
     end
 
-    def baseline(name, &block)
-      current_report! << Suites::BaselineTest.new(name:, block:)
+    # An alternative is a test that is not the main test, but is still of interest. Eg it might be an alternative
+    # implementation that you are working with at the same time as your main 'test'
+    def alternative(name, &block)
+      current_report! << Suites::Test.new(name:, block:)
     end
 
     def groups?
