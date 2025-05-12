@@ -9,16 +9,16 @@ module Awfy
           result_diffs = result_data_with_diffs(results, baseline)
 
           # Sort by iterations (higher is better)
-          sorted_results = sort_results(result_diffs, ->(result) { result[:iter] })
+          sorted_results = sort_results(results, ->(result) { result.result_data[:iter] })
 
           # Find max IPS value for performance bar scaling
           max_ips = sorted_results.map do |result|
-            result_stats = Benchmark::IPS::Stats::SD.new(result[:samples])
+            result_stats = Benchmark::IPS::Stats::SD.new(result.result_data[:samples])
             result_stats.central_tendency
           end.max
 
           # Generate table rows
-          rows = generate_table_rows(sorted_results)
+          rows = generate_table_rows(sorted_results, result_diffs, baseline)
 
           # Generate and display the table
           result = results.first
@@ -33,14 +33,14 @@ module Awfy
                 Rainbow("Runtime").bright,
                 Rainbow("Name").bright,
                 Rainbow("IPS").bright,
-                Rainbow("Vs baseline").bright
+                Rainbow("Vs test").bright
               ],
               rows,
               {ips: max_ips}
             )
           else
             # Classic style
-            format_table(title, ["Branch", "Runtime", "Name", "IPS", "Vs baseline"], rows)
+            format_table(title, ["Branch", "Runtime", "Name", "IPS", "Vs test"], rows)
           end
 
           # Output the table
@@ -56,42 +56,49 @@ module Awfy
 
         def result_data_with_diffs(results, baseline)
           baseline_data = baseline.result_data
-          results.map do |result|
-            result_data = result.result_data
-            baseline_stats = Benchmark::IPS::Stats::SD.new(baseline_data[:samples])
-            result_stats = Benchmark::IPS::Stats::SD.new(result_data[:samples])
+          baseline_stats = Benchmark::IPS::Stats::SD.new(baseline_data[:samples])
+
+          results.each_with_object({}) do |result, diffs|
+            result_stats = Benchmark::IPS::Stats::SD.new(result.result_data[:samples])
             overlaps = result_stats.overlaps?(baseline_stats)
             diff_x = if baseline_stats.central_tendency > result_stats.central_tendency
               -1.0 * result_stats.speedup(baseline_stats).first
             else
               result_stats.slowdown(baseline_stats).first
             end
-            result_data.merge(
-              is_baseline: result == baseline,
+
+            diffs[result] = {
               overlaps: overlaps,
               diff_times: diff_x.round(2)
-            )
+            }
           end
         end
 
-        def generate_table_rows(results)
+        def generate_table_rows(results, result_diffs, baseline)
           results.map do |result|
-            diff_message = format_result_diff(result)
-            test_name = result[:is_baseline] ? "(baseline) #{result[:test_name]}" : result[:test_name]
-            result_stats = Benchmark::IPS::Stats::SD.new(result[:samples])
-            [result[:branch], result[:runtime], test_name, humanize_scale(result_stats.central_tendency), diff_message]
+            diff_message = format_result_diff(result, result_diffs[result], baseline)
+            test_name = result == baseline ? "(test) #{result.label}" : result.label
+            result_stats = Benchmark::IPS::Stats::SD.new(result.result_data[:samples])
+
+            [
+              result.branch || "unknown",
+              result.runtime.value,
+              test_name,
+              humanize_scale(result_stats.central_tendency),
+              diff_message
+            ]
           end
         end
 
-        def format_result_diff(result)
-          if result[:is_baseline]
+        def format_result_diff(result, diff_data, baseline)
+          if result == baseline
             "-"
-          elsif result[:overlaps] || result[:diff_times].zero?
+          elsif diff_data[:overlaps] || diff_data[:diff_times].zero?
             "same"
-          elsif result[:diff_times] == Float::INFINITY
+          elsif diff_data[:diff_times] == Float::INFINITY
             "∞"
-          elsif result[:diff_times]
-            "#{result[:diff_times]} x"
+          elsif diff_data[:diff_times]
+            "#{diff_data[:diff_times]} x"
           else
             "?"
           end

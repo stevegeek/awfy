@@ -37,18 +37,14 @@ module Awfy
     end
 
     # Read and process results for a specific benchmark type
-    def load_results(type)
+    def each_report(type)
       entries = store.query_results(type:)
-      grouped = entries.group_by { |entry| [entry.group_name, entry.report_name] }
+      by_report = entries.group_by { |entry| [entry.group_name, entry.report_name] }
 
-      grouped.each do |_, results|
-        # Skip if no results
+      by_report.each do |(group_name, report_name), results|
         next if results.empty?
 
-        # Choose baseline
-        baseline = choose_baseline_test(results)
-
-        # Yield to the block
+        baseline = choose_baseline_test(group_name, report_name, results)
         yield results, baseline
       end
     end
@@ -66,15 +62,15 @@ module Awfy
     end
 
     # Choose the baseline test from a set of results, as the most recent for given runtime
-    def choose_baseline_test(results)
+    def choose_baseline_test(group_name, report_name, results)
       candidates = results.filter do |r|
         r.runtime == (config.yjit_only? ? Runtimes::YJIT : Runtimes::MRI) # Baseline is mri baseline unless yjit only
       end
       baseline = candidates.sort_by(&:timestamp).reverse.filter(&:baseline?).first
 
-      raise Errors::NoBaselineError, "Could not determine baseline test. Are you sure your benchmark group has a 'baseline' test definition?" unless baseline
+      raise Errors::NoBaselineError, "Could not determine the 'test' in #{group_name}/#{report_name}. Are you sure your benchmark group has a 'test' definition?" unless baseline
 
-      say "> Chosen baseline: #{baseline.label}" if verbose?
+      say "> Chosen test to compare against: #{baseline.label}" if verbose?
       baseline
     end
   end

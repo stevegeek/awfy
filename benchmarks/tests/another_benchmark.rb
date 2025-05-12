@@ -1,6 +1,7 @@
 Awfy.group "iteration" do
   report "#each vs for" do
     array = [1, 2, 3, 4, 5] * 1000
+    array_size = array.size
 
     control "Array#each" do
       v = 0
@@ -13,9 +14,8 @@ Awfy.group "iteration" do
     alternative "while" do
       v = 0
       i = 0
-      array_size = array.size
       while i < array_size
-        v = i * 2
+        v = array[i] * 2
         i += 1
       end
       v
