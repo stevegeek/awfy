@@ -4,88 +4,120 @@ module Awfy
   module Views
     module Memory
       class SummaryView < BaseView
-        def summary_table(report, results, baseline)
+        def summary_table(results, baseline)
           # Process results for comparison
-          result_diffs = compute_result_diffs(results, baseline)
+          result_diffs = result_data_with_diffs(results, baseline)
+          sorted_results = results.sort_by do |result|
+            diff_data = result_diffs[result]
+            diff_value = if result == baseline || diff_data[:overlaps] || diff_data[:diff_times].nil? || diff_data[:diff_times].zero?
+              0  # "same" results
+            else
+              diff_data[:diff_times] || Float::INFINITY  # Other results by diff, nil diffs last
+            end
+            [diff_value, -result.timestamp.to_i]  # Negative timestamp for desc order
+          end
 
-          # Sort by memory usage (lower is better)
-          # For memory, lower is better so we pass true to invert
-          sorted_results = sort_results(
-            result_diffs,
-            ->(result) { result[:measurement]&.allocated || 0 },
-            true
-          )
+          # Find max memory value for performance bar scaling
+          max_memory = sorted_results.map do |result|
+            result.result_data[:allocated_memsize]
+          end.max
 
           # Generate table rows
-          rows = generate_table_rows(sorted_results)
+          rows = generate_table_rows(sorted_results, result_diffs, baseline)
 
           # Generate and display the table
-          report_data = report.first
-          title = table_title(report_data["group"], report_data["report"])
-          table = format_table(
-            title,
-            ["Branch", "Runtime", "Name", "Allocated Mem", "Retained Mem", "Objects", "Strings", "Vs baseline"],
-            rows
-          )
+          result = results.first
+          title = table_title(result.group_name, result.report_name)
+
+          headings = [
+            Rainbow("Timestamp").bright,
+            Rainbow("Branch").bright,
+            Rainbow("Runtime").bright,
+            Rainbow("Name").bright,
+            Rainbow("Allocated Memory").bright,
+            Rainbow("Retained Memory").bright,
+            Rainbow("Objects").bright,
+            Rainbow("Strings").bright,
+            Rainbow("Vs test").bright
+          ]
+
+          table = if use_modern_style?
+            # For modern style, add max values for performance bars
+            format_modern_table(
+              Rainbow(title).bright,
+              headings,
+              rows,
+              {memory: max_memory}
+            )
+          else
+            # Classic style
+            format_table(title, ["Timestamp", "Branch", "Runtime", "Name", "Allocated Memory", "Retained Memory", "Objects", "Strings", "Vs test"], rows)
+          end
 
           # Output the table
-          if @options.quiet? && show_summary?
+          if config.quiet? && show_summary?
             puts table
           else
             say table
-            say order_description(true)
+            say order_description(true)  # true for memory mode
           end
         end
 
         private
 
-        def compute_result_diffs(results, baseline)
-          baseline_allocated = baseline[:measurement]&.allocated
+        def result_data_with_diffs(results, baseline)
+          baseline_memory = baseline.result_data[:allocated_memsize]
 
-          results.map do |result|
-            allocated = result[:measurement]&.allocated
-            diff_ratio = if baseline_allocated && allocated && baseline_allocated > 0
-              (allocated.to_f / baseline_allocated).round(2)
+          results.each_with_object({}) do |result, diffs|
+            memory = result.result_data[:allocated_memsize]
+
+            overlaps = false  # Memory doesn't have overlaps like IPS
+            diff_x = if baseline_memory > memory && baseline_memory > 0
+              memory.to_f / baseline_memory  # Ratio < 1 means better (less memory)
+            elsif memory > 0
+              baseline_memory.to_f / memory  # Ratio < 1 means worse (more memory)
             end
 
-            result.merge(memory_diff: diff_ratio)
+            diffs[result] = {
+              overlaps: overlaps,
+              diff_times: diff_x&.round(2)
+            }
           end
         end
 
-        def generate_table_rows(results)
+        def generate_table_rows(results, result_diffs, baseline)
           results.map do |result|
-            measurement = result[:measurement]
-            diff_message = format_memory_diff(result)
-            test_name = result[:is_baseline] ? "(baseline) #{result[:test_name]}" : result[:test_name]
-
+            is_baseline = result == baseline
+            diff_message = format_result_diff(result, result_diffs[result], baseline)
+            test_name = is_baseline ? "(test) #{result.label}" : result.label
+            memory_data = result.result_data
             [
-              result[:branch],
-              result[:runtime],
+              result.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+              result.branch || "unknown",
+              result.runtime.value,
               test_name,
-              humanize_scale(measurement&.allocated || 0),
-              humanize_scale(measurement&.retained || 0),
-              humanize_scale(measurement&.objects&.allocated || 0),
-              humanize_scale(measurement&.strings&.allocated || 0),
+              humanize_scale(memory_data[:allocated_memsize]),
+              humanize_scale(memory_data[:retained_memsize]),
+              humanize_scale(memory_data[:allocated_objects]),
+              humanize_scale(memory_data[:allocated_strings]),
               diff_message
             ]
           end
         end
 
-        def format_memory_diff(result)
-          if result[:is_baseline]
+        def format_result_diff(result, diff_data, baseline)
+          if result == baseline
             "-"
-          elsif !result[:memory_diff]
+          elsif diff_data[:diff_times].nil?
             "N/A"
+          elsif diff_data[:overlaps] || diff_data[:diff_times].zero?
+            "same"
+          elsif diff_data[:diff_times] == Float::INFINITY
+            "∞"
+          elsif diff_data[:diff_times]
+            "#{diff_data[:diff_times]} x"
           else
-            bd_memory_diff = BigDecimal(result[:memory_diff].to_s)
-            bd_one = BigDecimal("1.0")
-            if bd_memory_diff == bd_one
-              "same"
-            elsif bd_memory_diff < bd_one
-              "%.1f%% better" % ((bd_one - bd_memory_diff) * 100).round(1)
-            else
-              "%.1f%% worse" % ((bd_memory_diff - bd_one) * 100).round(1)
-            end
+            "?"
           end
         end
       end

@@ -72,10 +72,12 @@ module Awfy
 
       def convert_memory_profile_to_data(result)
         {
-          memory: {
-            memsize: result.total_allocated_memsize,
-            objects: result.total_allocated
-          },
+          allocated_memsize: result.total_allocated_memsize || 0,
+          allocated_objects: result.total_allocated || 0,
+          retained_memsize: result.total_retained_memsize || 0,
+          retained_objects: result.total_retained || 0,
+          retained_strings: result.strings_retained || 0,
+          allocated_strings: result.strings_allocated&.size || 0,
           # Individual results, arrays of objects {count: numeric, data: string}
           allocated_memory_by_gem: result.allocated_memory_by_gem,
           retained_memory_by_gem: result.retained_memory_by_gem,
