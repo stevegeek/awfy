@@ -33,6 +33,7 @@ module Awfy
 
     # Factory method to create Result from a serialized hash
     def self.deserialize(hash)
+      hash = hash.transform_keys(&:to_sym)
       # Convert integer 1, 0 to true, false for control and baseline
       hash[:control] = true if hash[:control] == 1
       hash[:control] = false if hash[:control] == 0
@@ -65,7 +66,16 @@ module Awfy
     def to_h
       super.compact
     end
-    alias_method :serialize, :to_h
+
+    def serialize
+      data = to_h
+      data[:control] = control ? 1 : 0
+      data[:baseline] = baseline ? 1 : 0
+      data[:timestamp] = timestamp.to_i
+      data[:type] = type.to_s if type.is_a?(Symbol)
+      data[:runtime] = runtime.value
+      data
+    end
 
     def with(**args)
       self.class.new(**to_h.merge(args))
