@@ -55,7 +55,7 @@ module Awfy
 
       def find_test_result(results_by_commit, commit, runtime, test_label)
         return nil unless results_by_commit[commit] && results_by_commit[commit][runtime]
-        results_by_commit[commit][runtime].find { |r| r[:item] == test_label }
+        results_by_commit[commit][runtime].find { |r| r[:label] == test_label }
       end
     end
   end

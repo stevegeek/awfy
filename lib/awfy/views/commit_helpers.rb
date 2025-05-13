@@ -20,10 +20,14 @@ module Awfy
         return nil unless results_by_commit[commit] && results_by_commit[commit][runtime]
 
         if test_label
-          results_by_commit[commit][runtime].find { |r| r["item"] == test_label }
+          results_by_commit[commit][runtime].find do
+            r.result_data && r.result_data[:label] == test_label
+          end
         else
           # Get the first real test result
-          results_by_commit[commit][runtime].find { |r| r["item"] }
+          results_by_commit[commit][runtime].find do |r|
+            r.result_data && r.result_data[:label]
+          end
         end
       end
 
