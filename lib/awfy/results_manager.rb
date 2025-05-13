@@ -14,7 +14,7 @@ module Awfy
       run_cleanup_with_retention_policy
     end
 
-    def save_new_result(type, group, report, runtime, test, result_data, commit: nil, commit_message: nil, branch: nil)
+    def save_new_result(type, group, report, runtime, test, result_data, commit_hash: nil, commit_message: nil, branch: nil)
       result = Result.new(
         control: test.control?,
         baseline: test.baseline?,
@@ -24,7 +24,7 @@ module Awfy
         runtime:,
         timestamp: start_time,
         branch:,
-        commit:,
+        commit_hash:,
         commit_message:,
         ruby_version: RUBY_VERSION,
         result_data:

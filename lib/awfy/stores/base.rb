@@ -31,11 +31,6 @@ module Awfy
         retention_policy.retain?(result)
       end
 
-      # Common method to get result data from a block
-      def execute_result_block(&block)
-        yield if block_given?
-      end
-
       # Common method to apply filters to query results
       def apply_filters(results, type: nil, group_name: nil, report_name: nil, runtime: nil, commit: nil)
         results.select do |result|
@@ -45,7 +40,7 @@ module Awfy
           match &= result.report_name == report_name if report_name
           match &= result.runtime == Awfy::Runtimes[runtime] if runtime.is_a?(String)
           match &= result.runtime == runtime if runtime.is_a?(Awfy::Runtimes)
-          match &= result.commit == commit if commit
+          match &= result.commit_hash == commit if commit
           match
         end
       end
