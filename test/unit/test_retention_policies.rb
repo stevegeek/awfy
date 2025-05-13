@@ -28,7 +28,7 @@ class RetentionPoliciesTest < Minitest::Test
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now - 3600 * 24 * 365, # 1 year ago
       branch: "main",
-      commit: "test",
+      commit_hash: "test",
       commit_message: "test",
       ruby_version: "3.0.0",
       result_id: "test",
@@ -53,7 +53,7 @@ class RetentionPoliciesTest < Minitest::Test
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now, # even a fresh result
       branch: "main",
-      commit: "test",
+      commit_hash: "test",
       commit_message: "test",
       ruby_version: "3.0.0",
       result_id: "test",
@@ -79,7 +79,7 @@ class RetentionPoliciesTest < Minitest::Test
       runtime: "mri",
       timestamp: Time.now - 3600 * 24 * 15, # 15 days ago
       branch: "main",
-      commit: "test",
+      commit_hash: "test",
       commit_message: "test",
       ruby_version: "3.0.0",
       result_id: "test",
@@ -96,7 +96,7 @@ class RetentionPoliciesTest < Minitest::Test
       runtime: "mri",
       timestamp: Time.now - 3600 * 24 * 60, # 60 days ago
       branch: "main",
-      commit: "test",
+      commit_hash: "test",
       commit_message: "test",
       ruby_version: "3.0.0",
       result_id: "test",
@@ -122,7 +122,7 @@ class RetentionPoliciesTest < Minitest::Test
       runtime: "mri",
       timestamp: Time.now - 3600 * 24 * 5, # 5 days ago
       branch: "main",
-      commit: "test",
+      commit_hash: "test",
       commit_message: "test",
       ruby_version: "3.0.0",
       result_id: "test",
@@ -139,7 +139,7 @@ class RetentionPoliciesTest < Minitest::Test
       runtime: "mri",
       timestamp: Time.now - 3600 * 24 * 10, # 10 days ago
       branch: "main",
-      commit: "test",
+      commit_hash: "test",
       commit_message: "test",
       ruby_version: "3.0.0",
       result_id: "test",
