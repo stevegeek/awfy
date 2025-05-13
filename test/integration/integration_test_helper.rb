@@ -114,7 +114,7 @@ module IntegrationTestHelper
     thor_options[:verbose] = ENV["VERBOSE"] if ENV["VERBOSE"]
 
     # Make sure we're using our memory result store for tests
-    thor_options[:storage_backend] = :memory
+    thor_options[:storage_backend] = "memory"
 
     # Force classic style for tests to maintain expected output format
     thor_options[:classic_style] = true

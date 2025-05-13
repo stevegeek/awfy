@@ -12,7 +12,7 @@ module Awfy
       def test_progress_bar_initialization
         progress_bar = ProgressBar.new(
           shell: @shell,
-          total: 10,
+          total_benchmarks: 10,
           title: "Test Progress"
         )
 
@@ -24,7 +24,7 @@ module Awfy
       def test_progress_bar_increment
         progress_bar = ProgressBar.new(
           shell: @shell,
-          total: 10,
+          total_benchmarks: 10,
           title: "Test Progress"
         )
 
@@ -52,7 +52,7 @@ module Awfy
       def test_progress_bar_setting_progress
         progress_bar = ProgressBar.new(
           shell: @shell,
-          total: 10,
+          total_benchmarks: 10,
           title: "Test Progress"
         )
 
@@ -73,7 +73,7 @@ module Awfy
       def test_progress_bar_finish
         progress_bar = ProgressBar.new(
           shell: @shell,
-          total: 10,
+          total_benchmarks: 10,
           title: "Test Progress"
         )
 
