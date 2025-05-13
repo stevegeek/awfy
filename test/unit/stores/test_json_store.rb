@@ -225,17 +225,17 @@ class JsonStoreTest < Minitest::Test
     assert_equal 5000, loaded_result.result_data[:iterations]
   end
 
-  def test_clean_results
+  def create_test_result_file(days_ago = 0)
     # Create test files in the storage directory
     FileUtils.mkdir_p(@storage_dir)
-    test_file = File.join(@storage_dir, "test-results#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
+    test_file = File.join(@storage_dir, "test-results-#{days_ago.to_i}-#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
     # Create a valid result with proper Result object
     test_result = Awfy::Result.new(
       type: :test,
       group_name: "test_group",
       report_name: "test_report",
       runtime: Awfy::Runtimes::MRI,
-      timestamp: Time.now,
+      timestamp: Time.now - (days_ago * 24 * 60 * 60),
       branch: "main",
       commit_hash: "test",
       commit_message: "test",
@@ -249,6 +249,12 @@ class JsonStoreTest < Minitest::Test
     # Verify file exists before cleaning
     assert File.exist?(test_file), "Test file should exist"
 
+    test_file
+  end
+
+  def test_clean_results
+    test_file = create_test_result_file
+
     # Clean results with default parameters (KeepAll policy shouldn't delete anything)
     @store.clean_results
 
@@ -260,10 +266,56 @@ class JsonStoreTest < Minitest::Test
     keep_none_store = Awfy::Stores::Json.new(storage_name: @storage_dir, retention_policy: keep_none_policy)
 
     assert keep_none_policy.is_a?(Awfy::RetentionPolicies::KeepNone), "Should be a KeepNone policy"
+
     # Clean with KeepNone retention policy
     keep_none_store.clean_results
 
     # Verify file is deleted
     refute File.exist?(test_file), "Test file should be deleted with KeepNone retention policy"
+  end
+
+
+  def test_clean_results_with_date_based_policy
+    # Create DateBased retention policy (7 days)
+    date_policy = Awfy::RetentionPolicies.create("date_based", retention_days: 7)
+    store = Awfy::Stores::Json.new(storage_name: @storage_dir, retention_policy: date_policy)
+
+    assert date_policy.is_a?(Awfy::RetentionPolicies::DateBased), "Should be a DateBased policy"
+
+    # 1. Recent file (3 days ago) - should be kept
+    test_file_1 = create_test_result_file(3)
+
+    # 2. Old file (14 days ago) - should be deleted
+    test_file_2 = create_test_result_file(14)
+
+    # Verify files exist before cleaning
+    assert File.exist?(test_file_1), "Recent file should exist"
+    assert File.exist?(test_file_2), "Old file should exist"
+
+    # Clean results with date-based policy
+    store.clean_results
+
+    # Test passes automatically now that we've fixed the date-based retention policy
+
+    # Verify recent file still exists but old file is deleted
+    assert File.exist?(test_file_1), "Recent file should still exist (within retention period)"
+    refute File.exist?(test_file_2), "Old file should be deleted (outside retention period)"
+  end
+
+  def test_clean_results_with_keep_all_policy
+    # Create KeepAll retention policy
+    keep_all_policy = Awfy::RetentionPolicies.keep_all
+    store = Awfy::Stores::Json.new(storage_name: @storage_dir, retention_policy: keep_all_policy)
+
+    test_file = create_test_result_file(3)
+
+    # Verify file exists before cleaning
+    assert File.exist?(test_file), "Test file should exist"
+
+    # Clean results with default parameters (should keep everything with keep_all policy)
+    store.clean_results
+
+    # Verify file still exists
+    assert File.exist?(test_file), "Test file should still exist with keep_all retention policy"
   end
 end
