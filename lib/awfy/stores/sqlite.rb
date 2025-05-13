@@ -38,13 +38,13 @@ module Awfy
         result.result_id
       end
 
-      def query_results(type: nil, group: nil, report: nil, runtime: nil, commit: nil)
+      def query_results(type: nil, group_name: nil, report_name: nil, runtime: nil, commit_hash: nil)
         results = []
 
         with_database_connection do |db|
           db.results_as_hash = true
 
-          sql, params = build_query_sql(type, group, report, runtime, commit)
+          sql, params = build_query_sql(type, group_name, report_name, runtime, commit_hash)
           db.execute(sql, params) do |row|
             results << create_result_from_row(row)
           end
@@ -142,7 +142,7 @@ module Awfy
             result.runtime.value,
             timestamp,
             result.branch,
-            result.commit,
+            result.commit_hash,
             result.commit_message,
             result.ruby_version,
             result_data_json
@@ -150,7 +150,7 @@ module Awfy
         )
       end
 
-      def build_query_sql(type, group, report, runtime, commit)
+      def build_query_sql(type, group_name, report_name, runtime, commit)
         sql = "SELECT * FROM results WHERE 1=1"
         params = []
 
@@ -159,14 +159,14 @@ module Awfy
           params << type.to_s
         end
 
-        if group
+        if group_name
           sql += " AND group_name = ?"
-          params << group
+          params << group_name
         end
 
-        if report
+        if report_name
           sql += " AND report_name = ?"
-          params << report
+          params << report_name
         end
 
         if commit

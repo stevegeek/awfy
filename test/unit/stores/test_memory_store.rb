@@ -20,7 +20,7 @@ class MemoryStoreTest < Minitest::Test
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now,
       branch: "main",
-      commit: "abc123",
+      commit_hash: "abc123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test",
@@ -70,7 +70,7 @@ class MemoryStoreTest < Minitest::Test
       runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
-      commit: "query1",
+      commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test",
@@ -89,7 +89,7 @@ class MemoryStoreTest < Minitest::Test
       runtime: Awfy::Runtimes::YJIT,
       timestamp: timestamp,
       branch: "main",
-      commit: "query1",
+      commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test",
@@ -108,7 +108,7 @@ class MemoryStoreTest < Minitest::Test
       runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
-      commit: "query1",
+      commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test3",
@@ -145,7 +145,7 @@ class MemoryStoreTest < Minitest::Test
     assert_equal 1000.0, results.first.result_data[:ips], "Should find the correct result"
 
     # Query with commit filter
-    results = @store.query_results(type: :ips, commit: "query1")
+    results = @store.query_results(type: :ips, commit_hash: "query1")
     assert_equal 3, results.length, "Should find 3 results for commit query1"
   end
 
@@ -158,7 +158,7 @@ class MemoryStoreTest < Minitest::Test
       runtime: Awfy::Runtimes::YJIT,
       timestamp: Time.now,
       branch: "main",
-      commit: "load123",
+      commit_hash: "load123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test",
@@ -195,7 +195,7 @@ class MemoryStoreTest < Minitest::Test
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now,
       branch: "main",
-      commit: "clean123",
+      commit_hash: "clean123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test",
@@ -247,7 +247,7 @@ class MemoryStoreTest < Minitest::Test
             runtime: Awfy::Runtimes::MRI,
             timestamp: Time.now,
             branch: "main",
-            commit: "concurrent123",
+            commit_hash: "concurrent123",
             commit_message: "Test concurrent saves",
             ruby_version: "3.1.0",
             result_id: "test",
