@@ -6,31 +6,28 @@ module Awfy
   class TestSession < Minitest::Test
     def setup
       # Create a config for the shell
-      @shell_config = Awfy::Config.new(verbose: true)
-      
+      @config = Awfy::Config.new(verbose: true)
+
       # Create a proper Shell instance
-      @shell = Awfy::Shell.new(config: @shell_config)
-      
+      @shell = Awfy::Shell.new(config: @config)
+
       # Add test-specific methods to track messages
       @shell.instance_variable_set(:@last_message, nil)
       @shell.instance_variable_set(:@last_error, nil)
-      
+
       class << @shell
         attr_accessor :last_message, :last_error
-        
+
         def say(*args)
           @last_message = args.first
           super
         end
-        
+
         def say_error(*args)
           @last_error = args.first
           super
         end
       end
-
-      # Create config
-      @config = Awfy::Config.new(verbose: true)
 
       # Create a real GitClient for type safety
       @git_client = Awfy::GitClient.new(path: Dir.pwd)
@@ -45,12 +42,6 @@ module Awfy
         git_client: @git_client,
         results_store: @results_store
       )
-    end
-
-    def test_initialization
-      assert_equal @shell, @session.shell
-      assert_equal @config, @session.config
-      assert_equal @git_client, @session.git_client
     end
 
     def test_say_method

@@ -17,7 +17,7 @@ module Awfy
       def save_result(result)
         @mutex.synchronize do
           result_id = result.result_id
-          
+
           # Get result file path based on result_id
           result_file = result_file_path(result_id)
 

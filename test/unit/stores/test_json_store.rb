@@ -274,7 +274,6 @@ class JsonStoreTest < Minitest::Test
     refute File.exist?(test_file), "Test file should be deleted with KeepNone retention policy"
   end
 
-
   def test_clean_results_with_date_based_policy
     # Create DateBased retention policy (7 days)
     date_policy = Awfy::RetentionPolicies.create("date_based", retention_days: 7)

@@ -39,7 +39,7 @@ module Awfy
         end
 
         def load_results(branch)
-          results_directory = session.config.results_directory || "./benchmarks/.awfy_benchmark_results" 
+          results_directory = session.config.results_directory || "./benchmarks/.awfy_benchmark_results"
           result_files = Dir.glob(File.join(results_directory, "*.json"))
           latest_file = result_files.max_by { |f| File.mtime(f) }
 
