@@ -19,7 +19,6 @@ module Awfy
 
       private
 
-
       # These hacks allow us to find sometheng in the results from the benchmark tool when it runs in a way that we can
       # only get results async
       CONTROL_MARKER = "[c]"

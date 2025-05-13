@@ -5,20 +5,48 @@ require "vernier"
 module Awfy
   module Jobs
     class Flamegraph < Base
-      def generate(group, report_name, test_name)
-        execute_report(group, report_name) do |report, runtime|
-          execute_tests(report, test_name) do |test, iterations|
-            "report-#{group[:name]}-#{report[:name]}-#{test[:name]}".gsub(/[^A-Za-z0-9_\-]/, "_")
-            save_to(:flamegraph, group, report, runtime) do |file_name|
-              generate_flamegraph(file_name) do
-                i = 0
-                while i < iterations
-                  test[:block].call
-                  i += 1
-                end
-              end
-            end
+      def call
+        if verbose?
+          say "> Flamegraph profiling for:"
+          say "> #{group.name}...", :cyan
+        end
+
+        benchmarker.run(group, report_name) do |report, runtime|
+          total_tests = report.tests.size
+
+          if verbose?
+            say "> Running #{total_tests} flamegraph profiles", :cyan
           end
+
+          progress_bar = Awfy::Views::ProgressBar.new(
+            shell: session.shell,
+            total_benchmarks: total_tests,
+            ascii_only: config.ascii_only?
+          )
+
+          if verbose?
+            say "#{group.name}/#{report.name} [#{runtime}] #{total_tests} tests", :cyan
+            say
+          end
+
+          benchmarker.run_tests(report, test_name, output: false) do |test, iterations|
+            filename = "report-#{group.name}-#{report.name}-#{test.name}".gsub(/[^A-Za-z0-9_\-]/, "_")
+
+            if verbose?
+              say "# ***"
+              say "# #{test.name}", :green
+              say "# ***"
+              say
+            end
+
+            generate_flamegraph(filename, open: verbose?) do
+              iterations.times { test.block.call }
+            end
+
+            progress_bar.increment
+          end
+
+          progress_bar.finish
         end
       end
 
