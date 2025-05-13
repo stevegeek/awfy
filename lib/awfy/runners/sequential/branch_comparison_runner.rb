@@ -27,9 +27,9 @@ module Awfy
           results = nil
 
           safe_checkout(branch) do
-            shell.say "Running benchmarks on branch: #{branch}" if options.verbose?
+            say "Running benchmarks on branch: #{branch}" if session.config.verbose?
 
-            cmd_type = command_type || options.command || "ips"
+            cmd_type = command_type || :ips
             run_in_fresh_process(cmd_type, group, report_name, test_name)
 
             results = load_results(branch)
@@ -39,7 +39,8 @@ module Awfy
         end
 
         def load_results(branch)
-          result_files = Dir.glob(File.join(options.results_directory, "*.json"))
+          results_directory = session.config.results_directory || "./benchmarks/.awfy_benchmark_results" 
+          result_files = Dir.glob(File.join(results_directory, "*.json"))
           latest_file = result_files.max_by { |f| File.mtime(f) }
 
           return {} unless latest_file

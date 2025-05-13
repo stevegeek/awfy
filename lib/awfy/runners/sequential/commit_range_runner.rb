@@ -45,12 +45,12 @@ module Awfy
         # @return [Array<String>] List of commit hashes in the range
         def get_commits_in_range(start_commit, end_commit)
           # Resolve commit hashes first
-          start_hash = git_client.lib.command("rev-parse", start_commit).strip
-          end_hash = git_client.lib.command("rev-parse", end_commit).strip
+          start_hash = git_client.rev_parse(start_commit)
+          end_hash = git_client.rev_parse(end_commit)
 
           # Get all commits in the range (inclusive of start and end)
           commit_range = "#{start_hash}^..#{end_hash}"
-          commits = git_client.lib.command("rev-list", "--reverse", commit_range).split("\n")
+          commits = git_client.rev_list("--reverse", commit_range)
 
           # If start commit wasn't included due to the ^ operator, add it back
           start_index = commits.index(start_hash)
@@ -77,12 +77,12 @@ module Awfy
             # Get commit metadata
             commit_message = git_client.commit_message(commit)
 
-            if options.verbose?
-              shell.say "Running benchmarks on commit: #{commit.slice(0, 8)} - #{commit_message}"
+            if config.verbose?
+              say "Running benchmarks on commit: #{commit.slice(0, 8)} - #{commit_message}"
             end
 
             # Run the benchmark command in a fresh process
-            cmd_type = command_type || options.command || "ips"
+            cmd_type = command_type || "ips"
             run_in_fresh_process(cmd_type, group, report_name, test_name)
 
             # Load the results
@@ -98,7 +98,8 @@ module Awfy
         # @return [Hash] The loaded results
         def load_results(commit, commit_message)
           # Find the most recent result file
-          result_files = Dir.glob(File.join(options.results_directory, "*.json"))
+          results_directory = "#{session.config.storage_name}/benchmark_results"
+          result_files = Dir.glob(File.join(results_directory, "*.json"))
           latest_file = result_files.max_by { |f| File.mtime(f) }
 
           return {} unless latest_file
