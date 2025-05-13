@@ -102,10 +102,7 @@ module Awfy
     def no_color? = no_color
 
     def current_retention_policy
-      retention_policy_options = {
-        retention_days: retention_days
-      }.compact
-      Awfy::RetentionPolicies.create(retention_policy, **retention_policy_options)
+      Awfy::RetentionPolicies.create(retention_policy, retention_days: retention_days)
     end
   end
 end

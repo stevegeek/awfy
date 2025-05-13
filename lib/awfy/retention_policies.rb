@@ -3,13 +3,15 @@
 module Awfy
   module RetentionPolicies
     def create(policy_name, ...)
-      case RetentionPolicyAliases[policy_name]
+      case RetentionPolicyAliases[policy_name.to_s]
       when RetentionPolicyAliases::None, RetentionPolicyAliases::KeepNone
         none
       when RetentionPolicyAliases::Date, RetentionPolicyAliases::DateBased
         date_based(...)
-      else
+      when RetentionPolicyAliases::Keep, RetentionPolicyAliases::KeepAll
         keep
+      else
+        raise "Unknown retention policy: #{policy_name}"
       end
     end
 
