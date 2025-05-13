@@ -15,8 +15,8 @@ class MemoryStoreTest < Minitest::Test
     # Create test metadata
     metadata = Awfy::Result.new(
       type: :ips,
-      group: "Test Group",
-      report: "#method_name",
+      group_name: "Test Group",
+      report_name: "#method_name",
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now,
       branch: "main",
@@ -52,7 +52,7 @@ class MemoryStoreTest < Minitest::Test
     stored_result = @store.stored_results[result_id]
     assert_instance_of Awfy::Result, stored_result, "Stored result should be a Result object"
     assert_equal :ips, stored_result.type, "Result type should match"
-    assert_equal "Test Group", stored_result.group, "Result group should match"
+    assert_equal "Test Group", stored_result.group_name, "Result group should match"
     assert_equal Awfy::Runtimes::MRI, stored_result.runtime, "Result runtime should match"
     assert_equal "main", stored_result.branch, "Result branch should match"
     assert_equal result_data, stored_result.result_data, "Result data should match"
@@ -65,8 +65,8 @@ class MemoryStoreTest < Minitest::Test
     # Store result 1
     metadata1 = Awfy::Result.new(
       type: :ips,
-      group: "Query Group",
-      report: "#method1",
+      group_name: "Query Group",
+      report_name: "#method1",
       runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
@@ -84,8 +84,8 @@ class MemoryStoreTest < Minitest::Test
     # Store result 2 with different runtime
     metadata2 = Awfy::Result.new(
       type: :ips,
-      group: "Query Group",
-      report: "#method1",
+      group_name: "Query Group",
+      report_name: "#method1",
       runtime: Awfy::Runtimes::YJIT,
       timestamp: timestamp,
       branch: "main",
@@ -103,16 +103,16 @@ class MemoryStoreTest < Minitest::Test
     # Store result 3 with different group
     metadata3 = Awfy::Result.new(
       type: :ips,
-      group: "Another Group",
-      report: "#method2",
+      group_name: "Another Group",
+      report_name: "#method2",
       runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
       commit: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil,
-      result_data: nil
+      result_id: "test3",
+      result_data: {}
     )
 
     @store.save_result(metadata3) do
@@ -124,7 +124,7 @@ class MemoryStoreTest < Minitest::Test
     assert_equal 3, results.length, "Should find 3 ips results"
 
     # Query with group filter
-    results = @store.query_results(type: :ips, group: "Query Group")
+    results = @store.query_results(type: :ips, group_name: "Query Group")
     assert_equal 2, results.length, "Should find 2 results for Query Group"
 
     # Query with runtime filter
@@ -136,8 +136,8 @@ class MemoryStoreTest < Minitest::Test
     # Query with combination of filters
     results = @store.query_results(
       type: :ips,
-      group: "Query Group",
-      report: "#method1",
+      group_name: "Query Group",
+      report_name: "#method1",
       runtime: "mri"
     )
     assert_equal 1, results.length, "Should find 1 result matching all criteria"
@@ -153,8 +153,8 @@ class MemoryStoreTest < Minitest::Test
     # Store a result to load later
     metadata = Awfy::Result.new(
       type: :ips,
-      group: "Load Test",
-      report: "#load_method",
+      group_name: "Load Test",
+      report_name: "#load_method",
       runtime: Awfy::Runtimes::YJIT,
       timestamp: Time.now,
       branch: "main",
@@ -190,8 +190,8 @@ class MemoryStoreTest < Minitest::Test
     # Add a result to the store
     metadata = Awfy::Result.new(
       type: :ips,
-      group: "Clean Test",
-      report: "#clean_method",
+      group_name: "Clean Test",
+      report_name: "#clean_method",
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now,
       branch: "main",
@@ -242,8 +242,8 @@ class MemoryStoreTest < Minitest::Test
           # Create unique metadata for this thread's result
           metadata = Awfy::Result.new(
             type: :ips,
-            group: "Concurrent Test",
-            report: "#thread_#{thread_index}_result_#{i}",
+            group_name: "Concurrent Test",
+            report_name: "#thread_#{thread_index}_result_#{i}",
             runtime: Awfy::Runtimes::MRI,
             timestamp: Time.now,
             branch: "main",
@@ -288,8 +288,8 @@ class MemoryStoreTest < Minitest::Test
         # Find the result for this thread and iteration
         result = @store.query_results(
           type: :ips,
-          group: "Concurrent Test",
-          report: "#thread_#{thread_index}_result_#{i}"
+          group_name: "Concurrent Test",
+          report_name: "#thread_#{thread_index}_result_#{i}"
         ).first
 
         assert result, "Should find result for thread #{thread_index}, iteration #{i}"

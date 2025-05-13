@@ -14,7 +14,6 @@ module Awfy
 
       # Store a benchmark result in memory
       def save_result(metadata, &block)
-        validate_metadata!(metadata)
         result_data = execute_result_block(&block)
 
         @mutex.synchronize do
@@ -25,14 +24,14 @@ module Awfy
       end
 
       # Query stored results with optional filtering
-      def query_results(type: nil, group: nil, report: nil, runtime: nil, commit: nil)
+      def query_results(type: nil, group_name: nil, report_name: nil, runtime: nil, commit: nil)
         @mutex.synchronize do
           # Get all stored results and apply filters from base class
           apply_filters(
             all_stored_results,
             type: type,
-            group: group,
-            report: report,
+            group_name: group_name,
+            report_name: report_name,
             runtime: runtime,
             commit: commit
           )
