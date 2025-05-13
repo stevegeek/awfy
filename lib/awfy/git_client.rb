@@ -53,21 +53,21 @@ module Awfy
     # @param reference [String] The reference to parse (e.g., branch name, commit hash, etc.)
     # @return [String] The full SHA hash for the reference
     def rev_parse(reference)
-      lib.command("rev-parse", reference).strip
+      command("rev-parse", reference).strip
     end
 
     # Get a list of commit hashes in the given range
     # @param args [Array<String>] The arguments to pass to rev-list (e.g., "--reverse", "start..end")
     # @return [Array<String>] List of commit hashes
     def rev_list(*args)
-      lib.command("rev-list", *args).split("\n")
+      command("rev-list", *args).split("\n")
     end
 
     # Get commit log information
     # @param args [Array<String>] The arguments to pass to log (e.g., "-1", "--pretty=%s", commit)
     # @return [String] The commit log information
     def log(*args)
-      lib.command("log", *args)
+      command("log", *args)
     end
 
     # Get the commit message for a specific commit
