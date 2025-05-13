@@ -33,7 +33,7 @@ Gem::Specification.new do |spec|
 
   # Uncomment to register a new dependency of your gem
   spec.add_dependency "thor", ">= 1.3", "< 2.0"
-  spec.add_dependency "literal", ">= 1.0", "< 2.0"
+  # spec.add_dependency "literal", ">= 1.0", "< 2.0" # TODO: readd after new version cut
   spec.add_dependency "git", ">= 2.3", "< 3.0"
   spec.add_dependency "terminal-table", ">= 3.0", "< 5.0"
   spec.add_dependency "benchmark-ips", ">= 2.14", "< 3.0"
