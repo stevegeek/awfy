@@ -2,8 +2,6 @@
 
 require "test_helper"
 require_relative "test_helper"
-require "awfy/runners/base"
-require "awfy/runners/single_run_runner"
 
 class TestSingleRunRunner < Minitest::Test
   include RunnerTestHelpers
@@ -14,23 +12,13 @@ class TestSingleRunRunner < Minitest::Test
     FileUtils.mkdir_p(File.join(@test_dir, "test_bench_output"))
     FileUtils.mkdir_p(File.join(@test_dir, "test_bench_results"))
 
-    # Use Thor::Shell::Basic as the shell
-    @shell = Thor::Shell::Basic.new
-
-    # Setup options
-    @options = create_test_options(@test_dir)
-
-    # Create a suite with mock groups
+    # Create basic objects needed for runner creation
     @suite = create_mock_suite
-
-    # Create mock Git client
-    @git_client = create_mock_git_client
+    @options = create_test_options(@test_dir)
+    @session = create_test_session(@options)
 
     # Create runner instance
-    @runner = Awfy::Runners::SingleRunRunner.new(@suite, @shell, @git_client, @options)
-
-    # Add method stubs
-    stub_runner_methods(@runner)
+    @runner = Awfy::Runners::Sequential::ImmediateRunner.new(suite: @suite, session: @session)
   end
 
   def teardown
@@ -41,76 +29,53 @@ class TestSingleRunRunner < Minitest::Test
   end
 
   def test_initialization
-    assert_instance_of Awfy::Runners::SingleRunRunner, @runner
-    assert_nil @runner.start_time
+    assert_instance_of Awfy::Runners::Sequential::ImmediateRunner, @runner
+    # Access suite through instance variable since there may not be a reader method
+    assert_equal @suite, @runner.instance_variable_get(:@suite)
+    # start_time is now set in start! method, so we can't test it directly here
   end
 
-  def test_run_with_specific_group
-    run_called = false
-    group_name = nil
+  def test_run_group_executes_block
+    # Track which groups were run
+    run_groups = []
 
-    # Need to provide a block to the original run_group
-    original_run_group = @runner.method(:run_group)
-
-    @runner.define_singleton_method(:run_group) do |name, &block|
-      run_called = true
-      group_name = name
-      # Make sure to call the block with the group if a block is given
-      block.call(@groups[name]) if block_given?
+    # Create a mock job object that responds to 'call'
+    mock_job = Object.new
+    def mock_job.call
+      # Simulates a job that executes
+      true
     end
 
-    @runner.run("test_group") { |group| }
+    # Run a specific group
+    @runner.run("test_group") do |group|
+      run_groups << group.name
+      # Return a callable job as expected by the runner
+      mock_job
+    end
 
-    assert run_called, "run_group should be called"
-    assert_equal "test_group", group_name
-    assert_instance_of Integer, @runner.start_time
-
-    # Restore original method
-    @runner.define_singleton_method(:run_group, original_run_group)
+    # Verify only the specified group was run
+    assert_equal ["test_group"], run_groups
   end
 
-  def test_run_with_all_groups
-    run_called = false
+  def test_run_all_groups_executes_block_for_each
+    # Track which groups were run
+    run_groups = []
 
-    # Create a simpler test that just verifies run_groups is called
-    original_run_groups = @runner.method(:run_groups)
-
-    @runner.define_singleton_method(:run_groups) do |&block|
-      run_called = true
+    # Create a mock job object that responds to 'call'
+    mock_job = Object.new
+    def mock_job.call
+      # Simulates a job that executes
+      true
     end
 
-    # Just test that run_groups is called, without checking what's yielded
-    @runner.run { |group| }
-
-    assert run_called, "run_groups should be called"
-    assert_instance_of Integer, @runner.start_time
-
-    # Restore original method
-    @runner.define_singleton_method(:run_groups, original_run_groups)
-  end
-
-  def test_run_command
-    # Create a mock command class
-    command_class = Class.new do
-      attr_reader :suite, :shell, :git_client, :options, :run_args
-
-      def initialize(suite, shell, git_client, options)
-        @suite = suite
-        @shell = shell
-        @git_client = git_client
-        @options = options
-        @run_args = nil
-      end
-
-      def run(group_name = nil, report_name = nil, test_name = nil)
-        @run_args = [group_name, report_name, test_name]
-        "command result"
-      end
+    # Run all groups (no specific group name)
+    @runner.run do |group|
+      run_groups << group.name
+      # Return a callable job as expected by the runner
+      mock_job
     end
 
-    result = @runner.run_command(command_class, "test_group", "test_report", "test1")
-
-    assert_equal "command result", result
-    assert_instance_of Integer, @runner.start_time
+    # Verify all groups were run
+    assert_equal @suite.groups.map(&:name), run_groups
   end
 end

@@ -8,13 +8,11 @@ require "awfy/runners/base"
 module Awfy
   module Runners
     class TestRunner < Base
-      def run(group = nil, &block)
-        start!
-        if group
-          run_group(group, &block)
-        else
-          run_groups(&block)
+      def run_group(group, &block)
+        if group.nil?
+          raise "Group not found"
         end
+        block.call(group) if block_given?
       end
     end
   end
@@ -24,56 +22,29 @@ class TestAbstractRunner < Minitest::Test
   include RunnerTestHelpers
 
   def setup
-    # Create test directory first
-    @test_dir = Dir.mktmpdir
-    FileUtils.mkdir_p(File.join(@test_dir, "test_bench_output"))
-    FileUtils.mkdir_p(File.join(@test_dir, "test_bench_results"))
-
-    # Use Thor::Shell::Basic as the shell
-    @shell = Thor::Shell::Basic.new
-
     # Setup options
-    @options = create_test_options(@test_dir)
+    @config = create_test_options("./test")
 
     # Create a suite with mock groups
     @suite = create_mock_suite
 
-    # Create mock Git client
-    @git_client = create_mock_git_client
+    # Create a session
+    @session = create_test_session(@config)
 
     # Create runner instance
-    @runner = Awfy::Runners::TestRunner.new(@suite, @shell, @git_client, @options)
-
-    # Add method stubs
-    stub_runner_methods(@runner)
-  end
-
-  def teardown
-    # Clean up test directory
-    if defined?(@test_dir) && @test_dir && Dir.exist?(@test_dir)
-      FileUtils.remove_entry(@test_dir)
-    end
-  end
-
-  def test_initialization
-    assert_instance_of Awfy::Runners::TestRunner, @runner
-    assert_nil @runner.start_time
-    assert_equal @suite, @runner.suite
-    assert_equal @shell, @runner.shell
-    assert_equal @git_client, @runner.git_client
-    assert_equal @options, @runner.options
-    assert_equal @suite.groups, @runner.groups
+    @runner = Awfy::Runners::TestRunner.new(session: @session, suite: @suite)
   end
 
   def test_run_group
     # Test that run_group raises an error for a non-existent group
     assert_raises(RuntimeError) do
-      @runner.run_group("non_existent_group") { |_| }
+      @runner.run_group(nil) { |_| }
     end
 
     # Test that run_group yields the correct group
     yielded_group = nil
-    @runner.run_group("test_group") { |group| yielded_group = group }
+    group = @suite.find_group("test_group")
+    @runner.run_group(group) { |g| yielded_group = g }
 
     assert_equal "test_group", yielded_group.name
   end

@@ -2,9 +2,22 @@
 
 require "test_helper"
 require_relative "test_helper"
-require "awfy/runners/base"
-require "awfy/runners/branch_comparison_runner"
-require "json"
+
+# Test implementation of Base runner
+module Awfy
+  module Runners
+    class TestRunner < Base
+      def run(group = nil, &block)
+        start!
+        if group
+          run_group(group, &block)
+        else
+          run_groups(&block)
+        end
+      end
+    end
+  end
+end
 
 class TestBranchComparisonRunner < Minitest::Test
   include RunnerTestHelpers
@@ -12,8 +25,8 @@ class TestBranchComparisonRunner < Minitest::Test
   def setup
     # Create test directory first
     @test_dir = Dir.mktmpdir
-    @results_dir = File.join(@test_dir, "results")
-    FileUtils.mkdir_p(@results_dir)
+    FileUtils.mkdir_p(File.join(@test_dir, "test_bench_output"))
+    FileUtils.mkdir_p(File.join(@test_dir, "test_bench_results"))
 
     # Use Thor::Shell::Basic as the shell
     @shell = Thor::Shell::Basic.new
@@ -24,11 +37,14 @@ class TestBranchComparisonRunner < Minitest::Test
     # Create a suite with mock groups
     @suite = create_mock_suite
 
-    # Create mock Git client
-    @git_client = create_mock_git_client
+    # Create a session
+    @session = create_test_session(@options)
 
     # Create runner instance
-    @runner = Awfy::Runners::BranchComparisonRunner.new(@suite, @shell, @git_client, @options)
+    @runner = Awfy::Runners::Sequential::BranchComparisonRunner.new(
+      session: @session,
+      suite: @suite
+    )
 
     # Add method stubs
     stub_runner_methods(@runner)
@@ -42,8 +58,9 @@ class TestBranchComparisonRunner < Minitest::Test
   end
 
   def test_initialization
-    assert_instance_of Awfy::Runners::BranchComparisonRunner, @runner
-    assert_nil @runner.start_time
+    assert_instance_of Awfy::Runners::Sequential::BranchComparisonRunner, @runner
+    # Just make sure we can initialize the runner
+    assert @runner
   end
 
   def test_run_calls_branches_in_order

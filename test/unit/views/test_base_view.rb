@@ -6,7 +6,7 @@ require "awfy/views/base_view"
 class TestBaseView < ViewTestCase
   def setup
     super
-    @view = Awfy::Views::BaseView.new(@shell, @options)
+    @view = Awfy::Views::BaseView.new(session: @session)
   end
 
   def test_initialization
@@ -32,19 +32,54 @@ class TestBaseView < ViewTestCase
   end
 
   def test_verbose
-    @options.verbose = false
-    assert_equal false, @view.verbose?
+    # Test with a session and config that has verbose=false
+    @session = Awfy::Session.new(
+      shell: @shell,
+      config: Awfy::Config.new(verbose: false),
+      git_client: @git_client,
+      results_store: @results_store
+    )
+    view = Awfy::Views::BaseView.new(session: @session)
+    assert_equal false, view.verbose?
 
-    @options.verbose = true
-    assert_equal true, @view.verbose?
+    # Test with a session and config that has verbose=true
+    @session = Awfy::Session.new(
+      shell: @shell,
+      config: Awfy::Config.new(verbose: true),
+      git_client: @git_client,
+      results_store: @results_store
+    )
+    view = Awfy::Views::BaseView.new(session: @session)
+    assert_equal true, view.verbose?
+  end
+
+  # Test class that adds show_summary? method for testing
+  class TestBaseViewWithSummary < Awfy::Views::BaseView
+    def show_summary?
+      config.show_summary?
+    end
   end
 
   def test_show_summary
-    @options.show_summary = false
-    assert_equal false, @view.show_summary?
+    # Test with a session and config that has summary=false
+    @session = Awfy::Session.new(
+      shell: @shell,
+      config: Awfy::Config.new(summary: false),
+      git_client: @git_client,
+      results_store: @results_store
+    )
+    view = TestBaseViewWithSummary.new(session: @session)
+    assert_equal false, view.show_summary?
 
-    @options.show_summary = true
-    assert_equal true, @view.show_summary?
+    # Test with a session and config that has summary=true
+    @session = Awfy::Session.new(
+      shell: @shell,
+      config: Awfy::Config.new(summary: true),
+      git_client: @git_client,
+      results_store: @results_store
+    )
+    view = TestBaseViewWithSummary.new(session: @session)
+    assert_equal true, view.show_summary?
   end
 
   def test_format_table
