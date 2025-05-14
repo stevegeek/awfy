@@ -16,7 +16,7 @@ module Awfy
         term_unicode = unicode_supported? ? "likely" : "unlikely"
         term_color = terminal_info.color_status
 
-        say "| Display: " +
+        say "| Display: " \
           "#{config.classic_style? ? "classic style" : "modern style"}, " \
           "Unicode: #{config.ascii_only? ? "disabled by flag" : term_unicode} [TERM=#{terminal_info.term}, LANG=#{terminal_info.lang}], " \
           "Color: #{config.no_color? ? "disabled by flag" : term_color} [NO_COLOR=#{terminal_info.no_color_env}, TTY=#{terminal_info.tty}]", :cyan

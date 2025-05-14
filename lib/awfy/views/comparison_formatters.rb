@@ -47,7 +47,7 @@ module Awfy
       def format_result_diff(result)
         if result[:is_baseline]
           "-"
-        elsif result[:overlaps] || (result[:diff_times] && result[:diff_times].zero?)
+        elsif result[:overlaps] || result[:diff_times]&.zero?
           "same"
         elsif result[:diff_times] == Float::INFINITY
           "∞"

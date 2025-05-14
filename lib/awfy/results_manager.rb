@@ -66,7 +66,7 @@ module Awfy
       candidates = results.filter do |r|
         r.runtime == (config.yjit_only? ? Runtimes::YJIT : Runtimes::MRI) # Baseline is mri baseline unless yjit only
       end
-      baseline = candidates.sort_by(&:timestamp).reverse.filter(&:baseline?).first
+      baseline = candidates.sort_by(&:timestamp).reverse.find(&:baseline?)
 
       raise Errors::NoBaselineError, "Could not determine the 'test' in #{group_name}/#{report_name}. Are you sure your benchmark group has a 'test' definition?" unless baseline
 

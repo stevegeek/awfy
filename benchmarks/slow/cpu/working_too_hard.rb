@@ -96,7 +96,7 @@ Awfy.group "String Manipulation" do
     test "String Concatenation" do
       result = ""
       100_000.times do |i|
-        result += "#{i}"
+        result += i.to_s
       end
     end
   end

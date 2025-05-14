@@ -73,7 +73,7 @@ class TestCommitRangeRunner < Minitest::Test
     end
 
     def @mock_session.say(msg)
-      @shell.say(msg) if @shell
+      @shell&.say(msg)
     end
 
     # Set up the mock session with our test objects

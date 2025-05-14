@@ -57,7 +57,7 @@ module Awfy
     end
 
     def label
-      if result_data && result_data.key?(:label)
+      if result_data&.key?(:label)
         result_data[:label]
       else
         label_from_attributes
