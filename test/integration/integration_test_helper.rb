@@ -5,7 +5,7 @@ require "fileutils"
 require "stringio"
 require "json"
 require "securerandom"
-require "awfy"
+require "test_helper"
 
 module IntegrationTestHelper
   def setup_test_environment

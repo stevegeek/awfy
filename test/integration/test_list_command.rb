@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "test_helper"
 require_relative "integration_test_helper"
 
 class ListCommandTest < Minitest::Test
