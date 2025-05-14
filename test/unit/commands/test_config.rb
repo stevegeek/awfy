@@ -95,13 +95,13 @@ module Awfy
         assert_match(/Configuration at/, inspect_output)
         assert_match(/test_time.*5/, inspect_output)
         assert_match(/runtime.*both/, inspect_output)
-        assert_match(/verbose.*basic/i, inspect_output)
+        assert_match(/verbose.*1/i, inspect_output)
       end
 
       def test_save_and_load_with_precedence
         # Use simple hashes directly instead of Config objects
         home_config = {runtime: "yjit", test_time: 10}
-        suite_config = {runtime: "mri", verbose: Awfy::VerbosityLevel::NONE}
+        suite_config = {runtime: "mri", verbose: 0} # Verbose NONE value as a number
         current_config = {test_warm_up: 2}
 
         # Create the config loader
@@ -118,7 +118,7 @@ module Awfy
         # Highest precedence (current) should override others
         assert_equal 2, merged_config[:test_warm_up]
         assert_equal "mri", merged_config[:runtime], "Suite config should override home config"
-        assert_equal VerbosityLevel::NONE, merged_config[:verbose], "Suite config should override home config"
+        assert_equal 0, merged_config[:verbose], "Suite config should override home config"
 
         # Now modify current config and verify it takes precedence
         config_loader.save({runtime: "both"}, ConfigLocation::Current)
