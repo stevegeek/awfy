@@ -2,6 +2,8 @@
 
 module Awfy
   class CLI < Thor
+    check_unknown_options!
+
     def self.exit_on_failure? = true
 
     # Runtime/comparison options

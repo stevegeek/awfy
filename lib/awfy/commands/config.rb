@@ -5,7 +5,12 @@ module Awfy
     # Command for managing configuration settings
     class Config < Base
       def inspect(location = nil)
-        config_loader = ConfigLoader.new(tests_path: config.tests_path)
+        config_loader = ConfigLoader.new(
+          {},
+          {},
+          tests_path: config.tests_path,
+          shell: verbose?(VerbosityLevel::DEBUG) && session.shell
+        )
         location_enum = parse_location(location)
 
         # Get config file path
@@ -27,7 +32,12 @@ module Awfy
       end
 
       def save(location = nil)
-        config_loader = ConfigLoader.new(tests_path: config.tests_path)
+        config_loader = ConfigLoader.new(
+          {},
+          {},
+          tests_path: config.tests_path,
+          shell: verbose?(VerbosityLevel::DEBUG) && session.shell
+        )
         location_enum = parse_location(location)
 
         # Get current config as hash and save it

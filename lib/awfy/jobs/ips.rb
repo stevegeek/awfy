@@ -79,7 +79,7 @@ module Awfy
 
       def map_result_data_to_standard_format(entry)
         {
-          label: entry.label,
+          label: entry.label, # we should not user entry.label as contains the [.] hacks
           control: marked_as_control?(entry),
           baseline: marked_as_baseline?(entry),
           measured_us: entry.microseconds,

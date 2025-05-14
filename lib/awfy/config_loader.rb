@@ -10,35 +10,52 @@ module Awfy
 
     attr_reader :tests_path, :setup_file_path, :test_specific_path
 
-    def initialize(tests_path: "./benchmarks", setup_file_path: "./benchmarks/setup", test_specific_path: nil)
+    def initialize(thor_options, explicit_options = {}, tests_path: "./benchmarks", setup_file_path: "./benchmarks/setup", test_specific_path: nil, shell: nil)
+      @thor_options = thor_options
+      @explicit_options = explicit_options
       @tests_path = tests_path
       @setup_file_path = setup_file_path
       @test_specific_path = test_specific_path
+      @shell = shell
     end
 
     def load_with_precedence
       # Load configs with precedence from lowest to highest
       configs = []
 
+      # Start with thor_options and then layer on the configs.
+      # Explicit options are highest precedence
+
       home_config = load_from_home
       configs << home_config if home_config
-
-      # Load from setup file directory (if it exists and is different from tests_path)
-      setup_config = load_from_setup_dir
-      configs << setup_config if setup_config
-
-      suite_config = load_from_suite_dir
-      configs << suite_config if suite_config
 
       current_config = load_from_current_dir
       configs << current_config if current_config
 
-      merged_config = {}
+      suite_config = load_from_suite_dir
+      configs << suite_config if suite_config
+
+      # Highest precedence to lowest precedence
+      setup_config = load_from_setup_dir
+      configs << setup_config if setup_config
+
+      # Merge all configs from files, starting with the CLI values
+      merged_config = @thor_options.dup
       configs.each do |config|
         merged_config.merge!(config)
       end
 
-      merged_config
+      # Only merge explicitly set options from CLI (highest precedence)
+      merged_config.merge!(@explicit_options)
+
+      if @shell
+        @shell.say("Configs loaded: #{configs.inspect}", :cyan)
+        @shell.say("Thor options (all): #{@thor_options.inspect}", :cyan)
+        @shell.say("Thor options (explicit): #{@explicit_options.inspect}", :cyan)
+        @shell.say("Final merged config: #{merged_config.inspect}", :cyan)
+      end
+
+      Awfy::Config.new(**merged_config)
     end
 
     def save(config, location = ConfigLocation::Current)
@@ -113,14 +130,19 @@ module Awfy
     end
 
     def load_from_file(path)
-      return nil unless File.exist?(path)
-
+      return nil unless File.exist?(File.expand_path(path))
+      log_config_load(path) if @shell
       begin
         JSON.parse(File.read(path)).transform_keys(&:to_sym)
       rescue JSON::ParserError => e
         warn "Error parsing config file #{path}: #{e.message}"
         nil
       end
+    end
+    
+    def log_config_load(path)
+      relative_path = path.start_with?(Dir.home) ? "~#{path.delete_prefix(Dir.home)}" : path
+      @shell.say("Loading config file: #{relative_path}", :cyan)
     end
   end
 end

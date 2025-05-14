@@ -23,6 +23,8 @@ module Awfy
 
       # Create a config loader that uses our test directories
       @config_loader = ConfigLoader.new(
+        {}, # Empty thor_options
+        {}, # Empty explicit_options
         tests_path: @suite_dir,
         setup_file_path: File.join(@setup_dir, "setup.rb")
       )
@@ -99,9 +101,61 @@ module Awfy
       # Load the merged config
       result = @config_loader.load_with_precedence
 
-      # Higher precedence overrides lower precedence
-      expected = home_config.merge(setup_config).merge(suite_config).merge(current_config)
-      assert_equal expected, result
+      # Test key values from the merged config (higher precedence overrides lower precedence)
+      assert_equal "yjit", result.runtime, "Expected runtime from suite config"
+      assert_equal true, result.verbose?(VerbosityLevel::BASIC), "Expected verbose from home config"
+      assert_equal 2.5, result.test_warm_up, "Expected test_warm_up from setup config"
+      assert_equal "asc", result.summary_order, "Expected summary_order from setup config"
+      assert_equal true, result.quiet?, "Expected quiet from suite config"
+      assert_equal 5, result.test_time, "Expected test_time from current config"
+    end
+    
+    def test_load_with_precedence_and_thor_options
+      # Create config files in all locations
+      home_config = {runtime: "both", verbose: true}
+      setup_config = {test_warm_up: 2.5, summary_order: "asc"}
+      suite_config = {runtime: "yjit", quiet: true}
+      current_config = {test_time: 5}
+
+      create_config_file(File.join(@home_dir, ".awfy.json"), home_config)
+      create_config_file(File.join(@setup_dir, ".awfy.json"), setup_config)
+      create_config_file(File.join(@suite_dir, ".awfy.json"), suite_config)
+      create_config_file(File.join(Dir.pwd, ".awfy.json"), current_config)
+
+      # Add thor options with some defaults and some explicit
+      thor_options = {
+        runtime: "mri",            # Thor default
+        test_time: 3.0,            # Thor default
+        storage_backend: "sqlite", # Thor default
+        storage_name: "custom_db"  # User explicit option
+      }
+      
+      # Explicitly set options (would come from the user)
+      explicit_options = {storage_name: "custom_db"}
+      
+      # Create config loader with thor options
+      config_loader = ConfigLoader.new(
+        thor_options,
+        explicit_options,
+        tests_path: @suite_dir,
+        setup_file_path: File.join(@setup_dir, "setup.rb")
+      )
+
+      # Load the merged config
+      result = config_loader.load_with_precedence
+
+      # Make sure the default thor option didn't override the config
+      assert_equal "yjit", result.runtime, "Expected runtime from config file, got thor default"
+      assert_equal 5, result.test_time, "Expected test_time from config file, got thor default"
+      
+      # Make sure explicit thor option did override the config
+      assert_equal "custom_db", result.storage_name, "Expected storage_name from explicit thor option"
+      
+      # Other values should be preserved from config files
+      assert_equal true, result.verbose?(VerbosityLevel::BASIC), "Expected verbose from home config"
+      assert_equal 2.5, result.test_warm_up, "Expected test_warm_up from setup config"
+      assert_equal "asc", result.summary_order, "Expected summary_order from setup config"
+      assert_equal true, result.quiet?, "Expected quiet from suite config"
     end
 
     def test_path_for_setup

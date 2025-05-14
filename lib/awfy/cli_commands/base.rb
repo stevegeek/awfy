@@ -29,28 +29,27 @@ module Awfy
         return @config if defined?(@config)
         # Get options from Thor and convert keys to symbols
         thor_opts = options.to_h.transform_keys(&:to_sym)
-
-        # Handle shorthand verbosity flags
         thor_opts[:verbose] = VerbosityLevel::BASIC if thor_opts[:v]
-        # Remove the shorthand flags as they are not Config properties
         thor_opts.delete(:v)
 
+        # FIXME: This should be set to be the options set on the CLI by the
+        # user not considering the defaults... but still need to work out how to
+        # do that.
+        explicit_opts = {}
         # Create ConfigLoader with appropriate options
         tests_path = thor_opts[:tests_path] || "./benchmarks/tests"
         setup_file_path = thor_opts[:setup_file_path] || "./benchmarks/setup"
-
         # Load configuration files with precedence
+        # Only explicitly set CLI options take highest precedence
         config_loader = ConfigLoader.new(
+          thor_opts,
+          explicit_opts,
           tests_path: tests_path,
-          setup_file_path: setup_file_path
+          setup_file_path: setup_file_path,
+          shell: (thor_opts[:verbose] == 3) ? Thor::Shell::Color.new : nil
         )
-        file_config = config_loader.load_with_precedence
-
-        # Merge file config with CLI options (CLI options take highest precedence)
-        merged_config = file_config.merge(thor_opts)
-
-        # Create the Config data object with merged options
-        @config = Awfy::Config.new(**merged_config)
+        
+        @config = config_loader.load_with_precedence
       end
     end
   end
