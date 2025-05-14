@@ -17,7 +17,5 @@ gem "sqlite3", "~> 1.6"
 # For example benchmarks suite
 gem "monotime"
 
-gem "literal", ">= 1", github: "joeldrapper/literal"
-
 # For test mocks and compatibility with Ruby 3.5+
 gem "ostruct"
