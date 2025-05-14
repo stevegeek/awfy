@@ -22,7 +22,7 @@ module Awfy
       end
 
       # Query stored results with optional filtering
-      def query_results(type: nil, group_name: nil, report_name: nil, runtime: nil, commit: nil)
+      def query_results(type: nil, group_name: nil, report_name: nil, runtime: nil, commit_hash: nil)
         @mutex.synchronize do
           # Get all stored results and apply filters from base class
           apply_filters(
@@ -31,7 +31,7 @@ module Awfy
             group_name: group_name,
             report_name: report_name,
             runtime: runtime,
-            commit: commit
+            commit: commit_hash
           )
         end
       end

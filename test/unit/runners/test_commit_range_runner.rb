@@ -83,9 +83,6 @@ class TestCommitRangeRunner < Minitest::Test
 
     # Create runner instance
     @runner = Awfy::Runners::Sequential::CommitRangeRunner.new(suite: @suite, session: @mock_session)
-
-    # Add method stubs
-    stub_runner_methods(@runner)
   end
 
   def teardown

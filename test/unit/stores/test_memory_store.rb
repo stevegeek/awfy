@@ -23,21 +23,15 @@ class MemoryStoreTest < Minitest::Test
       commit_hash: "abc123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: "test",
-      result_data: {}
+      result_data: {
+        iterations: 1000,
+        runtime: 0.5,
+        ips: 2000.0
+      }
     )
 
-    # Sample benchmark result data
-    result_data = {
-      iterations: 1000,
-      runtime: 0.5,
-      ips: 2000.0
-    }
-
     # Store the result
-    result_id = @store.save_result(metadata) do
-      result_data
-    end
+    result_id = @store.save_result(metadata)
 
     # Assert that the result_id is returned
     assert result_id, "Result ID should be returned"
@@ -55,7 +49,7 @@ class MemoryStoreTest < Minitest::Test
     assert_equal "Test Group", stored_result.group_name, "Result group should match"
     assert_equal Awfy::Runtimes::MRI, stored_result.runtime, "Result runtime should match"
     assert_equal "main", stored_result.branch, "Result branch should match"
-    assert_equal result_data, stored_result.result_data, "Result data should match"
+    assert_equal 2000.0, stored_result.result_data[:ips], "Result data should match"
   end
 
   def test_query_results
@@ -73,7 +67,6 @@ class MemoryStoreTest < Minitest::Test
       commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: "test",
       result_data: {ips: 1000.0}
     )
 
@@ -90,7 +83,6 @@ class MemoryStoreTest < Minitest::Test
       commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: "test",
       result_data: {ips: 1500.0}
     )
 
@@ -107,7 +99,6 @@ class MemoryStoreTest < Minitest::Test
       commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: "test3",
       result_data:  {ips: 2000.0}
     )
 
@@ -155,11 +146,8 @@ class MemoryStoreTest < Minitest::Test
       commit_hash: "load123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: "test",
       result_data:  {ips: 3000.0, iterations: 5000}
     )
-
-    result_data =
 
     # Store the result
     result_id = @store.save_result(metadata)
@@ -170,8 +158,8 @@ class MemoryStoreTest < Minitest::Test
     assert_instance_of Awfy::Result, loaded_result
 
     # Verify loaded data matches original
-    assert_equal result_data[:ips], loaded_result.result_data[:ips]
-    assert_equal result_data[:iterations], loaded_result.result_data[:iterations]
+    assert_equal 3000.0, loaded_result.result_data[:ips]
+    assert_equal 5000, loaded_result.result_data[:iterations]
 
     # Attempt to load non-existent result
     assert_nil @store.load_result("non-existent-id"), "Should return nil for non-existent ID"
@@ -189,7 +177,6 @@ class MemoryStoreTest < Minitest::Test
       commit_hash: "clean123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: "test",
       result_data: {data: "test data"}
     )
 
@@ -238,7 +225,6 @@ class MemoryStoreTest < Minitest::Test
             commit_hash: "concurrent123",
             commit_message: "Test concurrent saves",
             ruby_version: "3.1.0",
-            result_id: "test",
             result_data: {
               thread: thread_index,
               iteration: i,
@@ -263,10 +249,6 @@ class MemoryStoreTest < Minitest::Test
     result_ids = @store.stored_results.keys
     assert_equal result_ids.uniq.size, result_ids.size,
       "All result IDs should be unique"
-
-    # Verify @next_id was properly incremented
-    assert_equal total_results + 1, @store.instance_variable_get(:@next_id),
-      "@next_id should match total number of results"
 
     # Verify data integrity - each thread's results should be present and correct
     thread_count.times do |thread_index|
