@@ -7,6 +7,7 @@ module Awfy
   # Configuration file locations
   class ConfigLocation < Literal::Enum(String)
     Home = new("home")
+    Setup = new("setup")
     Suite = new("suite")
     Current = new("current")
   end
@@ -15,10 +16,12 @@ module Awfy
   class ConfigLoader
     CONFIG_FILENAME = ".awfy.json"
 
-    attr_reader :tests_path
+    attr_reader :tests_path, :setup_file_path, :test_specific_path
 
-    def initialize(tests_path: "./benchmarks")
+    def initialize(tests_path: "./benchmarks", setup_file_path: "./benchmarks/setup", test_specific_path: nil)
       @tests_path = tests_path
+      @setup_file_path = setup_file_path
+      @test_specific_path = test_specific_path
     end
 
     def load_with_precedence
@@ -27,6 +30,10 @@ module Awfy
 
       home_config = load_from_home
       configs << home_config if home_config
+
+      # Load from setup file directory (if it exists and is different from tests_path)
+      setup_config = load_from_setup_dir
+      configs << setup_config if setup_config
 
       suite_config = load_from_suite_dir
       configs << suite_config if suite_config
@@ -67,6 +74,9 @@ module Awfy
       case location_enum
       when ConfigLocation::Home
         File.join(Dir.home, CONFIG_FILENAME)
+      when ConfigLocation::Setup
+        setup_dir = File.dirname(File.expand_path(@setup_file_path, Dir.pwd))
+        File.join(setup_dir, CONFIG_FILENAME)
       when ConfigLocation::Suite
         File.join(@tests_path, CONFIG_FILENAME)
       when ConfigLocation::Current
@@ -86,6 +96,17 @@ module Awfy
 
     def load_from_home
       path = File.join(Dir.home, CONFIG_FILENAME)
+      load_from_file(path)
+    end
+
+    def load_from_setup_dir
+      setup_dir = File.dirname(File.expand_path(@setup_file_path, Dir.pwd))
+
+      # Skip if setup directory is the same as tests directory or current directory
+      tests_dir = File.expand_path(@tests_path, Dir.pwd)
+      return nil if setup_dir == tests_dir || setup_dir == Dir.pwd
+
+      path = File.join(setup_dir, CONFIG_FILENAME)
       load_from_file(path)
     end
 

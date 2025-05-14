@@ -30,8 +30,15 @@ module Awfy
         # Get options from Thor and convert keys to symbols
         thor_opts = options.to_h.transform_keys(&:to_sym)
 
+        # Create ConfigLoader with appropriate options
+        tests_path = thor_opts[:tests_path] || "./benchmarks/tests"
+        setup_file_path = thor_opts[:setup_file_path] || "./benchmarks/setup"
+
         # Load configuration files with precedence
-        config_loader = ConfigLoader.new
+        config_loader = ConfigLoader.new(
+          tests_path: tests_path,
+          setup_file_path: setup_file_path
+        )
         file_config = config_loader.load_with_precedence
 
         # Merge file config with CLI options (CLI options take highest precedence)
