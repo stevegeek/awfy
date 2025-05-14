@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "fileutils"
-
 module Awfy
   module Runners
     # Base defines the common interface for all runner implementations
