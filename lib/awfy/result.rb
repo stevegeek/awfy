@@ -24,11 +24,12 @@ module Awfy
     prop :commit_hash, _Nilable(String)
     prop :commit_message, _Nilable(String)
 
-    prop :result_id, String, default: -> { generate_new_result_id }
+    prop :result_id, _Nilable(String)
     prop :result_data, _Nilable(Hash)
 
     def after_initialize
       @result_data = @result_data&.transform_keys(&:to_sym)
+      @result_id ||= generate_new_result_id
     end
 
     # Factory method to create Result from a serialized hash

@@ -13,12 +13,10 @@ module Awfy
       end
 
       # Store a benchmark result in memory
-      def save_result(metadata, &block)
-        result_data = execute_result_block(&block)
-
+      def save_result(result)
         @mutex.synchronize do
-          result_id = generate_memory_result_id
-          @stored_results[result_id] = create_complete_metadata(metadata, result_id, result_data)
+          result_id = result.result_id
+          @stored_results[result_id] = result
           result_id
         end
       end
@@ -65,21 +63,6 @@ module Awfy
 
       def initialize_store
         @stored_results = {}
-        @next_id = 1
-      end
-
-      def generate_memory_result_id
-        result_id = "memory-result-#{@next_id}"
-        @next_id += 1
-        result_id
-      end
-
-      def create_complete_metadata(metadata, result_id, result_data)
-        Result.new(
-          **metadata.to_h,
-          result_id: result_id,
-          result_data: result_data
-        )
       end
 
       def all_stored_results

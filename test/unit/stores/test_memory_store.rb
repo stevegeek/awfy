@@ -74,12 +74,10 @@ class MemoryStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test",
-      result_data: {}
+      result_data: {ips: 1000.0}
     )
 
-    @store.save_result(metadata1) do
-      {ips: 1000.0}
-    end
+    @store.save_result(metadata1)
 
     # Store result 2 with different runtime
     metadata2 = Awfy::Result.new(
@@ -93,12 +91,10 @@ class MemoryStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test",
-      result_data: {}
+      result_data: {ips: 1500.0}
     )
 
-    @store.save_result(metadata2) do
-      {ips: 1500.0}
-    end
+    @store.save_result(metadata2)
 
     # Store result 3 with different group
     metadata3 = Awfy::Result.new(
@@ -112,12 +108,10 @@ class MemoryStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test3",
-      result_data: {}
+      result_data:  {ips: 2000.0}
     )
 
-    @store.save_result(metadata3) do
-      {ips: 2000.0}
-    end
+    @store.save_result(metadata3)
 
     # Query for all ips results
     results = @store.query_results(type: :ips)
@@ -162,16 +156,13 @@ class MemoryStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test",
-      result_data: {}
+      result_data:  {ips: 3000.0, iterations: 5000}
     )
 
-    result_data = {ips: 3000.0, iterations: 5000}
+    result_data =
 
     # Store the result
-    result_id = @store.save_result(metadata) do
-      result_data
-    end
-
+    result_id = @store.save_result(metadata)
     # Load the result by ID
     loaded_result = @store.load_result(result_id)
 
@@ -199,13 +190,10 @@ class MemoryStoreTest < Minitest::Test
       commit_message: "Test commit",
       ruby_version: "3.1.0",
       result_id: "test",
-      result_data: {}
+      result_data: {data: "test data"}
     )
 
-    @store.save_result(metadata) do
-      {data: "test data"}
-    end
-
+    @store.save_result(metadata)
     # Verify result was added
     refute_empty @store.stored_results, "Result should be added to store"
 
@@ -251,17 +239,15 @@ class MemoryStoreTest < Minitest::Test
             commit_message: "Test concurrent saves",
             ruby_version: "3.1.0",
             result_id: "test",
-            result_data: {}
-          )
-
-          # Save result with thread-specific data
-          @store.save_result(metadata) do
-            {
+            result_data: {
               thread: thread_index,
               iteration: i,
               data: "Thread #{thread_index} Result #{i}"
             }
-          end
+          )
+
+          # Save result with thread-specific data
+          @store.save_result(metadata)
         end
       end
     end

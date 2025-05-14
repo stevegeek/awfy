@@ -65,7 +65,7 @@ module RunnerTestHelpers
     )
 
     # Create a git client
-    git_client = create_mock_git_client
+    git_client = Awfy::GitClient.new(path: Dir.pwd)
 
     # Create a session with the shell, config, git_client, and results_store
     Awfy::Session.new(
