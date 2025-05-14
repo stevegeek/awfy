@@ -58,7 +58,7 @@ module Awfy
     subcommand "profile", CLICommands::Profile
 
     desc "yjit-stats SUBCOMMAND", "YJIT stats-related commands (start)"
-    subcommand "yjit-stats", CLICommands::YJITStats
+    subcommand "yjitstats", CLICommands::YJITStats
 
     desc "store SUBCOMMAND", "Store-related commands (clean)"
     subcommand "store", CLICommands::Store

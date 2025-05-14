@@ -41,9 +41,8 @@ module Awfy
               iterations.times { test.block.call }
             end
 
-            if verbose?
-              StackProf::Report.new(data).print_text
-            end
+            # For now we only support text output
+            StackProf::Report.new(data).print_text
 
             progress_bar.increment
           end
