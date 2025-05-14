@@ -15,7 +15,7 @@ module Awfy
 
     def unicode_supported? = shell.unicode_supported?
 
-    def verbose? = config.verbose?
+    def verbose?(level = VerbosityLevel::BASIC) = config.verbose?(level)
 
     def say_configuration
       config_view = Views::ConfigView.new(session: self)

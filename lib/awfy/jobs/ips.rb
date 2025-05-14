@@ -6,7 +6,7 @@ module Awfy
   module Jobs
     class IPS < Base
       def call
-        if verbose?
+        if verbose?(VerbosityLevel::BASIC)
           say "> IPS for:"
           say "> #{group.name}...", :cyan
         end
@@ -23,7 +23,7 @@ module Awfy
             # After defining all benchmark items, set up the progress bar
             total_benchmarks = benchmark_job.list.size
 
-            if verbose?
+            if verbose?(VerbosityLevel::BASIC)
               say "> Running #{total_benchmarks} benchmarks", :cyan
             end
 
@@ -36,7 +36,7 @@ module Awfy
             )
             progress_bar.start
 
-            if verbose?
+            if verbose?(VerbosityLevel::DETAILED)
               say "#{group.name}/#{report.name} [#{runtime}] #{total_benchmarks} tests, ~#{"%.1fs" % progress_bar.estimated_total_time}s", :cyan
               say
             end
@@ -65,8 +65,8 @@ module Awfy
             progress_bar.stop(complete: true)
 
             # Only show comparison if requested
-            if verbose? || !config.show_summary?
-              say "> Benchmark comparison:", :cyan unless verbose?
+            if verbose?(VerbosityLevel::DEBUG) || !config.show_summary?
+              say "> Benchmark comparison:", :cyan unless verbose?(VerbosityLevel::DEBUG)
               benchmark_job.compare!
             end
           end

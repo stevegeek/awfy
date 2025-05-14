@@ -6,7 +6,7 @@ module Awfy
   module Jobs
     class Memory < Base
       def call
-        if verbose?
+        if verbose?(VerbosityLevel::BASIC)
           say "> Memory profiling for:"
           say "> #{group.name}...", :cyan
         end
@@ -15,7 +15,7 @@ module Awfy
           # Get total number of tests for progress bar
           total_tests = report.tests.size
 
-          if verbose?
+          if verbose?(VerbosityLevel::BASIC)
             say "> Running #{total_tests} memory profiles", :cyan
           end
 
@@ -26,14 +26,14 @@ module Awfy
             ascii_only: config.ascii_only?
           )
 
-          if verbose?
+          if verbose?(VerbosityLevel::DETAILED)
             say "#{group.name}/#{report.name} [#{runtime}] #{total_tests} tests", :cyan
             say
           end
 
           results = []
           benchmarker.run_tests(report, test_name, output: false) do |test, _|
-            if verbose?
+            if verbose?(VerbosityLevel::DEBUG)
               say "# ***"
               say "# #{test.control? ? "Control" : "Test"}: #{test.name}", :green
               say "# ***"
@@ -44,7 +44,7 @@ module Awfy
               test.block.call
             end
 
-            data.pretty_print if verbose?
+            data.pretty_print if verbose?(VerbosityLevel::DEBUG)
 
             results << {
               test:,

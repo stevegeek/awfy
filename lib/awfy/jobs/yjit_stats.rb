@@ -14,7 +14,7 @@ module Awfy
           exit(1)
         end
 
-        if verbose?
+        if verbose?(VerbosityLevel::BASIC)
           say "> YJIT stats for:"
           say "> #{group.name}...", :cyan
         end
@@ -22,7 +22,7 @@ module Awfy
         benchmarker.run(group, report_name) do |report, runtime|
           total_tests = report.tests.size
 
-          if verbose?
+          if verbose?(VerbosityLevel::BASIC)
             say "> Running #{total_tests} YJIT stats collections", :cyan
           end
 
@@ -32,14 +32,14 @@ module Awfy
             ascii_only: config.ascii_only?
           )
 
-          if verbose?
+          if verbose?(VerbosityLevel::DETAILED)
             say "#{group.name}/#{report.name} [#{runtime}] #{total_tests} tests", :cyan
             say
           end
 
           results = []
           benchmarker.run_tests(report, test_name, output: false) do |test, _|
-            if verbose?
+            if verbose?(VerbosityLevel::DEBUG)
               say "# ***"
               say "# #{test.control? ? "Control" : "Test"}: #{test.name}", :green
               say "# ***"
@@ -55,7 +55,7 @@ module Awfy
             # Collect stats
             stats = RubyVM::YJIT.stats
 
-            if verbose?
+            if verbose?(VerbosityLevel::DEBUG)
               say "YJIT Stats:"
               stats.each do |key, value|
                 say "  #{key}: #{value}"

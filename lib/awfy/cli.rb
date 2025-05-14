@@ -14,7 +14,12 @@ module Awfy
     class_option :summary, type: :boolean, desc: "Generate a summary of the results", default: true
     class_option :summary_order, enum: ["desc", "asc", "leader"], default: "leader", desc: "Sort order for summary tables: ascending, descending, or leaderboard (command specific, e.g. fastest to slowest for IPS)"
     class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
-    class_option :verbose, type: :boolean, desc: "Verbose output", default: false
+    class_option :verbose, type: :numeric, desc: "Verbose output level (0=none, 1=basic, 2=detailed, 3=debug)", default: 0
+    
+    # Shorthand verbosity flags
+    class_option :v, type: :boolean, desc: "Shorthand for --verbose=1", default: false
+    class_option :vv, type: :boolean, desc: "Shorthand for --verbose=2", default: false
+    class_option :vvv, type: :boolean, desc: "Shorthand for --verbose=3", default: false
 
     # Test execution options
     class_option :runner, enum: RunnerTypes.values, default: "immediate", desc: "Type of runner to use for benchmark execution"

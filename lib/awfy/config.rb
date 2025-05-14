@@ -4,8 +4,20 @@ module Awfy
   class Config < Literal::Data
     # Display options
 
-    # verbose output
-    prop :verbose, _Boolean, default: false
+    # verbose output level
+    prop :verbose, VerbosityLevel, default: VerbosityLevel::NONE do |value|
+      if value == true
+        VerbosityLevel::BASIC
+      elsif value == false
+        VerbosityLevel::NONE
+      elsif value.is_a?(Integer)
+        VerbosityLevel[value]
+      elsif value.is_a?(VerbosityLevel)
+        value
+      else
+        raise ArgumentError, "Invalid value for verbose: #{value.inspect}"
+      end
+    end
     # silence output
     prop :quiet, _Boolean, default: false
     # generate a summary of the results
@@ -87,7 +99,10 @@ module Awfy
 
     def quiet? = quiet
 
-    def verbose? = verbose
+    def verbose?(level = VerbosityLevel::BASIC)
+      level_enum = VerbosityLevel[level] || level
+      verbose.value >= level_enum.value
+    end
 
     def assert? = assert
 
@@ -103,6 +118,18 @@ module Awfy
 
     def current_retention_policy
       Awfy::RetentionPolicies.create(retention_policy, retention_days: retention_days)
+    end
+
+    def to_h
+      super.tap do |hash|
+        hash[:runner] = runner.value
+        hash[:storage_backend] = storage_backend.value
+        hash[:retention_policy] = retention_policy.value
+        hash[:verbose] = verbose.value
+        hash[:compare_with_branch] = compare_with_branch.to_s if compare_with_branch
+        hash[:commit_range] = commit_range.to_s if commit_range
+        hash[:ignore_commits] = ignore_commits.to_s if ignore_commits
+      end
     end
   end
 end

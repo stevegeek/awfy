@@ -4,14 +4,6 @@ require "json"
 require "fileutils"
 
 module Awfy
-  # Configuration file locations
-  class ConfigLocation < Literal::Enum(String)
-    Home = new("home")
-    Setup = new("setup")
-    Suite = new("suite")
-    Current = new("current")
-  end
-
   # Responsible for loading configuration from files with precedence hierarchy
   class ConfigLoader
     CONFIG_FILENAME = ".awfy.json"

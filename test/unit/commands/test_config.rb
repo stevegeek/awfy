@@ -24,7 +24,7 @@ module Awfy
         Dir.chdir(@current_dir)
 
         # Create real objects
-        @config = Awfy::Config.new(test_time: 5, runtime: "both", verbose: true)
+        @config = Awfy::Config.new(test_time: 5, runtime: "both", verbose: VerbosityLevel::BASIC)
         @shell = Awfy::Shell.new(config: @config)
         # Use a mock git client to avoid Git repository requirements
         @git_client = GitClient.new(path: @original_pwd) # Use the actual repo we're in
@@ -95,13 +95,13 @@ module Awfy
         assert_match(/Configuration at/, inspect_output)
         assert_match(/test_time.*5/, inspect_output)
         assert_match(/runtime.*both/, inspect_output)
-        assert_match(/verbose.*true/, inspect_output)
+        assert_match(/verbose.*basic/i, inspect_output)
       end
 
       def test_save_and_load_with_precedence
         # Use simple hashes directly instead of Config objects
         home_config = {runtime: "yjit", test_time: 10}
-        suite_config = {runtime: "mri", verbose: false}
+        suite_config = {runtime: "mri", verbose: Awfy::VerbosityLevel::NONE}
         current_config = {test_warm_up: 2}
 
         # Create the config loader
@@ -118,7 +118,7 @@ module Awfy
         # Highest precedence (current) should override others
         assert_equal 2, merged_config[:test_warm_up]
         assert_equal "mri", merged_config[:runtime], "Suite config should override home config"
-        assert_equal false, merged_config[:verbose], "Suite config should override home config"
+        assert_equal VerbosityLevel::NONE, merged_config[:verbose], "Suite config should override home config"
 
         # Now modify current config and verify it takes precedence
         config_loader.save({runtime: "both"}, ConfigLocation::Current)

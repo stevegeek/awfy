@@ -27,7 +27,7 @@ module Awfy
           results = nil
 
           safe_checkout(branch) do
-            say "Running benchmarks on branch: #{branch}" if session.config.verbose?
+            say "Running benchmarks on branch: #{branch}" if session.config.verbose?(VerbosityLevel::BASIC)
 
             cmd_type = command_type || :ips
             run_in_fresh_process(cmd_type, group, report_name, test_name)

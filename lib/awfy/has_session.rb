@@ -18,6 +18,6 @@ module Awfy
 
     def unicode_supported? = session.unicode_supported?
 
-    def verbose? = session.verbose?
+    def verbose?(level = VerbosityLevel::BASIC) = session.verbose?(level)
   end
 end

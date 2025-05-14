@@ -6,7 +6,7 @@ module Awfy
   module Jobs
     class Profiling < Base
       def call
-        if verbose?
+        if verbose?(VerbosityLevel::BASIC)
           say "> CPU profiling for:"
           say "> #{group.name}...", :cyan
         end
@@ -14,7 +14,7 @@ module Awfy
         benchmarker.run(group, report_name) do |report, runtime|
           total_tests = report.tests.size
 
-          if verbose?
+          if verbose?(VerbosityLevel::BASIC)
             say "> Running #{total_tests} CPU profiles", :cyan
           end
 
@@ -24,13 +24,13 @@ module Awfy
             ascii_only: config.ascii_only?
           )
 
-          if verbose?
+          if verbose?(VerbosityLevel::DETAILED)
             say "#{group.name}/#{report.name} [#{runtime}] #{total_tests} tests", :cyan
             say
           end
 
           benchmarker.run_tests(report, test_name, output: false) do |test, iterations|
-            if verbose?
+            if verbose?(VerbosityLevel::DEBUG)
               say "# ***"
               say "# #{test.name}", :green
               say "# ***"
