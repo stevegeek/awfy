@@ -11,7 +11,7 @@ module IntegrationTestHelper
   def setup_test_environment
     # Create a unique ID for this test instance
     @test_instance_id = SecureRandom.hex(8)
-    
+
     # Create a test directory with unique name inside /tmp
     @test_dir = File.join(Dir.tmpdir, "awfy_test_#{@test_instance_id}")
     FileUtils.mkdir_p(@test_dir)
@@ -36,11 +36,11 @@ module IntegrationTestHelper
 
   def teardown_test_environment
     Dir.chdir(@original_dir)
-    
+
     # Explicitly delete the SQLite database file if it exists
     db_file = "#{@test_db_path}.db"
     FileUtils.rm(db_file) if File.exist?(db_file)
-    
+
     # Remove only this test's directory
     FileUtils.remove_entry(@test_dir) if Dir.exist?(@test_dir)
   end

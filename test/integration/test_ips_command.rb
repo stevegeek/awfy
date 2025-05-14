@@ -20,7 +20,7 @@ class IPSCommandTest < Minitest::Test
 
     # Test that results include our test groups
     assert_match(/Test Group/, output)
-    
+
     # Test for progress indicator
     assert_match(/Running:/, output)
   end
@@ -50,7 +50,7 @@ class IPSCommandTest < Minitest::Test
 
     # Check for table structure (borders and separators)
     assert_match(/\+-+\+-+\+-+\+-+\+-+\+/, output)
-    
+
     # Verify table header has expected columns
     assert_match(/\|\s+Timestamp\s+\|\s+Branch\s+\|\s+Runtime\s+\|\s+Name\s+\|\s+IPS\s+\|\s+Vs/, output)
 
@@ -73,7 +73,7 @@ class IPSCommandTest < Minitest::Test
 
     # Query for all IPS results
     results = result_store.query_results(type: :ips)
-    
+
     # Check that results were stored
     refute_empty results, "No results were stored in the SQLite store"
 
@@ -103,7 +103,7 @@ class IPSCommandTest < Minitest::Test
       assert_kind_of TrueClass, entry[:control], "control should be a boolean" if entry[:control]
       assert_kind_of FalseClass, entry[:control], "control should be a boolean" if !entry[:control]
       assert_kind_of Integer, entry[:cycles], "cycles should be an integer"
-      
+
       # Verify samples contains numeric values
       refute_empty entry[:samples], "Samples array should not be empty"
       entry[:samples].each do |sample|

@@ -99,7 +99,7 @@ class MemoryStoreTest < Minitest::Test
       commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_data:  {ips: 2000.0}
+      result_data: {ips: 2000.0}
     )
 
     @store.save_result(metadata3)
@@ -146,7 +146,7 @@ class MemoryStoreTest < Minitest::Test
       commit_hash: "load123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_data:  {ips: 3000.0, iterations: 5000}
+      result_data: {ips: 3000.0, iterations: 5000}
     )
 
     # Store the result
