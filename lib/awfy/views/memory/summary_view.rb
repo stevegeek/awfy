@@ -7,6 +7,7 @@ module Awfy
         def summary_table(results, baseline)
           # Process results for comparison
           result_diffs = result_data_with_diffs(results, baseline)
+          sort_order = config.summary_order
           sorted_results = results.sort_by do |result|
             diff_data = result_diffs[result]
             diff_value = if result == baseline || diff_data[:overlaps] || diff_data[:diff_times].nil? || diff_data[:diff_times].zero?
@@ -55,7 +56,7 @@ module Awfy
           end
 
           # Output the table
-          if config.quiet? && show_summary?
+          if config.quiet? && config.show_summary?
             puts table
           else
             say table

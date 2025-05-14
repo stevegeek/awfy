@@ -7,7 +7,7 @@ require "bigdecimal"
 class TestMemorySummaryView < ViewTestCase
   def setup
     super
-    @view = Awfy::Views::Memory::SummaryView.new(@shell, @options)
+    @view = Awfy::Views::Memory::SummaryView.new(session: @session)
   end
 
   def test_compute_result_diffs
