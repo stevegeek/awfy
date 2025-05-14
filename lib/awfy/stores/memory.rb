@@ -7,75 +7,62 @@ module Awfy
     class Memory < Base
       attr_reader :stored_results
 
-      def initialize(storage_name, retention_policy = nil)
-        super
+      def after_initialize
         initialize_store
+        @mutex = Mutex.new
       end
 
       # Store a benchmark result in memory
-      def save_result(metadata, &block)
-        validate_metadata!(metadata)
-
-        result_id = generate_memory_result_id
-        result_data = execute_result_block(&block)
-        @stored_results[result_id] = create_complete_metadata(metadata, result_id, result_data)
-
-        result_id
+      def save_result(result)
+        @mutex.synchronize do
+          result_id = result.result_id
+          @stored_results[result_id] = result
+          result_id
+        end
       end
 
       # Query stored results with optional filtering
-      def query_results(type: nil, group: nil, report: nil, runtime: nil, commit: nil)
-        # Get all stored results and apply filters from base class
-        apply_filters(
-          all_stored_results,
-          type: type,
-          group: group,
-          report: report,
-          runtime: runtime,
-          commit: commit
-        )
+      def query_results(type: nil, group_name: nil, report_name: nil, runtime: nil, commit_hash: nil)
+        @mutex.synchronize do
+          # Get all stored results and apply filters from base class
+          apply_filters(
+            all_stored_results,
+            type: type,
+            group_name: group_name,
+            report_name: report_name,
+            runtime: runtime,
+            commit: commit_hash
+          )
+        end
       end
 
       # Load a specific result by its ID
       def load_result(result_id)
-        @stored_results[result_id]
+        @mutex.synchronize { @stored_results[result_id] }
       end
 
       # Clean results from memory based on retention policy
       def clean_results
-        # Apply retention policy to each result
-        results_to_keep = {}
+        @mutex.synchronize do
+          # Apply retention policy to each result
+          results_to_keep = {}
 
-        @stored_results.each do |result_id, result|
-          if apply_retention_policy(result)
-            # Keep results that match the retention policy
-            results_to_keep[result_id] = result
+          @stored_results.each do |result_id, result|
+            if retained_by_retention_policy?(result)
+              # Keep results that match the retention policy
+              results_to_keep[result_id] = result
+            end
           end
-        end
 
-        # Replace stored results with the filtered list
-        @stored_results = results_to_keep
+          # Replace stored results with the filtered list
+          @stored_results = results_to_keep
+        end
       end
 
       private
 
       def initialize_store
         @stored_results = {}
-        @next_id = 1
-      end
-
-      def generate_memory_result_id
-        result_id = "memory-result-#{@next_id}"
-        @next_id += 1
-        result_id
-      end
-
-      def create_complete_metadata(metadata, result_id, result_data)
-        Result.new(
-          **metadata.to_h,
-          result_id: result_id,
-          result_data: result_data
-        )
       end
 
       def all_stored_results

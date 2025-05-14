@@ -4,11 +4,17 @@ require "tmpdir"
 require "fileutils"
 require "stringio"
 require "json"
-require "awfy"
+require "securerandom"
+require "test_helper"
 
 module IntegrationTestHelper
   def setup_test_environment
-    @test_dir = Dir.mktmpdir
+    # Create a unique ID for this test instance
+    @test_instance_id = SecureRandom.hex(8)
+
+    # Create a test directory with unique name inside /tmp
+    @test_dir = File.join(Dir.tmpdir, "awfy_test_#{@test_instance_id}")
+    FileUtils.mkdir_p(@test_dir)
     @original_dir = Dir.pwd
 
     # Create necessary directory structure for benchmarks
@@ -20,13 +26,23 @@ module IntegrationTestHelper
     # Setup a git repository with known state
     setup_git_repository
 
+    # Generate a unique database name for this test run
+    @test_db_name = "test_db_#{@test_instance_id}"
+    @test_db_path = File.join(@test_dir, @test_db_name)
+
     # Change to test directory
     Dir.chdir(@test_dir)
   end
 
   def teardown_test_environment
     Dir.chdir(@original_dir)
-    FileUtils.remove_entry(@test_dir)
+
+    # Explicitly delete the SQLite database file if it exists
+    db_file = "#{@test_db_path}.db"
+    FileUtils.rm(db_file) if File.exist?(db_file)
+
+    # Remove only this test's directory
+    FileUtils.remove_entry(@test_dir) if Dir.exist?(@test_dir)
   end
 
   def create_benchmark_dirs
@@ -113,14 +129,12 @@ module IntegrationTestHelper
     thor_options[:test_iterations] ||= ENV.fetch("AWFY_TEST_ITERATIONS", "10").to_i
     thor_options[:verbose] = ENV["VERBOSE"] if ENV["VERBOSE"]
 
-    # Make sure we're using our memory result store for tests
-    thor_options[:storage_backend] = :memory
+    # Use SQLite store with a unique database name for this test run
+    thor_options[:storage_backend] = "sqlite"
+    thor_options[:storage_name] = @test_db_path
 
     # Force classic style for tests to maintain expected output format
     thor_options[:classic_style] = true
-
-    # Reset the stores before each command
-    Awfy::Stores.reset!
 
     # Start the CLI with command and all processed args
     capture_command_output do

@@ -2,30 +2,31 @@
 
 module Awfy
   module RetentionPolicies
-    def create(policy_name, options = {})
-      case policy_name
-      when "none", "keep_none"
-        KeepNone.new(options)
-      when "date", "date_based"
-        DateBased.new(options)
+    def create(policy_name, ...)
+      case RetentionPolicyAliases[policy_name.to_s]
+      when RetentionPolicyAliases::None, RetentionPolicyAliases::KeepNone
+        none
+      when RetentionPolicyAliases::Date, RetentionPolicyAliases::DateBased
+        date_based(...)
+      when RetentionPolicyAliases::Keep, RetentionPolicyAliases::KeepAll
+        keep
       else
-        # Default to keep_all if an unknown policy is specified
-        KeepAll.new(options)
+        raise "Unknown retention policy: #{policy_name}"
       end
     end
 
     def none
-      create("none")
+      KeepNone.new
     end
     alias_method :keep_none, :none
 
     def keep
-      create("keep_all")
+      KeepAll.new
     end
     alias_method :keep_all, :keep
 
-    def date_based
-      create("date_based")
+    def date_based(...)
+      DateBased.new(...)
     end
     alias_method :date, :date_based
 

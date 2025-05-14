@@ -3,20 +3,21 @@
 require "test_helper"
 require "tmpdir"
 require "fileutils"
+require "securerandom"
 
 class SqliteStoreTest < Minitest::Test
   def setup
     # Create a temporary directory for testing
     @test_dir = Dir.mktmpdir
-    
+
     # Set the database path
     @db_path = File.join(@test_dir, "test_results")
-    
+
     # Create retention policy
     retention_policy = Awfy::RetentionPolicies.keep_all
 
     # Create the Sqlite store instance to test
-    @store = Awfy::Stores::Sqlite.new(@db_path, retention_policy)
+    @store = Awfy::Stores::Sqlite.new(storage_name: @db_path, retention_policy: retention_policy)
 
     # SQLite is required for these tests
 
@@ -33,28 +34,26 @@ class SqliteStoreTest < Minitest::Test
     # Create test metadata
     metadata = Awfy::Result.new(
       type: :ips,
-      group: "Test Group",
-      report: "#method_name",
-      runtime: "ruby",
+      group_name: "Test Group",
+      report_name: "#method_name",
+      runtime: "mri",
       timestamp: Time.now.to_i,
       branch: "main",
-      commit: "abc123",
+      commit_hash: "abc123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: "test-id-#{SecureRandom.hex(3)}",
+      result_data: {
+        iterations: 1000,
+        runtime: 0.5,
+        ips: 2000.0
+      }
     )
 
     # Sample benchmark result data
-    result_data = {
-      iterations: 1000,
-      runtime: 0.5,
-      ips: 2000.0
-    }
 
     # Store the result
-    result_id = @store.save_result(metadata) do
-      result_data
-    end
+    result_id = @store.save_result(metadata)
 
     # Assert that the result_id is returned
     assert result_id, "Result ID should be returned"
@@ -63,9 +62,9 @@ class SqliteStoreTest < Minitest::Test
     stored_metadata = @store.load_result(result_id)
     assert_instance_of Awfy::Result, stored_metadata
     stored_data = stored_metadata.result_data
-    assert_equal result_data[:iterations], stored_data["iterations"]
-    assert_equal result_data[:runtime], stored_data["runtime"]
-    assert_equal result_data[:ips], stored_data["ips"]
+    assert_equal 1000, stored_data[:iterations]
+    assert_equal 0.5, stored_data[:runtime]
+    assert_equal 2000, stored_data[:ips].to_i
 
     # Use query_results to verify metadata
     metadata_entries = @store.query_results(type: :ips)
@@ -76,11 +75,11 @@ class SqliteStoreTest < Minitest::Test
     assert our_entry, "Should find our metadata entry"
 
     # Verify metadata content
-    assert_equal "Test Group", our_entry.group
-    assert_equal "#method_name", our_entry.report
-    assert_equal "ruby", our_entry.runtime
+    assert_equal "Test Group", our_entry.group_name
+    assert_equal "#method_name", our_entry.report_name
+    assert_equal "mri", our_entry.runtime.value
     assert_equal "main", our_entry.branch
-    assert_equal "abc123", our_entry.commit
+    assert_equal "abc123", our_entry.commit_hash
   end
 
   def test_query_results
@@ -90,84 +89,81 @@ class SqliteStoreTest < Minitest::Test
     # Store result 1
     metadata1 = Awfy::Result.new(
       type: :ips,
-      group: "Query Group",
-      report: "#method1",
-      runtime: "ruby",
+      group_name: "Query Group",
+      report_name: "#method1",
+      runtime: "mri",
       timestamp: timestamp,
       branch: "main",
-      commit: "query1",
+      commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: "test-id-#{SecureRandom.hex(3)}",
+      result_data: {ips: 1000.0}
     )
 
-    @store.save_result(metadata1) do
-      {ips: 1000.0}
-    end
+    @store.save_result(metadata1)
 
     # Store result 2 with different runtime
     metadata2 = Awfy::Result.new(
       type: :ips,
-      group: "Query Group",
-      report: "#method1",
+      group_name: "Query Group",
+      report_name: "#method1",
       runtime: "yjit",
       timestamp: timestamp,
       branch: "main",
-      commit: "query1",
+      commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: "test-id-#{SecureRandom.hex(3)}",
+      result_data: {ips: 1500.0}
     )
 
-    @store.save_result(metadata2) do
-      {ips: 1500.0}
-    end
+    @store.save_result(metadata2)
 
     # Store result 3 with different group
     metadata3 = Awfy::Result.new(
       type: :ips,
-      group: "Another Group",
-      report: "#method2",
-      runtime: "ruby",
+      group_name: "Another Group",
+      report_name: "#method2",
+      runtime: "mri",
       timestamp: timestamp,
       branch: "main",
-      commit: "query1",
+      commit_hash: "query1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: "test-id-#{SecureRandom.hex(3)}",
+      result_data: {ips: 2000.0}
     )
 
-    @store.save_result(metadata3) do
-      {ips: 2000.0}
-    end
+    @store.save_result(metadata3)
 
     # Query for all ips results
     results = @store.query_results(type: :ips)
     assert_equal 3, results.length, "Should find 3 ips results"
 
     # Query with group filter
-    results = @store.query_results(type: :ips, group: "Query Group")
+    results = @store.query_results(type: :ips, group_name: "Query Group")
     assert_equal 2, results.length, "Should find 2 results for Query Group"
 
     # Query with runtime filter
     results = @store.query_results(type: :ips, runtime: "yjit")
     assert_equal 1, results.length, "Should find 1 result for yjit runtime"
     assert_instance_of Awfy::Result, results.first
-    assert_equal 1500.0, results.first.result_data["ips"], "Should find the correct result"
+    assert_equal 1500.0, results.first.result_data[:ips], "Should find the correct result"
 
     # Query with combination of filters
     results = @store.query_results(
       type: :ips,
-      group: "Query Group",
-      report: "#method1",
-      runtime: "ruby"
+      group_name: "Query Group",
+      report_name: "#method1",
+      runtime: "mri"
     )
     assert_equal 1, results.length, "Should find 1 result matching all criteria"
     assert_instance_of Awfy::Result, results.first
-    assert_equal 1000.0, results.first.result_data["ips"], "Should find the correct result"
+    assert_equal 1000.0, results.first.result_data[:ips], "Should find the correct result"
 
     # Query with commit filter
-    results = @store.query_results(type: :ips, commit: "query1")
+    results = @store.query_results(type: :ips, commit_hash: "query1")
     assert_equal 3, results.length, "Should find 3 results for commit query1"
   end
 
@@ -175,23 +171,20 @@ class SqliteStoreTest < Minitest::Test
     # Store a result to load later
     metadata = Awfy::Result.new(
       type: :ips,
-      group: "Load Test",
-      report: "#load_method",
-      runtime: "ruby",
+      group_name: "Load Test",
+      report_name: "#load_method",
+      runtime: "mri",
       timestamp: Time.now.to_i,
       branch: "main",
-      commit: "load123",
+      commit_hash: "load123",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: "test-id-#{SecureRandom.hex(3)}",
+      result_data: {ips: 3000.0, iterations: 5000}
     )
 
-    result_data = {ips: 3000.0, iterations: 5000}
-
     # Store the result
-    result_id = @store.save_result(metadata) do
-      result_data
-    end
+    result_id = @store.save_result(metadata)
 
     # Load the result by ID
     loaded_result = @store.load_result(result_id)
@@ -200,8 +193,8 @@ class SqliteStoreTest < Minitest::Test
     assert_instance_of Awfy::Result, loaded_result
 
     # Verify loaded data matches original
-    assert_equal result_data[:ips], loaded_result.result_data["ips"]
-    assert_equal result_data[:iterations], loaded_result.result_data["iterations"]
+    assert_equal 3000, loaded_result.result_data[:ips].to_i
+    assert_equal 5000, loaded_result.result_data[:iterations]
 
     # Attempt to load non-existent result
     assert_nil @store.load_result("non-existent-id"), "Should return nil for non-existent ID"
@@ -211,38 +204,36 @@ class SqliteStoreTest < Minitest::Test
     # Store some results
     metadata_temp = Awfy::Result.new(
       type: :clean_test,
-      group: "Clean Group",
-      report: "#temp",
-      runtime: "ruby",
+      group_name: "Clean Group",
+      report_name: "#temp",
+      runtime: "mri",
       timestamp: Time.now.to_i,
       branch: "main",
-      commit: "clean1",
+      commit_hash: "clean1",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: "test-id-#{SecureRandom.hex(3)}",
+      result_data: {data: "temp data"}
     )
 
-    @store.save_result(metadata_temp) do
-      {data: "temp data"}
-    end
+    @store.save_result(metadata_temp)
 
     # Store additional results
     metadata_perm = Awfy::Result.new(
       type: :clean_test,
-      group: "Clean Group",
-      report: "#perm",
-      runtime: "ruby",
+      group_name: "Clean Group",
+      report_name: "#perm",
+      runtime: "mri",
       timestamp: Time.now.to_i,
       branch: "main",
-      commit: "clean2",
+      commit_hash: "clean2",
       commit_message: "Test commit",
       ruby_version: "3.1.0",
-      result_id: nil
+      result_id: "test-id-#{SecureRandom.hex(3)}",
+      result_data: {data: "perm data"}
     )
 
-    @store.save_result(metadata_perm) do
-      {data: "perm data"}
-    end
+    @store.save_result(metadata_perm)
 
     # Verify both results exist
     results = @store.query_results(type: :clean_test)
@@ -258,8 +249,8 @@ class SqliteStoreTest < Minitest::Test
 
     # Create a store with KeepNone policy to remove all results
     keep_none_policy = Awfy::RetentionPolicies.keep_none
-    keep_none_store = Awfy::Stores::Sqlite.new(@db_path, keep_none_policy)
-    
+    keep_none_store = Awfy::Stores::Sqlite.new(storage_name: @db_path, retention_policy: keep_none_policy)
+
     # Clean with KeepNone policy
     keep_none_store.clean_results
 

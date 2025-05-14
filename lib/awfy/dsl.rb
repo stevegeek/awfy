@@ -11,18 +11,6 @@ module Awfy
       suite.groups
     end
 
-    def report(name, &)
-      suite.report(name, &)
-    end
-
-    def control(name, &)
-      suite.control(name, &)
-    end
-
-    def test(name, &)
-      suite.test(name, &)
-    end
-
     def suite
       @suite ||= Suite.new
     end

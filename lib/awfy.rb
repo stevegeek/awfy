@@ -1,27 +1,18 @@
 # frozen_string_literal: true
 
+require "literal"
 require "thor"
-require "git"
-require "json"
-require "terminal-table"
-require "benchmark/ips"
-require "stackprof"
-require "vernier"
-require "memory_profiler"
-
-# Set up Zeitwerk autoloading
 require "zeitwerk"
+
 loader = Zeitwerk::Loader.for_gem
 
 # Configure inflections
 loader.inflector.inflect(
   "cli" => "CLI",
+  "cli_command" => "CLICommand",
+  "cli_commands" => "CLICommands",
   "ips" => "IPS",
-  "yjit_stats" => "YJITStats"
-)
-
-# Configure special inflections for commands directory
-loader.inflector.inflect(
+  "yjit_stats" => "YJITStats",
   "commands/ips" => "Commands::IPS",
   "commands/yjit_stats" => "Commands::YJITStats"
 )

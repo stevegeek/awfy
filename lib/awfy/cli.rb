@@ -2,154 +2,65 @@
 
 module Awfy
   class CLI < Thor
-    include Thor::Actions
-
     def self.exit_on_failure? = true
 
+    # Runtime/comparison options
     class_option :runtime, enum: ["both", "yjit", "mri"], default: "both", desc: "Run with and/or without YJIT enabled"
     class_option :compare_with_branch, type: :string, desc: "Name of branch to compare with results on current branch"
     class_option :compare_control, type: :boolean, desc: "When comparing branches, also re-run all control blocks too", default: false
+    class_option :assert, type: :boolean, desc: "Assert that the results are within a certain threshold coded in the tests", default: false
 
+    # Output/display options
     class_option :summary, type: :boolean, desc: "Generate a summary of the results", default: true
     class_option :summary_order, enum: ["desc", "asc", "leader"], default: "leader", desc: "Sort order for summary tables: ascending, descending, or leaderboard (command specific, e.g. fastest to slowest for IPS)"
     class_option :quiet, type: :boolean, desc: "Silence output. Note if `summary` option is enabled the summaries will be displayed even if `quiet` enabled.", default: false
     class_option :verbose, type: :boolean, desc: "Verbose output", default: false
-    class_option :classic_style, type: :boolean, desc: "Use classic table style instead of modern style", default: false
-    class_option :ascii_only, type: :boolean, desc: "Use only ASCII characters (no Unicode)", default: false
-    class_option :no_color, type: :boolean, desc: "Disable colored output", default: false
 
-    class_option :test_warm_up, type: :numeric, default: 1, desc: "Number of seconds to warmup the IPS benchmark"
-    class_option :test_time, type: :numeric, default: 3, desc: "Number of seconds to run the IPS benchmark"
+    # Test execution options
+    class_option :runner, enum: RunnerTypes.values, default: "immediate", desc: "Type of runner to use for benchmark execution"
+    class_option :test_warm_up, type: :numeric, default: 1.0, desc: "Number of seconds to warmup the IPS benchmark"
+    class_option :test_time, type: :numeric, default: 3.0, desc: "Number of seconds to run the IPS benchmark"
     class_option :test_iterations, type: :numeric, default: 1_000_000, desc: "Number of iterations to run the test"
+
+    # File path options
     class_option :setup_file_path, type: :string, default: "./benchmarks/setup", desc: "Path to the setup file"
     class_option :tests_path, type: :string, default: "./benchmarks/tests", desc: "Path to the tests files"
-    class_option :storage_backend, type: :string, default: DEFAULT_BACKEND, desc: "Storage backend for benchmark results (json or sqlite)"
+
+    # Storage options
+    class_option :storage_backend, type: :string, default: StoreAliases::SQLite.value, desc: "Storage backend for benchmark results ('memory', 'json' or the default, 'sqlite')"
     class_option :storage_name, type: :string, default: "benchmark_history", desc: "Name for the storage repository (database name or directory)"
     class_option :retention_policy, type: :string, default: "keep", desc: "Retention policy for benchmark results (keep or date)"
     class_option :retention_days, type: :numeric, default: 30, desc: "Number of days to keep results (only used with 'date' policy)"
 
-    # TODO: implement assert option
-    # class_option :assert, type: :boolean, desc: "Assert that the results are within a certain threshold coded in the tests"
+    # Output formatting options
+    class_option :list, type: :boolean, desc: "Display output in list format instead of table", default: false
+    class_option :classic_style, type: :boolean, desc: "Use classic table style instead of modern style", default: false
+    class_option :ascii_only, type: :boolean, desc: "Use only ASCII characters (no Unicode)", default: false
+    class_option :no_color, type: :boolean, desc: "Disable colored output", default: false
 
-    desc "list [GROUP]", "List all tests in a group"
-    option :table_format, type: :boolean, desc: "Display output in table format", default: false
-    def list(group = nil)
-      runner.start(group) { Commands::List.new(runner, shell, options: awfy_options).list(_1) }
-    end
+    # Register subcommands
+    desc "suite SUBCOMMAND", "Suite-related commands (list, debug)"
+    subcommand "suite", CLICommands::Suite
 
-    desc "ips [GROUP] [REPORT] [TEST]", "Run IPS benchmarks. Can generate summary across implementations, runtimes and branches."
-    def ips(group = nil, report = nil, test = nil)
-      say "Running IPS for:"
-      say "> #{requested_tests(group, report, test)}..."
+    desc "config SUBCOMMAND", "Configuration-related commands (inspect, save)"
+    subcommand "config", CLICommands::Config
 
-      runner.start(group) { Commands::IPS.new(runner, shell, git_client: git_client, options: awfy_options).benchmark(_1, report, test) }
-    end
+    desc "ips SUBCOMMAND", "IPS-related commands (start)"
+    subcommand "ips", CLICommands::IPS
 
-    desc "memory [GROUP] [REPORT] [TEST]", "Run memory profiling. Can generate summary across implementations, runtimes and branches."
-    def memory(group = nil, report = nil, test = nil)
-      say "Running memory profiling for:"
-      say "> #{requested_tests(group, report, test)}..."
+    desc "memory SUBCOMMAND", "Memory-related commands (start)"
+    subcommand "memory", CLICommands::Memory
 
-      runner.start(group) { Commands::Memory.new(runner, shell, git_client: git_client, options: awfy_options).benchmark(_1, report, test) }
-    end
+    desc "flamegraph SUBCOMMAND", "Flamegraph-related commands (generate)"
+    subcommand "flamegraph", CLICommands::Flamegraph
 
-    desc "flamegraph GROUP REPORT TEST", "Run flamegraph profiling"
-    def flamegraph(group, report, test)
-      say "Creating flamegraph for:"
-      say "> #{requested_tests(group, report, test)}..."
+    desc "profile SUBCOMMAND", "Profile-related commands (start)"
+    subcommand "profile", CLICommands::Profile
 
-      runner.start(group) { Commands::Flamegraph.new(runner, shell, git_client: git_client, options: awfy_options).generate(_1, report, test) }
-    end
+    desc "yjit-stats SUBCOMMAND", "YJIT stats-related commands (start)"
+    subcommand "yjit-stats", CLICommands::YJITStats
 
-    desc "profile [GROUP] [REPORT] [TEST]", "Run CPU profiling"
-    def profile(group = nil, report = nil, test = nil)
-      say "Run profiling of:"
-      say "> #{requested_tests(group, report, test)}..."
-
-      runner.start(group) { Commands::Profiling.new(runner, shell).generate(_1, report, test) }
-    end
-
-    desc "yjit-stats [GROUP] [REPORT] [TEST]", "Run YJIT stats"
-    def yjit_stats(group = nil, report = nil, test = nil)
-      if options[:runtime] == "mri"
-        say_error "Must run with YJIT runtime (if 'both' is selected the command only runs with yjit)"
-        exit(1)
-      end
-
-      say "Running YJIT stats for:"
-      say "> #{requested_tests(group, report, test)}..."
-
-      runner.start(group) { Commands::YJITStats.new(runner, shell).benchmark(_1, report, test) }
-    end
-
-    desc "clean", "Clean up benchmark results based on retention policy"
-    def clean
-      # Create the retention policy first
-      policy = RetentionPolicies.create(awfy_options.retention_policy)
-
-      # Get the result store and pass the retention policy
-      result_store = Stores.create(awfy_options.storage_backend, awfy_options, policy)
-
-      # Clean results
-      result_store.clean_results
-
-      say "Cleaned benchmark results using '#{policy.name}' retention policy"
-    end
-
-    desc "compare <benchmark_type> <COMMIT_RANGE> [GROUP] [REPORT] [TEST]", "Run benchmarks across a range of commits"
-    option :ignore_commits, type: :string, desc: "Commits to ignore, either individual hashes (comma-separated) or ranges 'hash1..hash2' (inclusive)"
-    option :use_cached, type: :boolean, default: true, desc: "Use cached results if available"
-    option :results_only, type: :boolean, default: false, desc: "Only display previously saved results without running new benchmarks"
-    def compare(benchmark_type, commit_range, group = nil, report = nil, test = nil)
-      unless ["ips", "memory", "profile"].include?(benchmark_type)
-        say_error "Unsupported benchmark type: #{benchmark_type}. Use one of: ips, memory, profile"
-        exit(1)
-      end
-
-      # Set commit range in options
-      opts = awfy_options.to_h.merge(commit_range: commit_range)
-      custom_options = Options.new(**opts)
-
-      say "Comparing #{benchmark_type} benchmarks across commits #{commit_range}:"
-      say "> #{requested_tests(group, report, test)}..."
-
-      runner.start(group) do |group_data|
-        Commands::CommitRange.new(runner, shell, git_client, custom_options).benchmark(benchmark_type, group_data, report, test)
-      end
-    end
-
-    private
-
-    def awfy_options
-      # Get options from Thor and convert keys to symbols
-      thor_opts = options.to_h.transform_keys(&:to_sym)
-
-      # Create the Options data object with defaults from Options class
-      Options.new(**thor_opts)
-    end
-
-    def runner
-      @runner ||= Runner.new(Awfy.suite, shell, git_client, awfy_options)
-    end
-
-    def requested_tests(group, report = nil, test = nil)
-      tests = [group, report, test].compact
-      return "(all)" if tests.empty?
-      tests.join("/")
-    end
-
-    def git_client
-      @_git_client ||= ::Git.open(Dir.pwd)
-    end
-
-    def git_current_branch_name = git_client.current_branch
-
-    def yjit_only? = options[:runtime] == "yjit"
-
-    def both_runtimes? = options[:runtime] == "both"
-
-    def verbose? = options[:verbose]
-
-    def show_summary? = options[:summary]
+    desc "store SUBCOMMAND", "Store-related commands (clean)"
+    subcommand "store", CLICommands::Store
   end
 end

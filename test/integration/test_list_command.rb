@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "test_helper"
 require_relative "integration_test_helper"
 
 class ListCommandTest < Minitest::Test
@@ -15,7 +14,7 @@ class ListCommandTest < Minitest::Test
   end
 
   def test_list_command_outputs_correct_format
-    output = run_command("list")
+    output = run_command("suite", "list", options: {list: true})
 
     # Test that groups are listed
     assert_match(/Test Group/, output)
@@ -37,7 +36,7 @@ class ListCommandTest < Minitest::Test
   end
 
   def test_list_command_with_specific_group
-    output = run_command("list", "Test Group")
+    output = run_command("suite", "list", "Test Group", options: {list: true})
 
     # Should include the specified group
     assert_match(/Test Group/, output)
@@ -52,7 +51,7 @@ class ListCommandTest < Minitest::Test
   end
 
   def test_list_command_with_table_format
-    output = run_command("list", options: {table_format: true})
+    output = run_command("suite", "list", options: {list: false})
 
     # Test table format
     assert_match(/\+-+\+/, output) # Table borders
@@ -65,7 +64,7 @@ class ListCommandTest < Minitest::Test
   end
 
   def test_list_command_with_specific_group_and_table_format
-    output = run_command("list", "Another Group", options: {table_format: true})
+    output = run_command("suite", "list", "Another Group", options: {list: false})
 
     # Should include table format
     assert_match(/\+-+\+/, output) # Table borders

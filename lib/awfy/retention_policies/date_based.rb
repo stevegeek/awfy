@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "base"
-
 module Awfy
   module RetentionPolicies
     # A retention policy that keeps benchmark results based on their age.
@@ -11,22 +9,15 @@ module Awfy
     # the last 30 days.
     class DateBased < Base
       # @return [Integer] Number of days to retain results
-      attr_reader :retention_days
-
-      def initialize(options)
-        super
-        @retention_days = options.retention_days || 30
-      end
+      prop :retention_days, Integer, default: 30, reader: :public
 
       def retain?(result)
-        return true unless result.respond_to?(:timestamp)
-
-        cutoff_timestamp = (Time.now - retention_days * 24 * 60 * 60).to_i
-        result.timestamp >= cutoff_timestamp
+        cutoff_time = Time.now - @retention_days * 24 * 60 * 60
+        result.timestamp >= cutoff_time
       end
 
       def name
-        "date_based_#{retention_days}_days"
+        "#{super}_#{retention_days}_days"
       end
     end
   end

@@ -38,28 +38,8 @@ module Awfy
         default: nil
       }.freeze
 
-      # Check if terminal likely supports Unicode
-      def unicode_supported?
-        return false if @options.respond_to?(:ascii_only?) && @options.ascii_only?
-
-        @unicode_supported ||= begin
-          term = ENV["TERM"] || ""
-          lang = ENV["LANG"] || ""
-          term.include?("xterm") || term.include?("256color") ||
-            lang.include?("UTF") || lang.include?("utf")
-        end
-      end
-
-      # Check if terminal likely supports color
-      def color_supported?
-        return false if @options.respond_to?(:no_color?) && @options.no_color?
-
-        @color_supported ||= begin
-          term = ENV["TERM"] || ""
-          no_color = ENV["NO_COLOR"] || ""
-          stdout_tty = $stdout.tty?
-          (!no_color.empty?) ? false : (term.include?("color") || term == "xterm") && stdout_tty
-        end
+      def use_modern_style?
+        !config.classic_style?
       end
 
       # Get appropriate symbols based on terminal capabilities
@@ -108,6 +88,11 @@ module Awfy
         end
 
         color_text(bar, color)
+      end
+
+      def format_table(title, headings, rows)
+        return format_modern_table(title, headings, rows) if use_modern_style?
+        super
       end
 
       # Format a table with enhanced styling
