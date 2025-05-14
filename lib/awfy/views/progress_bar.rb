@@ -52,7 +52,7 @@ module Awfy
 
       # Set the progress to a specific value
       def progress=(value)
-        @current = [[value, 0].max, @total_benchmarks].min
+        @clamp = value.clamp(0, @total_benchmarks)
         @progressbar.progress = @current
 
         # Automatically finish if we've reached the total

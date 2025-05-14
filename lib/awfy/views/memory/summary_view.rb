@@ -128,7 +128,7 @@ module Awfy
             "-"
           elsif diff_data.nil? || diff_data[:diff_times].nil?
             "N/A"
-          elsif diff_data[:overlaps] || diff_data[:diff_times] == 1.0
+          elsif diff_data[:overlaps] || (diff_data[:diff_times] - 1.0).abs < 0.001
             "same"
           elsif diff_data[:diff_times] == Float::INFINITY
             "∞"

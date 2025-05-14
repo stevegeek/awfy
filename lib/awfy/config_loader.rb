@@ -10,7 +10,7 @@ module Awfy
 
     attr_reader :tests_path, :setup_file_path, :test_specific_path
 
-    def initialize(thor_options, explicit_options = {}, tests_path: "./benchmarks", setup_file_path: "./benchmarks/setup", test_specific_path: nil, shell: nil)
+    def initialize(thor_options = {}, explicit_options = {}, tests_path: "./benchmarks", setup_file_path: "./benchmarks/setup", test_specific_path: nil, shell: nil)
       @thor_options = thor_options
       @explicit_options = explicit_options
       @tests_path = tests_path
@@ -26,18 +26,19 @@ module Awfy
       # Start with thor_options and then layer on the configs.
       # Explicit options are highest precedence
 
+      # Load in order of increasing precedence (last merged has highest precedence)
       home_config = load_from_home
       configs << home_config if home_config
 
-      current_config = load_from_current_dir
-      configs << current_config if current_config
+      setup_config = load_from_setup_dir
+      configs << setup_config if setup_config
 
       suite_config = load_from_suite_dir
       configs << suite_config if suite_config
 
-      # Highest precedence to lowest precedence
-      setup_config = load_from_setup_dir
-      configs << setup_config if setup_config
+      # Current directory has highest precedence among config files
+      current_config = load_from_current_dir
+      configs << current_config if current_config
 
       # Merge all configs from files, starting with the CLI values
       merged_config = @thor_options.dup
@@ -139,7 +140,7 @@ module Awfy
         nil
       end
     end
-    
+
     def log_config_load(path)
       relative_path = path.start_with?(Dir.home) ? "~#{path.delete_prefix(Dir.home)}" : path
       @shell.say("Loading config file: #{relative_path}", :cyan)

@@ -116,14 +116,14 @@ module Awfy
         merged_config = config_loader.load_with_precedence
 
         # Highest precedence (current) should override others
-        assert_equal 2, merged_config[:test_warm_up]
-        assert_equal "mri", merged_config[:runtime], "Suite config should override home config"
-        assert_equal 0, merged_config[:verbose], "Suite config should override home config"
+        assert_equal 2, merged_config.test_warm_up
+        assert_equal "mri", merged_config.runtime, "Suite config should override home config"
+        assert_equal VerbosityLevel::NONE, merged_config.verbose, "Suite config should override home config"
 
         # Now modify current config and verify it takes precedence
         config_loader.save({runtime: "both"}, ConfigLocation::Current)
         merged_config = config_loader.load_with_precedence
-        assert_equal "both", merged_config[:runtime], "Current config should override suite config"
+        assert_equal "both", merged_config.runtime, "Current config should override suite config"
       end
     end
   end

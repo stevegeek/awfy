@@ -56,7 +56,7 @@ module Awfy
 
             # Now join back together with test instances
             report_result_data.each do |result_data|
-              test = tests[result_data[:label]]
+              test = tests[result_data[:mapping_label]]
               # FIXME: signature
               results_manager.save_new_result(:ips, group, report, runtime, test, result_data)
             end
@@ -79,7 +79,7 @@ module Awfy
 
       def map_result_data_to_standard_format(entry)
         {
-          label: entry.label, # we should not user entry.label as contains the [.] hacks
+          mapping_label: entry.label, # we should not user entry.label as contains the [.] hacks
           control: marked_as_control?(entry),
           baseline: marked_as_baseline?(entry),
           measured_us: entry.microseconds,

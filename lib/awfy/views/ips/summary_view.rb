@@ -34,7 +34,10 @@ module Awfy
           headings = [
             Rainbow("Timestamp").bright,
             Rainbow("Branch").bright,
+            Rainbow("Commit").bright,
             Rainbow("Runtime").bright,
+            Rainbow("Control").bright,
+            Rainbow("Baseline").bright,
             Rainbow("Name").bright,
             Rainbow("IPS").bright,
             Rainbow("Vs test").bright
@@ -50,7 +53,7 @@ module Awfy
             )
           else
             # Classic style
-            format_table(title, ["Timestamp", "Branch", "Runtime", "Name", "IPS", "Vs test"], rows)
+            format_table(title, ["Timestamp", "Branch", "Commit", "Runtime", "Control", "Baseline", "Name", "IPS", "Vs test"], rows)
           end
 
           # Output the table
@@ -88,13 +91,16 @@ module Awfy
           results.map do |result|
             is_baseline = result == baseline
             diff_message = format_result_diff(result, result_diffs[result], baseline)
-            test_name = is_baseline ? "(test) #{result.label}" : result.label
+            test_name = result.label
             result_stats = Benchmark::IPS::Stats::SD.new(result.result_data[:samples])
 
             [
               result.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-              result.branch || "unknown",
+              result.branch || "?",
+              result.commit_hash ? result.commit_hash[0..7] : "?",
               result.runtime.value,
+              result.control? ? "✓" : "",
+              is_baseline ? "✓" : "",
               test_name,
               humanize_scale(result_stats.central_tendency),
               diff_message

@@ -48,13 +48,13 @@ module Awfy
       # Test with integer values that should be converted to VerbosityLevel
       config = Awfy::Config.new(verbose: 0)
       assert_equal Awfy::VerbosityLevel::NONE, config.verbose
-      
+
       config = Awfy::Config.new(verbose: 1)
       assert_equal Awfy::VerbosityLevel::BASIC, config.verbose
-      
+
       config = Awfy::Config.new(verbose: 2)
       assert_equal Awfy::VerbosityLevel::DETAILED, config.verbose
-      
+
       config = Awfy::Config.new(verbose: 3)
       assert_equal Awfy::VerbosityLevel::DEBUG, config.verbose
     end

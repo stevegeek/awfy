@@ -40,7 +40,7 @@ class IPSCommandTest < Minitest::Test
     assert_match(/\[yjit/, output)
 
     # Check for table output which should be present with summary
-    assert_match(/\+-+\+-+\+-+\+-+\+-+\+/, output)
+    assert_match(/\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+/, output)
   end
 
   def test_ips_summary_view_structure
@@ -48,15 +48,16 @@ class IPSCommandTest < Minitest::Test
     output = run_command("ips", options: {summary: true, summary_order: "foo"})
 
     # Check for table structure (borders and separators)
-    assert_match(/\+-+\+-+\+-+\+-+\+-+\+/, output)
+    assert_match(/\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+/, output)
 
     # Verify table header has expected columns
-    assert_match(/\|\s+Timestamp\s+\|\s+Branch\s+\|\s+Runtime\s+\|\s+Name\s+\|\s+IPS\s+\|\s+Vs/, output)
+    assert_match(/\|\s+Timestamp\s+\|\s+Branch\s+\|\s+Commit\s+\|\s+Runtime\s+\|\s+Control\s+\|\s+Baseline\s+\|\s+Name\s+\|\s+IPS\s+\|\s+Vs/, output)
 
     # Simple check for patterns that should appear in the output
     assert_match(/\d{4}-\d{2}-\d{2}/, output) # Date pattern
-    assert_match(/\|\s+unknown\s+\|/, output) # Branch column
-    assert_match(/\|\s+mri\s+\|/, output)     # Runtime column
+    assert_match(/\|\s+\?\s+\|/, output) # Branch column
+    assert_match(/\|\s+\?\s+\|/, output) # Commit column
+    assert_match(/\|\s+mri\s+\|/, output) # Runtime column
     assert_match(/\|\s+\d+\.\d+[kM]\s+\|/, output) # IPS value with units
 
     assert_match(/Results displayed as a leaderboard/, output)
@@ -87,15 +88,14 @@ class IPSCommandTest < Minitest::Test
 
       # Check required keys exist in the hash
       entry = result.result_data
-      assert entry.key?(:label), "Entry should have a label"
       assert entry.key?(:measured_us), "Entry should have measured_us"
       assert entry.key?(:iter), "Entry should have iter (iterations)"
       assert entry.key?(:samples), "Entry should have samples"
       assert entry.key?(:control), "Entry should have control flag"
       assert entry.key?(:cycles), "Entry should have cycles"
 
-      # Check data types
-      assert_kind_of String, entry[:label], "Label should be a string"
+      # Check label is available from the Result object
+      assert_kind_of String, result.label, "Result should have a label"
       assert_kind_of Float, entry[:measured_us], "measured_us should be a float"
       assert_kind_of Integer, entry[:iter], "iterations should be an integer"
       assert_kind_of Array, entry[:samples], "samples should be an array"

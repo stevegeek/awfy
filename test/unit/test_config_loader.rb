@@ -109,7 +109,7 @@ module Awfy
       assert_equal true, result.quiet?, "Expected quiet from suite config"
       assert_equal 5, result.test_time, "Expected test_time from current config"
     end
-    
+
     def test_load_with_precedence_and_thor_options
       # Create config files in all locations
       home_config = {runtime: "both", verbose: true}
@@ -129,10 +129,10 @@ module Awfy
         storage_backend: "sqlite", # Thor default
         storage_name: "custom_db"  # User explicit option
       }
-      
+
       # Explicitly set options (would come from the user)
       explicit_options = {storage_name: "custom_db"}
-      
+
       # Create config loader with thor options
       config_loader = ConfigLoader.new(
         thor_options,
@@ -147,10 +147,10 @@ module Awfy
       # Make sure the default thor option didn't override the config
       assert_equal "yjit", result.runtime, "Expected runtime from config file, got thor default"
       assert_equal 5, result.test_time, "Expected test_time from config file, got thor default"
-      
+
       # Make sure explicit thor option did override the config
       assert_equal "custom_db", result.storage_name, "Expected storage_name from explicit thor option"
-      
+
       # Other values should be preserved from config files
       assert_equal true, result.verbose?(VerbosityLevel::BASIC), "Expected verbose from home config"
       assert_equal 2.5, result.test_warm_up, "Expected test_warm_up from setup config"

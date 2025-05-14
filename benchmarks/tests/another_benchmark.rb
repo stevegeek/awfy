@@ -23,7 +23,7 @@ Awfy.group "iteration" do
 
     test "for" do
       v = 0
-      for i in array
+      for i in array # rubocop:disable Style/For
         v = i * 2
       end
       v

@@ -48,7 +48,7 @@ module Awfy
           setup_file_path: setup_file_path,
           shell: (thor_opts[:verbose] == 3) ? Thor::Shell::Color.new : nil
         )
-        
+
         @config = config_loader.load_with_precedence
       end
     end

@@ -83,12 +83,16 @@ module Awfy
     end
 
     def generate_new_result_id
-      "#{timestamp}-#{SecureRandom.hex(3)}-#{label_from_attributes}"
+      "#{timestamp}-#{SecureRandom.hex(3)}-#{id_from_attributes}"
     end
 
     private
 
     def label_from_attributes
+      "#{group_name}/#{report_name}"
+    end
+
+    def id_from_attributes
       "#{type}-#{runtime.value}-#{encode_component(branch || "unknown")}-#{encode_component(group_name)}-#{encode_component(report_name)}-#{control? ? "control" : "test"}-#{baseline? ? "baseline" : "result"}"
     end
 
