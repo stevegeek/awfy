@@ -1,0 +1,8 @@
+name: "awfy"
+
+services:
+  awfy-dev-env:
+    container_name: awfy-dev-env
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
