@@ -18,8 +18,7 @@ module Awfy
         raise ArgumentError, "Invalid value for verbose: #{value.inspect}"
       end
     end
-    # silence output
-    prop :quiet, _Boolean, default: false
+
     # generate a summary of the results
     prop :summary, _Boolean, default: true
     # sort order for summary tables - "desc", "asc", "leader"
@@ -93,7 +92,9 @@ module Awfy
 
     def show_summary? = summary
 
-    def quiet? = quiet
+    def quiet?
+      verbose == VerbosityLevel::MUTE
+    end
 
     def verbose?(level = VerbosityLevel::BASIC)
       level_enum = VerbosityLevel[level] || level

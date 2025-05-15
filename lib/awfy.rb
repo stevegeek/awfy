@@ -12,6 +12,7 @@ loader.inflector.inflect(
   "cli_command" => "CLICommand",
   "cli_commands" => "CLICommands",
   "ips" => "IPS",
+  "ips_result" => "IPSResult",
   "yjit_stats" => "YJITStats",
   "commands/ips" => "Commands::IPS",
   "commands/yjit_stats" => "Commands::YJITStats"

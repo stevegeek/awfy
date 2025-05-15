@@ -29,6 +29,10 @@ module Awfy
         return @config if defined?(@config)
         # Get options from Thor and convert keys to symbols
         thor_opts = options.to_h.transform_keys(&:to_sym)
+
+        thor_opts[:verbose] = VerbosityLevel::MUTE if thor_opts[:quiet]
+        thor_opts.delete(:quiet)
+
         thor_opts[:verbose] = VerbosityLevel::BASIC if thor_opts[:v]
         thor_opts.delete(:v)
 

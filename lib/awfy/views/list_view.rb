@@ -38,7 +38,7 @@ module Awfy
         title = "Tests in group: #{group.name}"
         headings = %w[Group Report Test Type]
 
-        table = format_table(title, headings, rows)
+        table = say_table(title, headings, rows)
         say table
       end
     end

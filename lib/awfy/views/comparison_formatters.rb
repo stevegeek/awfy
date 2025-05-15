@@ -95,6 +95,8 @@ module Awfy
           "%.1f%s" % [scaled_value, suffix]
         end
       end
+
+      module_function :humanize_scale
     end
   end
 end

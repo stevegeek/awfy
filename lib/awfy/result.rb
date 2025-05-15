@@ -41,19 +41,27 @@ module Awfy
       hash[:baseline] = true if hash[:baseline] == 1
       hash[:baseline] = false if hash[:baseline] == 0
 
-      hash_with_symbol_keys = hash.transform_keys do |key|
-        key.is_a?(String) ? key.to_sym : key
+      if hash[:type].is_a?(String)
+        hash[:type] = hash[:type].to_sym
       end
 
-      if hash_with_symbol_keys[:type].is_a?(String)
-        hash_with_symbol_keys[:type] = hash_with_symbol_keys[:type].to_sym
+      if hash[:timestamp].is_a?(Integer)
+        hash[:timestamp] = Time.at(hash[:timestamp])
       end
 
-      if hash_with_symbol_keys[:timestamp].is_a?(Integer)
-        hash_with_symbol_keys[:timestamp] = Time.at(hash_with_symbol_keys[:timestamp])
+      result_class(hash[:type]).new(**hash.slice(*literal_properties.map(&:name)))
+    end
+
+    def self.result_class(type)
+      case type
+      when :ips
+        IPSResult
+      when :memory
+        MemoryResult
+      else
+        raise ArgumentError, "Trying to deserialize a result of type #{type} which is unknown"
       end
 
-      Result.new(**hash_with_symbol_keys.slice(*literal_properties.map(&:name)))
     end
 
     def label

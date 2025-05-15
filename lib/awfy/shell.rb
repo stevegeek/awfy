@@ -6,8 +6,40 @@ module Awfy
   class Shell < Literal::Object
     prop :config, Config
 
+    # todo: if quiet silence?
+
     def after_initialize
       @shell = detect_shell
+    end
+
+    # TODO: enums
+    # Unicode symbols for visual indicators
+    UNICODE_SYMBOLS = {
+      up: "▲",
+      down: "▼",
+      neutral: "•",
+      bar_full: "█",
+      bar_empty: "░",
+      check: "✓",
+      cross: "✗",
+      baseline: "○"
+    }.freeze
+
+    # ASCII fallbacks for terminals that don't support Unicode
+    ASCII_SYMBOLS = {
+      up: "^",
+      down: "v",
+      neutral: "*",
+      bar_full: "#",
+      bar_empty: "-",
+      check: "+",
+      cross: "x",
+      baseline: "o"
+    }.freeze
+
+    # Get appropriate symbols based on terminal capabilities
+    def symbols
+      unicode_supported? ? UNICODE_SYMBOLS : ASCII_SYMBOLS
     end
 
     def say_error(message, *args)

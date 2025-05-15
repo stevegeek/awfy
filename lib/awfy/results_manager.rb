@@ -15,7 +15,7 @@ module Awfy
     end
 
     def save_new_result(type, group, report, runtime, test, result_data, commit_hash: nil, commit_message: nil, branch: nil)
-      result = Result.new(
+      result = Result.result_class(type).new(
         control: test.control?,
         baseline: test.baseline?,
         type:,

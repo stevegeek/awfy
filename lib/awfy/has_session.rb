@@ -10,6 +10,8 @@ module Awfy
 
     def config = session.config
 
+    def shell = session.shell
+
     def say(...) = session.say(...)
 
     def say_error(...) = session.say_error(...)
