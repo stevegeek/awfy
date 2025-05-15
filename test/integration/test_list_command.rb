@@ -53,28 +53,41 @@ class ListCommandTest < Minitest::Test
   def test_list_command_with_table_format
     output = run_command("suite", "list", options: {list: false})
 
-    # Test table format
-    assert_match(/\+-+\+/, output) # Table borders
-    assert_match(/\| Group\s+\| Report\s+\| Test\s+\| Type\s+\|/, output) # Headers
+    # Test table format with table_tennis format
+    assert_match(/group/i, output) # Headers
+    assert_match(/report/i, output)
+    assert_match(/test/i, output)
+    assert_match(/type/i, output)
 
     # Test content within table
-    assert_match(/\| Test Group\s+\| \#\+\s+\| Integer\s+\| Control\s+\|/, output)
-    assert_match(/\| Test Group\s+\| \#\+\s+\| Float\s+\| Test\s+\|/, output)
-    assert_match(/\| Another Group\s+\| \#to_s\s+\| Array\s+\| Test\s+\|/, output)
+    assert_match(/Test Group/, output)
+    assert_match(/\#\+/, output)
+    assert_match(/Integer/, output)
+    assert_match(/Float/, output)
+    assert_match(/Control/, output)
+    assert_match(/Test/, output)
+    assert_match(/Another Group/, output)
+    assert_match(/\#to_s/, output)
+    assert_match(/Array/, output)
   end
 
   def test_list_command_with_specific_group_and_table_format
     output = run_command("suite", "list", "Another Group", options: {list: false})
 
-    # Should include table format
-    assert_match(/\+-+\+/, output) # Table borders
+    # Should include table formatting (now table_tennis)
+    assert_match(/group/i, output)
+    assert_match(/report/i, output)
 
     # Should include only "Another Group" entries
-    assert_match(/\| Another Group\s+\| \#to_s\s+\| Integer\s+\| Control\s+\|/, output)
-    assert_match(/\| Another Group\s+\| \#to_s\s+\| Float\s+\| Test\s+\|/, output)
+    assert_match(/Another Group/, output)
+    assert_match(/\#to_s/, output)
+    assert_match(/Integer/, output)
+    assert_match(/Float/, output)
+    assert_match(/Control/, output)
+    assert_match(/Test/, output)
 
     # Should NOT include "Test Group" entries
-    refute_match(/\| Test Group\s+\|/, output)
-    refute_match(/\| \#\+\s+\|/, output)
+    refute_match(/Test Group/, output)
+    refute_match(/\#\+/, output)
   end
 end

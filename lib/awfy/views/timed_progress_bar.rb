@@ -17,7 +17,6 @@ module Awfy
       prop :warmup_time, Float
       prop :test_time, Float
       prop :title, String, default: "Running"
-      prop :ascii_only, _Boolean, default: false
 
       def after_initialize
         @start_time = nil
@@ -33,12 +32,9 @@ module Awfy
       def start
         @start_time = Time.now
 
-        # Check if shell supports unicode, respecting the ascii_only flag
-        use_unicode = !@ascii_only && @shell.unicode_supported?
-
-        # Set proper progress marks based on terminal capabilities
-        progress_mark = use_unicode ? "█" : "#"
-        remainder_mark = use_unicode ? "░" : "-"
+        # Set progress marks based on terminal capabilities
+        progress_mark = @shell.unicode_supported? ? "█" : "#"
+        remainder_mark = @shell.unicode_supported? ? "░" : "-"
 
         @progressbar = ::ProgressBar.create(
           title: @title,

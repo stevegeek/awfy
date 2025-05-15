@@ -46,18 +46,11 @@ module Awfy
             Rainbow("Vs test").bright
           ]
 
-          table = if use_modern_style?
-            # For modern style, add max values for performance bars
-            format_modern_table(
-              Rainbow(title).bright,
-              headings,
-              rows,
-              {memory: max_memory}
-            )
-          else
-            # Classic style
-            format_table(title, ["Timestamp", "Branch", "Runtime", "Name", "Allocated Memory", "Retained Memory", "Objects", "Strings", "Vs test"], rows)
-          end
+          table = format_modern_table(
+            Rainbow(title).bright,
+            headings,
+            rows
+          )
 
           # Output the table
           if config.quiet? && config.show_summary?

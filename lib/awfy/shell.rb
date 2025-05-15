@@ -47,8 +47,6 @@ module Awfy
 
     # Check if Unicode characters are supported by the terminal
     def unicode_supported?
-      return false if @config&.ascii_only?
-
       @unicode_supported ||= begin
         info = terminal_info
         info.term.include?("xterm") || info.term.include?("256color") ||
@@ -58,7 +56,7 @@ module Awfy
 
     # Check if color is supported by the terminal
     def color_supported?
-      return false if @config&.no_color?
+      return false if @config&.color_off?
 
       @color_supported ||= begin
         info = terminal_info

@@ -14,17 +14,13 @@ module Awfy
       prop :shell, Awfy::Shell
       prop :total_benchmarks, Integer
       prop :title, String, default: "Progress"
-      prop :ascii_only, _Boolean, default: false
 
       def after_initialize
         @current = 0
 
-        # Check if shell supports unicode, respecting the ascii_only flag
-        use_unicode = !@ascii_only && @shell.unicode_supported?
-
-        # Set proper progress marks based on terminal capabilities
-        progress_mark = use_unicode ? "█" : "#"
-        remainder_mark = use_unicode ? "░" : "-"
+        # Set progress marks based on terminal capabilities
+        progress_mark = @shell.unicode_supported? ? "█" : "#"
+        remainder_mark = @shell.unicode_supported? ? "░" : "-"
 
         @progressbar = ::ProgressBar.create(
           title: @title,
@@ -52,7 +48,7 @@ module Awfy
 
       # Set the progress to a specific value
       def progress=(value)
-        @clamp = value.clamp(0, @total_benchmarks)
+        @current = value.clamp(0, @total_benchmarks)
         @progressbar.progress = @current
 
         # Automatically finish if we've reached the total

@@ -31,8 +31,7 @@ module Awfy
               shell: session.shell,
               total_benchmarks:,
               warmup_time: config.test_warm_up,
-              test_time: config.test_time,
-              ascii_only: config.ascii_only?
+              test_time: config.test_time
             )
             progress_bar.start
 

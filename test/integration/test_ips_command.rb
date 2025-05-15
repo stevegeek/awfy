@@ -39,26 +39,31 @@ class IPSCommandTest < Minitest::Test
     assert_match(/\[mri/, output)
     assert_match(/\[yjit/, output)
 
-    # Check for table output which should be present with summary
-    assert_match(/\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+/, output)
+    # Check for table output which should be present with summary - now using table_tennis format
+    assert_match(/timestamp/i, output)
+    assert_match(/branch/i, output)
+    assert_match(/runtime/i, output)
   end
 
   def test_ips_summary_view_structure
     # Run IPS command with summary output
     output = run_command("ips", options: {summary: true, summary_order: "foo"})
 
-    # Check for table structure (borders and separators)
-    assert_match(/\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+/, output)
-
-    # Verify table header has expected columns
-    assert_match(/\|\s+Timestamp\s+\|\s+Branch\s+\|\s+Commit\s+\|\s+Runtime\s+\|\s+Control\s+\|\s+Baseline\s+\|\s+Name\s+\|\s+IPS\s+\|\s+Vs/, output)
+    # Verify table header has expected columns - using table_tennis format
+    assert_match(/timestamp/i, output)
+    assert_match(/branch/i, output)
+    assert_match(/commit/i, output)
+    assert_match(/runtime/i, output)
+    assert_match(/control/i, output)
+    assert_match(/baseline/i, output)
+    assert_match(/name/i, output)
+    assert_match(/ips/i, output)
 
     # Simple check for patterns that should appear in the output
     assert_match(/\d{4}-\d{2}-\d{2}/, output) # Date pattern
-    assert_match(/\|\s+\?\s+\|/, output) # Branch column
-    assert_match(/\|\s+\?\s+\|/, output) # Commit column
-    assert_match(/\|\s+mri\s+\|/, output) # Runtime column
-    assert_match(/\|\s+\d+\.\d+[kM]\s+\|/, output) # IPS value with units
+    assert_match(/\?/, output) # Branch info
+    assert_match(/mri/, output) # Runtime name
+    assert_match(/\d+\.\d+[kM]/, output) # IPS value with units
 
     assert_match(/Results displayed as a leaderboard/, output)
   end

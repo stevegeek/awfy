@@ -26,12 +26,8 @@ module Awfy
     prop :summary_order, String, default: "leader"
     # display output in list instead of table format
     prop :list, _Boolean, default: false
-    # use classic style instead of modern style
-    prop :classic_style, _Boolean, default: false
-    # use ASCII characters only (no Unicode)
-    prop :ascii_only, _Boolean, default: false
-    # don't use colored output
-    prop :no_color, _Boolean, default: false
+    # color mode: auto, light, dark, off, ansi
+    prop :color, ColorMode, default: ColorMode::AUTO, &ColorMode
 
     # Runner options
 
@@ -110,11 +106,21 @@ module Awfy
 
     def humanized_runtime = runtime.upcase
 
-    def classic_style? = classic_style
+    def color_enabled?
+      color != ColorMode::OFF
+    end
 
-    def ascii_only? = ascii_only
+    def color_off?
+      color == ColorMode::OFF
+    end
 
-    def no_color? = no_color
+    def color_auto?
+      color == ColorMode::AUTO
+    end
+
+    def color_ansi?
+      color == ColorMode::ANSI
+    end
 
     def current_retention_policy
       Awfy::RetentionPolicies.create(retention_policy, retention_days: retention_days)
@@ -122,6 +128,7 @@ module Awfy
 
     def to_h
       super.tap do |hash|
+        hash[:color] = color.value
         hash[:runner] = runner.value
         hash[:storage_backend] = storage_backend.value
         hash[:retention_policy] = retention_policy.value

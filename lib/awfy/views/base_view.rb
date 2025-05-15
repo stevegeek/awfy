@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "terminal-table"
 require "rainbow"
 
 module Awfy
@@ -10,7 +9,6 @@ module Awfy
       include HasSession
       include TableFormatter
       include ComparisonFormatters
-      include ModernFormatters
     end
   end
 end

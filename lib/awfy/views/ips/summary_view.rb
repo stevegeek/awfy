@@ -43,18 +43,11 @@ module Awfy
             Rainbow("Vs test").bright
           ]
 
-          table = if use_modern_style?
-            # For modern style, add max values for performance bars
-            format_modern_table(
-              Rainbow(title).bright,
-              headings,
-              rows,
-              {ips: max_ips}
-            )
-          else
-            # Classic style
-            format_table(title, ["Timestamp", "Branch", "Commit", "Runtime", "Control", "Baseline", "Name", "IPS", "Vs test"], rows)
-          end
+          table = format_modern_table(
+            Rainbow(title).bright,
+            headings,
+            rows
+          )
 
           # Output the table
           if config.quiet? && show_summary?

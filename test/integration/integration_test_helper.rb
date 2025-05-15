@@ -133,8 +133,8 @@ module IntegrationTestHelper
     thor_options[:storage_backend] = "sqlite"
     thor_options[:storage_name] = @test_db_path
 
-    # Force classic style for tests to maintain expected output format
-    thor_options[:classic_style] = true
+    # Set color mode for tests
+    thor_options[:color] = "off"
 
     # Start the CLI with command and all processed args
     capture_command_output do

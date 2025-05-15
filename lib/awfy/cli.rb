@@ -37,9 +37,7 @@ module Awfy
 
     # Output formatting options
     class_option :list, type: :boolean, desc: "Display output in list format instead of table", default: false
-    class_option :classic_style, type: :boolean, desc: "Use classic table style instead of modern style", default: false
-    class_option :ascii_only, type: :boolean, desc: "Use only ASCII characters (no Unicode)", default: false
-    class_option :no_color, type: :boolean, desc: "Disable colored output", default: false
+    class_option :color, enum: ["auto", "light", "dark", "off", "ansi"], default: "auto", desc: "Color output mode (auto, light, dark, off, or ansi for ANSI-only terminals)"
 
     # Register subcommands
     desc "suite SUBCOMMAND", "Suite-related commands (list, debug)"
