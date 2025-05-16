@@ -106,18 +106,7 @@ bundle exec awfy ips --runner=forked
 
 Example output:
 
-```
-+---------------------------------------------------------------------------+
-|                               JSON/#parse                                   |
-+--------+---------+----------------------------+-------------+---------------+
-| Branch | Runtime | Name                       | IPS         | Vs baseline   |
-+--------+---------+----------------------------+-------------+---------------+
-| main   | yjit    |                 JSON.parse |      3.288M |       2.26 x |
-| main   | mri     |                 JSON.parse |      2.238M |       1.54 x |
-| main   | yjit    |             MyJSONParser   |      2.164M |       1.49 x |
-| main   | mri     |      (baseline) MyJSONParser|      1.455M |           - |
-+--------+---------+----------------------------+-------------+---------------+
-```
+![Example benchmark table output](docs/table_view.png)
 
 ## Documentation
 
