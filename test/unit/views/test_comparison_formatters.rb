@@ -44,7 +44,6 @@ module Awfy
         )
       end
 
-
       def test_format_change
         # Test formatting of percentages
         assert_equal "+50.0%", @formatter.format_change(1.5)

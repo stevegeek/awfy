@@ -109,7 +109,6 @@ class TestMemorySummaryView < ViewTestCase
     assert_equal "(test) Baseline Test", baseline_row.columns[:test_name]
     assert_equal "Test Result", other_row.columns[:test_name]
 
-
     # Check that memory values are formatted correctly in the rendered string
     table_output_message = @shell.messages.find { |m| m[:message].is_a?(String) && m[:message].include?("test_group/test_report") }
     refute_nil table_output_message, "Expected table output string"

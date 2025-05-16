@@ -194,7 +194,7 @@ class ViewTestCase < Minitest::Test
   end
 
   # Helper method to create a Result object
-  def create_test_result(type:, runtime:, group_name:, report_name:, test_name:, result_data: nil, commit_hash:, commit_message:, label:, allocated_memsize: nil, allocated_objects: nil, ips: nil)
+  def create_test_result(type:, runtime:, group_name:, report_name:, test_name:, commit_hash:, commit_message:, label:, result_data: nil, allocated_memsize: nil, allocated_objects: nil, ips: nil)
     result_data ||= {
       label:
     }

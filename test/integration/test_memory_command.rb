@@ -31,7 +31,6 @@ class MemoryCommandTest < Minitest::Test
     # Test that results include our test groups
     assert_match(/Test Group/, output)
 
-
     # Table format is detected
     assert_match(/Times/i, output)
     assert_match(/Bra/i, output)
