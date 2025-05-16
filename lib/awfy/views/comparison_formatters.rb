@@ -44,15 +44,15 @@ module Awfy
         end
       end
 
-      def format_result_diff(result)
-        if result[:is_baseline]
+      def format_result_diff(result, diff_data, is_baseline)
+        if is_baseline
           "-"
-        elsif result[:overlaps] || result[:diff_times]&.zero?
-          "same"
-        elsif result[:diff_times] == Float::INFINITY
+        elsif diff_data[:overlaps] || diff_data[:diff_times].zero?
+          "1.0"
+        elsif diff_data[:diff_times] == Float::INFINITY
           "∞"
-        elsif result[:diff_times]
-          "#{result[:diff_times]} x"
+        elsif diff_data[:diff_times]
+          "#{diff_data[:diff_times]} x"
         else
           "?"
         end

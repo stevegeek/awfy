@@ -16,14 +16,14 @@ module Awfy
           result_diffs = result_data_with_diffs
 
           # TODO: account for sort switch, see  sort_results method
-          sorted_results = results.sort_by do |result|
+          sorted_results = sort_results(results) do |result, factor|
             diff_data = result_diffs[result]
             diff_value = if result == baseline || diff_data[:overlaps] || diff_data[:diff_times].zero?
               0  # "same" results
             else
               diff_data[:diff_times] || Float::INFINITY  # Other results by diff, nil diffs last
             end
-            [diff_value, -result.timestamp.to_i]  # Negative timestamp for desc order
+            [factor * diff_value, -result.timestamp.to_i]  # Negative timestamp for desc order
           end
 
           # Generate table row instances
@@ -68,22 +68,8 @@ module Awfy
           results.map do |result|
             chart = performance_bar(result.central_tendency, max_ips)
             is_baseline = result == baseline
-            diff_message = format_result_diff(result, result_diffs[result])
+            diff_message = format_result_diff(result, result_diffs[result], result == baseline)
             SummaryTable.build_row(result, is_baseline:, diff_message:, chart:)
-          end
-        end
-
-        def format_result_diff(result, diff_data)
-          if result == baseline
-            "-"
-          elsif diff_data[:overlaps] || diff_data[:diff_times].zero?
-            "same"
-          elsif diff_data[:diff_times] == Float::INFINITY
-            "∞"
-          elsif diff_data[:diff_times]
-            "#{diff_data[:diff_times]} x"
-          else
-            "?"
           end
         end
       end

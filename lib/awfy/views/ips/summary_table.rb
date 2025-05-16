@@ -25,7 +25,7 @@ module Awfy
         end
 
         def color_scales
-          {humanized_value: {color: :rg, column: :value, type: :float}, diff: :r}
+          {value: :rg, diff: :b}
         end
 
         def columns
@@ -41,7 +41,8 @@ module Awfy
             control_indicator: "Control",
             # baseline_indicator: "Baseline",
             test_name: "Name",
-            humanized_value: "IPS",
+            value: "IPS",
+            humanized_value: "",
             diff: "vs Test",
             chart: ""
           }

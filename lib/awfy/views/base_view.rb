@@ -10,11 +10,11 @@ module Awfy
       include HasSession
       include ComparisonFormatters
 
-      def sort_results(results, value_extractor, invert = false)
+      def sort_results(results, invert = false, &value_extractor)
         results.sort_by do |result|
           factor = (config.summary_order == "asc") ? 1 : -1
           factor *= -1 if invert
-          factor * value_extractor.call(result)
+          value_extractor.call(result, factor)
         end
       end
 
