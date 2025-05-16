@@ -21,6 +21,11 @@ A CLI tool for running and comparing Ruby benchmarks across different implementa
   - SQLite storage (default)
   - JSON file storage
 
+
+Example output:
+
+![Example benchmark table output](docs/table_view.png)
+
 ## Installation
 
 Add to your application:
@@ -104,9 +109,6 @@ bundle exec awfy ips --runner=forked
 
 ```
 
-Example output:
-
-![Example benchmark table output](docs/table_view.png)
 
 ## Documentation
 
