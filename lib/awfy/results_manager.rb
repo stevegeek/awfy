@@ -21,6 +21,7 @@ module Awfy
         type:,
         group_name: group.name,
         report_name: report.name,
+        test_name: test.name,
         runtime:,
         timestamp: start_time,
         branch:,

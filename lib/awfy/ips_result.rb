@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require "uri"
-require "securerandom"
-
 module Awfy
   # Data object for benchmark result metadata
   class IPSResult < Result

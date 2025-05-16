@@ -99,7 +99,14 @@ module Awfy
 
       def generate_memory_summary
         results_manager.each_report(:memory) do |results, baseline|
-          Views::Memory::SummaryView.new(session:).summary_table(results, baseline)
+          Views::Memory::SummaryView.new(
+            group_name: group.name,
+            report_name:,
+            test_name:,
+            session:,
+            results:,
+            baseline:
+          ).render
         end
       end
     end

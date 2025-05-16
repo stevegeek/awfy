@@ -38,7 +38,7 @@ module Awfy
         end
       end
 
-      def query_results(type: nil, group_name: nil, report_name: nil, runtime: nil, commit: nil)
+      def query_results(type: nil, group_name: nil, report_name: nil, test_name: nil, runtime: nil, commit: nil)
         @mutex.synchronize do
           # Find result files matching the criteria
           result_files = Dir.glob(File.join(storage_name, "*#{AWFY_RESULT_EXTENSION}"))
@@ -54,6 +54,7 @@ module Awfy
             type: type,
             group_name: group_name,
             report_name: report_name,
+            test_name: test_name,
             runtime: runtime,
             commit: commit
           )

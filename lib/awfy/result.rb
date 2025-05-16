@@ -14,6 +14,7 @@ module Awfy
 
     prop :group_name, String
     prop :report_name, String
+    prop :test_name, String
 
     prop :runtime, Awfy::Runtimes, default: Awfy::Runtimes::MRI, &Awfy::Runtimes
     prop :timestamp, Time do
@@ -68,8 +69,12 @@ module Awfy
       if result_data&.key?(:label)
         result_data[:label]
       else
-        label_from_attributes
+        "#{report_name}/#{test_name}"
       end
+    end
+
+    def long_label
+      "[#{group_name}/#{report_name}] #{test_name}"
     end
 
     def to_h
@@ -95,10 +100,6 @@ module Awfy
     end
 
     private
-
-    def label_from_attributes
-      "#{group_name}/#{report_name}"
-    end
 
     def id_from_attributes
       "#{type}-#{runtime.value}-#{encode_component(branch || "unknown")}-#{encode_component(group_name)}-#{encode_component(report_name)}-#{control? ? "control" : "test"}-#{baseline? ? "baseline" : "result"}"

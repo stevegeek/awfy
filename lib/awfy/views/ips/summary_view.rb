@@ -15,7 +15,6 @@ module Awfy
           # Process results for comparison
           result_diffs = result_data_with_diffs
 
-          # TODO: account for sort switch, see  sort_results method
           sorted_results = sort_results(results) do |result, factor|
             diff_data = result_diffs[result]
             diff_value = if result == baseline || diff_data[:overlaps] || diff_data[:diff_times].zero?

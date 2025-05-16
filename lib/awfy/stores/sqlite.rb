@@ -16,6 +16,7 @@ module Awfy
           type TEXT,
           group_name TEXT,
           report_name TEXT,
+          test_name TEXT,
           runtime TEXT,
           timestamp INTEGER,
           branch TEXT,
@@ -38,13 +39,13 @@ module Awfy
         result.result_id
       end
 
-      def query_results(type: nil, group_name: nil, report_name: nil, runtime: nil, commit_hash: nil)
+      def query_results(type: nil, group_name: nil, report_name: nil, test_name: nil, runtime: nil, commit_hash: nil)
         results = []
 
         with_database_connection do |db|
           db.results_as_hash = true
 
-          sql, params = build_query_sql(type, group_name, report_name, runtime, commit_hash)
+          sql, params = build_query_sql(type, group_name, report_name, test_name, runtime, commit_hash)
           db.execute(sql, params) do |row|
             results << create_result_from_row(row)
           end
@@ -120,6 +121,7 @@ module Awfy
         db.execute "CREATE INDEX IF NOT EXISTS idx_results_type ON results (type);"
         db.execute "CREATE INDEX IF NOT EXISTS idx_results_group ON results (group_name);"
         db.execute "CREATE INDEX IF NOT EXISTS idx_results_report ON results (report_name);"
+        db.execute "CREATE INDEX IF NOT EXISTS idx_results_test ON results (test_name);"
         db.execute "CREATE INDEX IF NOT EXISTS idx_results_commit ON results (commit_hash);"
         db.execute "CREATE INDEX IF NOT EXISTS idx_results_timestamp ON results (timestamp);"
       end
@@ -129,9 +131,9 @@ module Awfy
         result_data_json = result.result_data.to_json
 
         db.execute(
-          "INSERT INTO results (result_id, type, control, baseline, group_name, report_name, runtime,
+          "INSERT INTO results (result_id, type, control, baseline, group_name, report_name, test_name, runtime,
             timestamp, branch, commit_hash, commit_message, ruby_version, result_data)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             result.result_id,
             result.type.to_s,
@@ -139,6 +141,7 @@ module Awfy
             result.baseline? ? 1 : 0,
             result.group_name,
             result.report_name,
+            result.test_name,
             result.runtime.value,
             timestamp,
             result.branch,
@@ -150,7 +153,7 @@ module Awfy
         )
       end
 
-      def build_query_sql(type, group_name, report_name, runtime, commit)
+      def build_query_sql(type, group_name, report_name, test_name, runtime, commit)
         sql = "SELECT * FROM results WHERE 1=1"
         params = []
 
@@ -167,6 +170,11 @@ module Awfy
         if report_name
           sql += " AND report_name = ?"
           params << report_name
+        end
+
+        if test_name
+          sql += " AND test_name = ?"
+          params << test_name
         end
 
         if commit

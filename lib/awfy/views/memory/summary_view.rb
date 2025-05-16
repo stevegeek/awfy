@@ -4,66 +4,42 @@ module Awfy
   module Views
     module Memory
       class SummaryView < BaseView
-        def summary_table(results, baseline)
+        prop :group_name, String, reader: :private
+        prop :report_name, _Nilable(String), reader: :private
+        prop :test_name, _Nilable(String), reader: :private
+
+        prop :results, _Array(Result), reader: :private
+        prop :baseline, Result, reader: :private
+
+        def render
           # Process results for comparison
-          result_diffs = result_data_with_diffs(results, baseline)
-          sort_order = config.summary_order
-          sorted_results = results.sort_by do |result|
-            # For memory view, we want to sort by allocated memory size
-            # Put baseline first, then sort by allocated memory
+          result_diffs = result_data_with_diffs
+
+          sorted_results = sort_results(results) do |result, factor|
             memory_size = result.result_data[:allocated_memsize] || 0
             is_baseline = (result == baseline) ? 0 : 1
-
-            # Primary sort key is baseline status (0 for baseline, 1 for others)
-            # Secondary sort key depends on sort order
-            memory_key = (sort_order == "asc") ? memory_size : -memory_size
-
-            # Final sort key is timestamp (negative for desc order)
-            [is_baseline, memory_key, -result.timestamp.to_i]
+            
+            # For memory, lower is better so invert the factor
+            [-is_baseline, factor * memory_size, -result.timestamp.to_i]
           end
 
-          # Find max memory value for performance bar scaling
-          max_memory = sorted_results.map do |result|
-            result.result_data[:allocated_memsize]
-          end.max
+          # Generate table row instances
+          rows = generate_table_rows(sorted_results, result_diffs)
 
-          # Generate table rows
-          rows = generate_table_rows(sorted_results, result_diffs, baseline)
-
-          # Generate and display the table
-          result = results.first
-          title = table_title(result.group_name, result.report_name)
-
-          headings = [
-            Rainbow("Timestamp").bright,
-            Rainbow("Branch").bright,
-            Rainbow("Runtime").bright,
-            Rainbow("Name").bright,
-            Rainbow("Allocated Memory").bright,
-            Rainbow("Retained Memory").bright,
-            Rainbow("Objects").bright,
-            Rainbow("Strings").bright,
-            Rainbow("Vs test").bright
-          ]
-
-          table = format_modern_table(
-            Rainbow(title).bright,
-            headings,
-            rows
+          table = SummaryTable.new(
+            session:,
+            group_name:,
+            report_name:,
+            test_name:,
+            rows:
           )
 
-          # Output the table
-          if config.quiet? && config.show_summary?
-            puts table
-          else
-            say table
-            say order_description(true)  # true for memory mode
-          end
+          say say_table(table)
         end
 
         private
 
-        def result_data_with_diffs(results, baseline)
+        def result_data_with_diffs
           baseline_memory = baseline.result_data[:allocated_memsize]
 
           results.each_with_object({}) do |result, diffs|
@@ -96,28 +72,22 @@ module Awfy
           end
         end
 
-        def generate_table_rows(results, result_diffs, baseline)
+        def generate_table_rows(results, result_diffs)
+          # Find max memory value for performance bar scaling
+          max_memory = results.map { |r| r.result_data[:allocated_memsize] || 0 }.max
+
           results.map do |result|
+            memory_size = result.result_data[:allocated_memsize] || 0
+            chart = performance_bar(memory_size, max_memory)
             is_baseline = result == baseline
-            diff_message = format_result_diff(result, result_diffs[result], baseline)
-            test_name = is_baseline ? "(test) #{result.label}" : result.label
-            memory_data = result.result_data
-            [
-              result.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-              result.branch || "unknown",
-              result.runtime.value,
-              test_name,
-              humanize_scale(memory_data[:allocated_memsize]),
-              humanize_scale(memory_data[:retained_memsize]),
-              humanize_scale(memory_data[:allocated_objects]),
-              humanize_scale(memory_data[:allocated_strings]),
-              diff_message
-            ]
+            diff_message = format_result_diff(result, result_diffs[result], is_baseline)
+            
+            SummaryTable.build_row(result, is_baseline:, diff_message:, chart:)
           end
         end
 
-        def format_result_diff(result, diff_data, baseline)
-          if result == baseline
+        def format_result_diff(result, diff_data, is_baseline)
+          if is_baseline
             "-"
           elsif diff_data.nil? || diff_data[:diff_times].nil?
             "N/A"
