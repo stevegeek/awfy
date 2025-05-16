@@ -1,43 +1,29 @@
 # Awfy (Are We Fast Yet)
 
-CLI tool to help run suites of benchmarks and compare results between control implementations, across branches and with or without YJIT.
+A CLI tool for running and comparing Ruby benchmarks across different implementations, runtimes (MRI/YJIT), and git branches or commits.
 
-The benchmarks are written using a simple DSL in your target project.
+## Features
 
-Supports running:
+- **Multiple Benchmark Types**
+  - IPS benchmarks (using [benchmark-ips](https://rubygems.org/gems/benchmark-ips))
+  - Memory profiling (using [memory_profiler](https://rubygems.org/gems/memory_profiler))
+  - CPU profiling (using [stackprof](https://rubygems.org/gems/stackprof))
+  - Flamegraph generation (using [vernier](https://rubygems.org/gems/vernier))
+  - YJIT statistics
 
-- IPS benchmarks (with [benchmark-ips](https://rubygems.org/gems/benchmark-ips))
-- Memory profiling (with [memory_profiler](https://rubygems.org/gems/memory_profiler))
-- CPU profiling (with [stackprof](https://rubygems.org/gems/stackprof))
-- Flamegraph profiling (with [vernier](https://rubygems.org/gems/vernier))
+- **Rich Comparison Features**
+  - Compare multiple implementations
+  - Compare across git branches or commit ranges
+  - Compare with/without YJIT
+  - Generate summary reports
 
-Awfy can also create summary reports of the results which can be useful for comparing the performance of different implementations **(supported for IPS and memory benchmarks)**.
-
-### Example Report:
-
-```
-+---------------------------------------------------------------------------+
-|                           Struct/#some_method                             |
-+--------+---------+----------------------------+-------------+-------------+
-| Branch | Runtime | Name                       | IPS         | Vs baseline |
-+--------+---------+----------------------------+-------------+-------------+
-| perf   | mri     |                 Ruby Struct|      3.288M |      2.26 x |
-| perf   | yjit    |                 Ruby Struct|      3.238M |      2.22 x |
-| perf   | yjit    |                    MyStruct|      2.364M |      1.62 x |
-| main   | yjit    |                    MyStruct|      2.255M |      1.55 x |
-| perf   | mri     |         (baseline) MyStruct|      1.455M |      -      |
-+--------+---------+----------------------------+-------------+-------------+
-| main   | mri     |                    MyStruct|      1.248M |      -1.1 x |
-| perf   | yjit    |                 Dry::Struct|      1.213M |      -1.2 x |
-| perf   | mri     |                 Dry::Struct|    639.178k |     -2.28 x |
-| perf   | yjit    |     ActiveModel::Attributes|    487.398k |     -2.99 x |
-| perf   | mri     |     ActiveModel::Attributes|    310.554k |     -4.69 x |
-+--------+---------+----------------------------+-------------+-------------+
-```
+- **Persist results**
+  - SQLite storage (default)
+  - JSON file storage
 
 ## Installation
 
-Add the gem to your application:
+Add to your application:
 
 ```ruby
 group :development, :test do
@@ -45,189 +31,103 @@ group :development, :test do
 end
 ```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+Or install directly:
 
 ```bash
 gem install awfy
 ```
 
-## Usage
+## Quick Start
 
-Imagine we have a custom implementation of a Struct class called `MyStruct`. We want to compare the performance of our implementation with the built-in `Struct` class
-and other similar implementations.
+1. Create a benchmark suite directory:
 
-First, we need to create a setup file in the `benchmarks/setup.rb` directory. For example:
+```bash
+mkdir -p benchmarks/tests
+```
+
+2. Create a setup file (optional):
 
 ```ruby
-# setup.rb
-
-# We need to require Awfy to use the DSL in our tests
+# benchmarks/setup.rb
 require "awfy"
+require "json"  # Add any dependencies your benchmarks need
 
-require "dry-struct"
-require "active_model"
+# Setup test data or helper methods
+SAMPLE_DATA = { "name" => "test", "values" => [1, 2, 3] }.freeze
 
-class DryStruct < Dry::Struct
-  attribute :name, Types::String
-  attribute :age, Types::Integer
+def create_test_object
+  SAMPLE_DATA.dup
 end
-
-class ActiveModelAttributes
-  include ActiveModel::API
-  include ActiveModel::Attributes
-  
-  attribute :name, :string
-  attribute :age, :integer
-end
-
-# ... etc
 ```
 
-Then we write benchmarks in files in the `benchmarks/tests` directory. For example:
+3. Write your first benchmark:
 
 ```ruby
-# benchmarks/tests/struct.rb
-
-# A group is a collection of related reports
-Awfy.group "Struct" do
-  # A report is a collection of tests related to one method or feature we want to benchmark
-  report "#some_method" do
-    # We do not want to the benchmark to include the creation of the object
-    my_struct = MyStruct.new(name: "John", age: 30)
-    ruby_struct = Struct.new(:name, :age).new("John", 30)
-    dry_struct = DryStruct.new(name: "John", age: 30)
-    active_model_attributes = ActiveModelAttributes.new(name: "John", age: 30)
+# benchmarks/tests/json_parsing.rb
+Awfy.group "JSON" do
+  report "#parse" do
+    # Setup test data
+    json_string = SAMPLE_DATA.to_json
     
-    # "control" blocks are used to compare the performance to other implementations
-    control "Ruby Struct" do
-      ruby_struct.some_method
+    # Benchmark standard library as control
+    control "JSON.parse" do
+      JSON.parse(json_string)
     end
     
-    control "Dry::Struct" do
-      dry_struct.some_method
+    # Benchmark your implementation
+    test "MyJSONParser" do
+      MyJSONParser.parse(json_string)
     end
-    
-    control "ActiveModel::Attributes" do
-      active_model_attributes.some_method
-    end
-    
-    # This is our implementation under test
-    test "MyStruct" do
-      my_struct.some_method
-    end  
   end
-  
 end
 ```
 
-### IPS Benchmarks & Summary Reports
+4. Run the benchmark:
 
-Say you are working on performance improvements in a branch called `perf`.
+
+For example:
 
 ```bash
-git checkout perf
+# Run IPS benchmark
+bundle exec awfy ips
+# or more explicitly:
+# bundle exec awfy ips start JSON "#parse"
 
-# ... make some changes ... then run the benchmarks
+# Compare with another branch
+bundle exec awfy ips --compare-with=main
 
-bundle exec awfy ips Struct "#some_method" --compare-with=main --runtime=both
+# Run without YJIT
+bundle exec awfy ips --runtime=mri
+
+# Run benchmark in parallel
+bundle exec awfy ips --runner=forked
+
 ```
 
-Note the comparison here is with the "baseline" which is the "test" block running on MRI without YJIT enabled, on the
-current branch.
+Example output:
 
 ```
-Running IPS for:
-> Struct/#some_method...
-> [mri - branch 'perf'] Struct / #some_method
-> [mri - branch 'main'] Struct / #some_method
-> [yjit - branch 'perf'] Struct / #some_method
-> [yjit - branch 'main'] Struct / #some_method
 +---------------------------------------------------------------------------+
-|                           Struct/#some_method                             |
-+--------+---------+----------------------------+-------------+-------------+
-| Branch | Runtime | Name                       | IPS         | Vs baseline |
-+--------+---------+----------------------------+-------------+-------------+
-| perf   | mri     |                 Ruby Struct|      3.288M |      2.26 x |
-| perf   | yjit    |                 Ruby Struct|      3.238M |      2.22 x |
-| perf   | yjit    |                    MyStruct|      2.364M |      1.62 x |
-| main   | yjit    |                    MyStruct|      2.255M |      1.55 x |
-| perf   | mri     |         (baseline) MyStruct|      1.455M |      -      |
-+--------+---------+----------------------------+-------------+-------------+
-| main   | mri     |                    MyStruct|      1.248M |      -1.1 x |
-| perf   | yjit    |                 Dry::Struct|      1.213M |      -1.2 x |
-| perf   | mri     |                 Dry::Struct|    639.178k |     -2.28 x |
-| perf   | yjit    |     ActiveModel::Attributes|    487.398k |     -2.99 x |
-| perf   | mri     |     ActiveModel::Attributes|    310.554k |     -4.69 x |
-+--------+---------+----------------------------+-------------+-------------+
+|                               JSON/#parse                                   |
++--------+---------+----------------------------+-------------+---------------+
+| Branch | Runtime | Name                       | IPS         | Vs baseline   |
++--------+---------+----------------------------+-------------+---------------+
+| main   | yjit    |                 JSON.parse |      3.288M |       2.26 x |
+| main   | mri     |                 JSON.parse |      2.238M |       1.54 x |
+| main   | yjit    |             MyJSONParser   |      2.164M |       1.49 x |
+| main   | mri     |      (baseline) MyJSONParser|      1.455M |           - |
++--------+---------+----------------------------+-------------+---------------+
 ```
 
+## Documentation
 
-### Memory Profiling
+For detailed documentation, see:
 
-```bash
-bundle exec awfy memory Struct "#some_method"
-```
-
-Produces a report like:
-
-```
-+----------------------------------------------------------------------------------------------------------------+
-|                                                  Struct/.new                                                   |
-+--------+---------+----------------------------+-------------------+-------------+----------------+-------------+
-| Branch | Runtime | Name                       | Total Allocations | Vs baseline | Total Retained | Vs baseline |
-+--------+---------+----------------------------+-------------------+-------------+----------------+-------------+
-| perf   | mri     |    ActiveModel::Attributes |            1.200k |      3.33 x |            640 |           ∞ |
-| perf   | yjit    |    ActiveModel::Attributes |            1.200k |      3.33 x |              0 |        same |
-| perf   | mri     |                Dry::Struct |               360 |       1.0 x |            160 |           ∞ |
-| perf   | mri     | (baseline) Literal::Struct |               360 |           - |              0 |           - |
-+--------+---------+----------------------------+-------------------+-------------+----------------+-------------+
-| perf   | yjit    |                Dry::Struct |               360 |        same |              0 |        same |
-| perf   | yjit    |            Literal::Struct |               360 |        same |              0 |        same |
-| perf   | mri     |                Ruby Struct |               200 |     -0.56 x |              0 |        same |
-| perf   | mri     |                  Ruby Data |               200 |     -0.56 x |              0 |        same |
-| perf   | yjit    |                Ruby Struct |               200 |     -0.56 x |              0 |        same |
-| perf   | yjit    |                  Ruby Data |               200 |     -0.56 x |              0 |        same |
-+--------+---------+----------------------------+-------------------+-------------+----------------+-------------+
-```
-
-## CLI Options
-
-```
-bundle exec awfy -h
-Commands:
-  awfy flamegraph GROUP REPORT TEST     # Run flamegraph profiling
-  awfy help [COMMAND]                   # Describe available commands or one specific command
-  awfy ips [GROUP] [REPORT] [TEST]      # Run IPS benchmarks
-  awfy list [GROUP]                     # List all tests in a group
-  awfy memory [GROUP] [REPORT] [TEST]   # Run memory profiling
-  awfy profile [GROUP] [REPORT] [TEST]  # Run CPU profiling
-
-Options:
-  [--runtime=RUNTIME]                                                    # Run with and/or without YJIT enabled
-                                                                         # Default: both
-                                                                         # Possible values: both, yjit, mri
-  [--compare-with=COMPARE_WITH]                                          # Name of branch to compare with results on current branch
-  [--compare-control], [--no-compare-control], [--skip-compare-control]  # When comparing branches, also re-run all control blocks too
-                                                                         # Default: false
-  [--summary], [--no-summary], [--skip-summary]                          # Generate a summary of the results
-                                                                         # Default: true
-  [--verbose], [--no-verbose], [--skip-verbose]                          # Verbose output
-                                                                         # Default: false
-  [--ips-warmup=N]                                                       # Number of seconds to warmup the benchmark
-                                                                         # Default: 1
-  [--ips-time=N]                                                         # Number of seconds to run the benchmark
-                                                                         # Default: 3
-  [--temp-output-directory=TEMP_OUTPUT_DIRECTORY]                        # Directory to store temporary output files
-                                                                         # Default: ./benchmarks/tmp
-  [--setup-file-path=SETUP_FILE_PATH]                                    # Path to the setup file
-                                                                         # Default: ./benchmarks/setup
-  [--tests-path=TESTS_PATH]                                              # Path to the tests files
-                                                                         # Default: ./benchmarks/tests
-```
-
-## Development
-
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+- [Benchmark Suite Guide](docs/benchmark-suite.md) - How to write benchmarks
+- [Configuration Guide](docs/configuration.md) - Configuration options
+- [Command Reference](docs/commands.md) - Available commands
+- [Advanced Usage](docs/advanced-usage.md) - Advanced features
+- [Best Practices](docs/best-practices.md) - Tips and guidelines
 
 ## Contributing
 
@@ -235,4 +135,4 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/steveg
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+Available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
