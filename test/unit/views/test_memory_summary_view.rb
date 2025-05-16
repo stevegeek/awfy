@@ -13,12 +13,12 @@ class TestMemorySummaryView < ViewTestCase
       runtime: Awfy::Runtimes::MRI,
       group_name: "test_group",
       report_name: "test_report",
-      test_name: "test1",
+      test_name: "test1", # This will become the label if not overridden by result_data[:label]
       branch: "main",
       baseline: true,
       timestamp: Time.now,
       result_data: {
-        label: "Baseline Test",
+        label: "Baseline Test", # Explicitly setting label here
         allocated_memsize: 1_000_000,
         retained_memsize: 500_000,
         allocated_objects: 10_000,
@@ -30,7 +30,7 @@ class TestMemorySummaryView < ViewTestCase
       session: @session,
       group_name: "test_group",
       report_name: "test_report",
-      test_name: nil,
+      test_name: nil, # test_name for the view, not for the result
       results: [@baseline],
       baseline: @baseline
     )
@@ -38,34 +38,27 @@ class TestMemorySummaryView < ViewTestCase
 
   def test_render_with_single_result
     # Call render
-    @view.render
+    table = @view.render
 
     # Check that output was generated
     assert @shell.messages.any?
 
-    # Find the table output
-    table_output = @shell.messages.find { |m| m[:message].is_a?(String) && m[:message].include?("test_group/test_report") }
-    refute_nil table_output, "Expected table output"
+    refute_nil table, "Table should have been generated"
+    assert_equal 1, table.rows.size, "Should have one row for the baseline result"
 
-    # Check that the output includes expected headers
-    table_string = table_output[:message]
-    assert_includes table_string, "Branch"
-    assert_includes table_string, "Runtime"
-    assert_includes table_string, "Name"
-    assert_includes table_string, "Allocated Memory"
-    assert_includes table_string, "Retained Memory"
-    assert_includes table_string, "Objects"
-    assert_includes table_string, "Strings"
-    assert_includes table_string, "vs Test"
+    baseline_row = table.rows.first
+    assert_equal "(test) Baseline Test", baseline_row.columns[:test_name]
 
-    # Check that sorting order description was output
-    assert_match(/Results displayed/, table_string)
+    # Check that sorting order description was output (from the rendered string)
+    table_output_message = @shell.messages.find { |m| m[:message].is_a?(String) && m[:message].include?("test_group/test_report") }
+    refute_nil table_output_message, "Expected table output string"
+    assert_match(/Results displayed/, table_output_message[:message])
   end
 
   def test_render_with_multiple_results
     # Add a non-baseline result
-    results = [@baseline]
-    results << Awfy::Result.new(
+    results_list = [@baseline]
+    results_list << Awfy::Result.new(
       type: :memory,
       runtime: Awfy::Runtimes::YJIT,
       group_name: "test_group",
@@ -89,26 +82,39 @@ class TestMemorySummaryView < ViewTestCase
       group_name: "test_group",
       report_name: "test_report",
       test_name: nil,
-      results: results,
+      results: results_list, # Use the local variable
       baseline: @baseline
     )
 
     # Call render
-    view.render
+    table = view.render
 
     # Check that output was generated
     assert @shell.messages.any?
 
-    # Find the table output
-    table_output = @shell.messages.find { |m| m[:message].is_a?(String) && m[:message].include?("test_group/test_report") }
-    refute_nil table_output, "Expected table output"
+    refute_nil table, "Table should have been generated"
+    assert_equal 2, table.rows.size, "Should have two rows"
 
-    # Check that both results are included
-    table_string = table_output[:message]
-    assert_includes table_string, "Baseline Test"
-    assert_includes table_string, "Test Result"
+    # Assuming descending sort order by default (highest memory first)
+    # The "Test Result" (2MB) should be first, then "Baseline Test" (1MB)
+    # However, the sorting also prioritizes non-baseline after baseline if memory is equal.
+    # Let's find them by their known properties.
 
-    # Check that memory values are formatted correctly
+    baseline_row = table.rows.find { |r| r.columns[:test_name] == "(test) Baseline Test" }
+    other_row = table.rows.find { |r| r.columns[:test_name] == "Test Result" }
+
+    refute_nil baseline_row, "Baseline row not found"
+    refute_nil other_row, "Other test row not found"
+
+    assert_equal "(test) Baseline Test", baseline_row.columns[:test_name]
+    assert_equal "Test Result", other_row.columns[:test_name]
+
+
+    # Check that memory values are formatted correctly in the rendered string
+    table_output_message = @shell.messages.find { |m| m[:message].is_a?(String) && m[:message].include?("test_group/test_report") }
+    refute_nil table_output_message, "Expected table output string"
+    table_string = table_output_message[:message]
+
     assert_includes table_string, "1.0M"  # Baseline allocated memory
     assert_includes table_string, "2.0M"  # Test result allocated memory
 

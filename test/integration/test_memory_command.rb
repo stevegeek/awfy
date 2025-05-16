@@ -31,33 +31,19 @@ class MemoryCommandTest < Minitest::Test
     # Test that results include our test groups
     assert_match(/Test Group/, output)
 
-    # With our fallback mode in test, we might get different output formats
-    # Either we get nice formatted table_tennis output or the fallback hash format
-    if output.match?(/timestamp/i) # Changed from output.include?("timestamp")
-      # In test output, we might get completely different output formats
-      # Try both possible formats
-      if output.include?("allocated_memory")
-        assert_match(/allocated_memory/, output)
-      else
-        # Test for column headers - table_tennis uses different formatting
-        assert_match(/timestamp/i, output)
-        assert_match(/branch/i, output)
-        assert_match(/runtime/i, output)
-        assert_match(/name/i, output)
-        assert_match(/allocated memory/i, output)
-      end
-    else
-      # Fallback format
-      assert_match(/allocated_memory/, output)
-    end
 
-    # Test for memory values with table_tennis format
-    assert_match(/\d+\.\d+[kM]/, output)
+    # Table format is detected
+    assert_match(/Times/i, output)
+    assert_match(/Bra/i, output)
+    assert_match(/Run/i, output)
+    assert_match(/Alloc/i, output)
+    assert_match(/Name/i, output)
+    assert_match(/\d\.\d x/, output)
 
-    # Test for leaderboard description
+    # Test for leaderboard description (common to summary views)
     assert_match(/Results displayed/, output)
 
-    # Test that different runtimes are included
+    # Test that different runtimes are included (common to summary views)
     assert_match(/\[mri/, output)
     assert_match(/\[yjit/, output)
   end

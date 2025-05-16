@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require_relative "test_helper" # Ensures ViewTestCase is loaded
 
 module Awfy
   module Views

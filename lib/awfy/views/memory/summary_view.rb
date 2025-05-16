@@ -35,6 +35,8 @@ module Awfy
           )
 
           say_table(table)
+
+          table
         end
 
         private
