@@ -4,9 +4,9 @@ require "test_helper"
 
 module Awfy
   module Views
-    class TestTimedProgressBar < Minitest::Test
+    class TestTimedProgressBar < ::ViewTestCase
       def setup
-        @shell = Awfy::Shell.new(config: Config.new)
+        super
         @total_benchmarks = 5
         @warmup_time = 0.1
         @test_time = 0.2

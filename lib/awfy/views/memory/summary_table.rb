@@ -17,13 +17,13 @@ module Awfy
               control_indicator: result.control? ? "✓" : "",
               test_name: is_baseline ? "(test) #{result.label}" : result.label,
               allocated_memory: memory_data[:allocated_memsize] || 0,
-              humanized_allocated: Awfy::Views::ComparisonFormatters.humanize_scale(memory_data[:allocated_memsize]),
+              humanized_allocated: humanize_scale(memory_data[:allocated_memsize]),
               retained_memory: memory_data[:retained_memsize] || 0,
-              humanized_retained: Awfy::Views::ComparisonFormatters.humanize_scale(memory_data[:retained_memsize]),
+              humanized_retained: humanize_scale(memory_data[:retained_memsize]),
               objects: memory_data[:allocated_objects] || 0,
-              humanized_objects: Awfy::Views::ComparisonFormatters.humanize_scale(memory_data[:allocated_objects]),
+              humanized_objects: humanize_scale(memory_data[:allocated_objects]),
               strings: memory_data[:allocated_strings] || 0,
-              humanized_strings: Awfy::Views::ComparisonFormatters.humanize_scale(memory_data[:allocated_strings]),
+              humanized_strings: humanize_scale(memory_data[:allocated_strings]),
               diff: diff_message,
               chart:
             }

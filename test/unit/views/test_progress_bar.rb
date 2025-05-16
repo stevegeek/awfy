@@ -4,11 +4,7 @@ require "test_helper"
 
 module Awfy
   module Views
-    class TestProgressBar < Minitest::Test
-      def setup
-        @shell = Awfy::Shell.new(config: Config.new)
-      end
-
+    class TestProgressBar < ::ViewTestCase
       def test_progress_bar_initialization
         progress_bar = ProgressBar.new(
           shell: @shell,

@@ -4,6 +4,7 @@ module Awfy
   module Views
     class Table < Literal::Object
       include HasSession
+      extend ComparisonFormatters
 
       prop :group_name, String, reader: :private
       prop :report_name, _Nilable(String), reader: :private
@@ -37,8 +38,6 @@ module Awfy
           :light
         when ColorMode::ANSI
           :ansi
-        else
-          nil
         end
       end
 

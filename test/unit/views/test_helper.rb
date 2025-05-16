@@ -16,12 +16,10 @@ class TestShell < Awfy::Shell
 
   def say(message = "", color = nil)
     @messages << {message: message, color: color}
-    super
   end
 
   def say_error(message)
     @errors << message
-    super
   end
 end
 
@@ -33,7 +31,6 @@ class ViewTestCase < Minitest::Test
       verbose: Awfy::VerbosityLevel::NONE.value, # Corrected: Use VerbosityLevel enum value
       summary: true,
       summary_order: "desc"
-      # Removed: quiet: false (handled by verbose level)
     )
 
     @shell = TestShell.new(config: @config)
@@ -57,6 +54,19 @@ class ViewTestCase < Minitest::Test
     )
   end
 
+  def capture_output
+    original_stdout = $stdout
+    output_capture = StringIO.new
+    $stdout = output_capture
+
+    begin
+      yield
+      output_capture.string
+    ensure
+      $stdout = original_stdout
+    end
+  end
+
   # Generate results by commit for view tests
   def generate_results_by_commit(num_commits = 3, with_mri = true, with_yjit = true, type = :memory)
     results = {}
@@ -76,7 +86,7 @@ class ViewTestCase < Minitest::Test
               test_name: "test1",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
-              item: "test1",
+              label: "test1",
               allocated_memsize: 100000 * i,
               allocated_objects: 1000 * i
             ),
@@ -88,7 +98,7 @@ class ViewTestCase < Minitest::Test
               test_name: "test2",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
-              item: "test2",
+              label: "test2",
               allocated_memsize: 200000 * i,
               allocated_objects: 2000 * i
             )
@@ -103,7 +113,7 @@ class ViewTestCase < Minitest::Test
               test_name: "test1",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
-              item: "test1",
+              label: "test1",
               ips: 1000.0 * i
             ),
             create_test_result(
@@ -114,7 +124,7 @@ class ViewTestCase < Minitest::Test
               test_name: "test2",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
-              item: "test2",
+              label: "test2",
               ips: 2000.0 * i
             )
           ]
@@ -132,7 +142,7 @@ class ViewTestCase < Minitest::Test
               test_name: "test1",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
-              item: "test1",
+              label: "test1",
               allocated_memsize: 100000 * i,
               allocated_objects: 1000 * i
             ),
@@ -144,7 +154,7 @@ class ViewTestCase < Minitest::Test
               test_name: "test2",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
-              item: "test2",
+              label: "test2",
               allocated_memsize: 200000 * i,
               allocated_objects: 2000 * i
             )
@@ -159,7 +169,7 @@ class ViewTestCase < Minitest::Test
               test_name: "test1",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
-              item: "test1",
+              label: "test1",
               ips: 1500.0 * i
             ),
             create_test_result(
@@ -170,7 +180,7 @@ class ViewTestCase < Minitest::Test
               test_name: "test2",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
-              item: "test2",
+              label: "test2",
               ips: 3000.0 * i
             )
           ]
@@ -184,9 +194,9 @@ class ViewTestCase < Minitest::Test
   end
 
   # Helper method to create a Result object
-  def create_test_result(type:, runtime:, group_name:, report_name:, test_name:, commit_hash:, commit_message:, item:, allocated_memsize: nil, allocated_objects: nil, ips: nil)
-    result_data = {
-      label: item
+  def create_test_result(type:, runtime:, group_name:, report_name:, test_name:, result_data: nil, commit_hash:, commit_message:, label:, allocated_memsize: nil, allocated_objects: nil, ips: nil)
+    result_data ||= {
+      label:
     }
 
     # Add appropriate data based on test type

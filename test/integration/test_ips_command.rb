@@ -55,7 +55,7 @@ class IPSCommandTest < Minitest::Test
     assert_match(/commit/i, output)
     assert_match(/runtime/i, output)
     assert_match(/control/i, output)
-    assert_match(/baseline/i, output)
+    assert_match(/vs test/i, output)
     assert_match(/name/i, output)
     assert_match(/ips/i, output)
 

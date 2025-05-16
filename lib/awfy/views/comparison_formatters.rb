@@ -6,12 +6,8 @@ module Awfy
   module Views
     # Common methods for formatting comparison results
     module ComparisonFormatters
-      def to_big_decimal(value)
-        BigDecimal(value.to_s)
-      end
-
       def format_change(ratio)
-        bd_ratio = to_big_decimal(ratio)
+        bd_ratio = BigDecimal(ratio.to_s)
         bd_one = BigDecimal("1.0")
 
         if bd_ratio > bd_one
@@ -26,7 +22,7 @@ module Awfy
       end
 
       def format_comparison(ratio, higher_is_better = true, precision = 2)
-        bd_ratio = to_big_decimal(ratio)
+        bd_ratio = BigDecimal(ratio.to_s)
         bd_one = BigDecimal("1.0")
 
         return "baseline" if bd_ratio == bd_one
@@ -64,7 +60,7 @@ module Awfy
         elsif !result[:memory_diff]
           "N/A"
         else
-          bd_memory_diff = to_big_decimal(result[:memory_diff])
+          bd_memory_diff = BigDecimal(result[:memory_diff].to_s)
           bd_one = BigDecimal("1.0")
           if bd_memory_diff == bd_one
             "same"
@@ -95,8 +91,6 @@ module Awfy
           "%.1f%s" % [scaled_value, suffix]
         end
       end
-
-      module_function :humanize_scale
     end
   end
 end

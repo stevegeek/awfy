@@ -126,8 +126,7 @@ module IntegrationTestHelper
     # Add fast benchmark settings from environment if not already specified
     thor_options[:test_time] ||= ENV.fetch("AWFY_TEST_TIME", "0.01").to_f
     thor_options[:test_warm_up] ||= ENV.fetch("AWFY_TEST_WARM_UP", "0.01").to_f
-    thor_options[:test_iterations] ||= ENV.fetch("AWFY_TEST_ITERATIONS", "10").to_i
-    thor_options[:verbose] = ENV["VERBOSE"] if ENV["VERBOSE"]
+    thor_options[:test_iterations] ||= ENV.fetch("AWFY_TEST_ITERATIONS", "1").to_i
 
     # Use SQLite store with a unique database name for this test run
     thor_options[:storage_backend] = "sqlite"

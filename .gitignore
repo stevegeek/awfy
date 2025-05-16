@@ -11,3 +11,5 @@
 benchmarks/tmp
 benchmarks/saved
 Gemfile.lock
+.awfy.json
+benchmark_history.db

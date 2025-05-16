@@ -17,7 +17,7 @@ module Awfy
               # baseline_indicator: is_baseline ? "✓" : "",
               test_name: result.label,
               value: result.central_tendency,
-              humanized_value: Awfy::Views::ComparisonFormatters.humanize_scale(result.central_tendency),
+              humanized_value: humanize_scale(result.central_tendency),
               diff: diff_message,
               chart:
             }
