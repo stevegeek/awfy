@@ -22,9 +22,10 @@ class RetentionPoliciesTest < Minitest::Test
 
     # Test with a Result object
     result = Awfy::Result.new(
-      type: :test,
+      type: :ips,
       group_name: "test_group",
       report_name: "test_report",
+      test_name: "test_case_keep_all",
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now - 3600 * 24 * 365, # 1 year ago
       branch: "main",
@@ -47,9 +48,10 @@ class RetentionPoliciesTest < Minitest::Test
 
     # Test with a Result object
     result = Awfy::Result.new(
-      type: :test,
+      type: :ips,
       group_name: "test_group",
       report_name: "test_report",
+      test_name: "test_case_keep_none",
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now, # even a fresh result
       branch: "main",
@@ -73,9 +75,10 @@ class RetentionPoliciesTest < Minitest::Test
 
     # Test with a recent result (should be kept)
     recent_result = Awfy::Result.new(
-      type: :test,
+      type: :ips,
       group_name: "test_group",
       report_name: "test_report",
+      test_name: "test_case_recent_default",
       runtime: "mri",
       timestamp: Time.now - 3600 * 24 * 15, # 15 days ago
       branch: "main",
@@ -90,9 +93,10 @@ class RetentionPoliciesTest < Minitest::Test
 
     # Test with an old result (should be deleted)
     old_result = Awfy::Result.new(
-      type: :test,
+      type: :ips,
       group_name: "test_group",
       report_name: "test_report",
+      test_name: "test_case_old_default",
       runtime: "mri",
       timestamp: Time.now - 3600 * 24 * 60, # 60 days ago
       branch: "main",
@@ -116,9 +120,10 @@ class RetentionPoliciesTest < Minitest::Test
 
     # Test with a result from 5 days ago (should be kept)
     recent_result = Awfy::Result.new(
-      type: :test,
+      type: :ips,
       group_name: "test_group",
       report_name: "test_report",
+      test_name: "test_case_recent_custom",
       runtime: "mri",
       timestamp: Time.now - 3600 * 24 * 5, # 5 days ago
       branch: "main",
@@ -133,9 +138,10 @@ class RetentionPoliciesTest < Minitest::Test
 
     # Test with a result from 10 days ago (should be deleted)
     old_result = Awfy::Result.new(
-      type: :test,
+      type: :ips,
       group_name: "test_group",
       report_name: "test_report",
+      test_name: "test_case_old_custom",
       runtime: "mri",
       timestamp: Time.now - 3600 * 24 * 10, # 10 days ago
       branch: "main",

@@ -30,10 +30,10 @@ class ViewTestCase < Minitest::Test
   def setup
     # Create proper Awfy objects instead of mocks
     @config = Awfy::Config.new(
-      verbose: false,
+      verbose: Awfy::VerbosityLevel::NONE.value, # Corrected: Use VerbosityLevel enum value
       summary: true,
-      summary_order: "desc",
-      quiet: false
+      summary_order: "desc"
+      # Removed: quiet: false (handled by verbose level)
     )
 
     @shell = TestShell.new(config: @config)
@@ -73,6 +73,7 @@ class ViewTestCase < Minitest::Test
               runtime: Awfy::Runtimes::MRI,
               group_name: "test_group",
               report_name: "test_report",
+              test_name: "test1",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
               item: "test1",
@@ -84,6 +85,7 @@ class ViewTestCase < Minitest::Test
               runtime: Awfy::Runtimes::MRI,
               group_name: "test_group",
               report_name: "test_report",
+              test_name: "test2",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
               item: "test2",
@@ -98,6 +100,7 @@ class ViewTestCase < Minitest::Test
               runtime: Awfy::Runtimes::MRI,
               group_name: "test_group",
               report_name: "test_report",
+              test_name: "test1",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
               item: "test1",
@@ -108,6 +111,7 @@ class ViewTestCase < Minitest::Test
               runtime: Awfy::Runtimes::MRI,
               group_name: "test_group",
               report_name: "test_report",
+              test_name: "test2",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
               item: "test2",
@@ -125,6 +129,7 @@ class ViewTestCase < Minitest::Test
               runtime: Awfy::Runtimes::YJIT,
               group_name: "test_group",
               report_name: "test_report",
+              test_name: "test1",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
               item: "test1",
@@ -136,6 +141,7 @@ class ViewTestCase < Minitest::Test
               runtime: Awfy::Runtimes::YJIT,
               group_name: "test_group",
               report_name: "test_report",
+              test_name: "test2",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
               item: "test2",
@@ -150,6 +156,7 @@ class ViewTestCase < Minitest::Test
               runtime: Awfy::Runtimes::YJIT,
               group_name: "test_group",
               report_name: "test_report",
+              test_name: "test1",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
               item: "test1",
@@ -160,6 +167,7 @@ class ViewTestCase < Minitest::Test
               runtime: Awfy::Runtimes::YJIT,
               group_name: "test_group",
               report_name: "test_report",
+              test_name: "test2",
               commit_hash: commit,
               commit_message: "Commit message #{i}",
               item: "test2",
@@ -176,7 +184,7 @@ class ViewTestCase < Minitest::Test
   end
 
   # Helper method to create a Result object
-  def create_test_result(type:, runtime:, group_name:, report_name:, commit_hash:, commit_message:, item:, allocated_memsize: nil, allocated_objects: nil, ips: nil)
+  def create_test_result(type:, runtime:, group_name:, report_name:, test_name:, commit_hash:, commit_message:, item:, allocated_memsize: nil, allocated_objects: nil, ips: nil)
     result_data = {
       label: item
     }
@@ -194,8 +202,9 @@ class ViewTestCase < Minitest::Test
       runtime: runtime,
       group_name: group_name,
       report_name: report_name,
+      test_name: test_name,
       branch: "main",
-      commit_hash: commit,
+      commit_hash: commit_hash,
       commit_message: commit_message,
       timestamp: Time.now,
       result_data: result_data

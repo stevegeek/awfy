@@ -26,10 +26,11 @@ class JsonStoreTest < Minitest::Test
 
   def test_save_result
     # Create test result
-    result = Awfy::Result.new(
+    result = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Test Group",
       report_name: "#method_name",
+      test_name: "test_case",
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now,
       branch: "main",
@@ -65,6 +66,7 @@ class JsonStoreTest < Minitest::Test
     result_content = JSON.parse(File.read(result_files.first))
     assert_equal "Test Group", result_content["group_name"]
     assert_equal "#method_name", result_content["report_name"]
+    assert_equal "test_case", result_content["test_name"]
     assert_equal "mri", result_content["runtime"]
     assert_equal "main", result_content["branch"]
     assert_equal "abc123", result_content["commit_hash"]
@@ -76,10 +78,11 @@ class JsonStoreTest < Minitest::Test
 
   def test_save_result_additional
     # Create test result
-    result = Awfy::Result.new(
+    result = Awfy::MemoryResult.new(
       type: :memory,
       group_name: "Test Group",
       report_name: "#memory_test",
+      test_name: "memory_test_case",
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now,
       branch: "main",
@@ -110,10 +113,11 @@ class JsonStoreTest < Minitest::Test
     timestamp = Time.now
 
     # Store result 1
-    result1 = Awfy::Result.new(
+    result1 = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Query Group",
       report_name: "#method1",
+      test_name: "test1",
       runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
@@ -127,10 +131,11 @@ class JsonStoreTest < Minitest::Test
     @store.save_result(result1)
 
     # Store result 2 with different runtime
-    result2 = Awfy::Result.new(
+    result2 = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Query Group",
       report_name: "#method1",
+      test_name: "test2",
       runtime: Awfy::Runtimes::YJIT,
       timestamp: timestamp,
       branch: "main",
@@ -144,10 +149,11 @@ class JsonStoreTest < Minitest::Test
     @store.save_result(result2)
 
     # Store result 3 with different group
-    result3 = Awfy::Result.new(
+    result3 = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Another Group",
       report_name: "#method2",
+      test_name: "test3",
       runtime: Awfy::Runtimes::MRI,
       timestamp: timestamp,
       branch: "main",
@@ -194,10 +200,11 @@ class JsonStoreTest < Minitest::Test
 
   def test_load_result
     # Store a result to load later
-    result = Awfy::Result.new(
+    result = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Load Test",
       report_name: "#load_method",
+      test_name: "load_test_case",
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now,
       branch: "main",
@@ -218,7 +225,7 @@ class JsonStoreTest < Minitest::Test
     loaded_result = @store.load_result(result_id)
 
     # Verify loaded result is a Result object
-    assert_instance_of Awfy::Result, loaded_result
+    assert_instance_of Awfy::IPSResult, loaded_result
 
     # Verify loaded data matches original
     assert_equal 3000.0, loaded_result.result_data[:ips]
@@ -228,19 +235,20 @@ class JsonStoreTest < Minitest::Test
   def create_test_result_file(days_ago = 0)
     # Create test files in the storage directory
     FileUtils.mkdir_p(@storage_dir)
-    test_file = File.join(@storage_dir, "test-results-#{days_ago.to_i}-#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
+    test_file = File.join(@storage_dir, "test-results-#{days_ago.to_i}-#{SecureRandom.hex(3)}-#{Awfy::Stores::AWFY_RESULT_EXTENSION}")
     # Create a valid result with proper Result object
-    test_result = Awfy::Result.new(
-      type: :test,
+    test_result = Awfy::IPSResult.new(
+      type: :ips,
       group_name: "test_group",
       report_name: "test_report",
+      test_name: "test_case_clean_#{days_ago}",
       runtime: Awfy::Runtimes::MRI,
       timestamp: Time.now - (days_ago * 24 * 60 * 60),
       branch: "main",
       commit_hash: "test",
       commit_message: "test",
       ruby_version: "3.0.0",
-      result_id: "test-results",
+      result_id: "test-results-#{days_ago.to_i}-#{SecureRandom.hex(3)}",
       result_data: {test: "results"}
     )
 

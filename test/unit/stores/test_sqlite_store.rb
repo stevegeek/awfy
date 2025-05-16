@@ -32,10 +32,11 @@ class SqliteStoreTest < Minitest::Test
 
   def test_save_result
     # Create test metadata
-    metadata = Awfy::Result.new(
+    metadata = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Test Group",
       report_name: "#method_name",
+      test_name: "test_case",
       runtime: "mri",
       timestamp: Time.now.to_i,
       branch: "main",
@@ -60,7 +61,7 @@ class SqliteStoreTest < Minitest::Test
 
     # Load stored data and verify it matches original
     stored_metadata = @store.load_result(result_id)
-    assert_instance_of Awfy::Result, stored_metadata
+    assert_instance_of Awfy::IPSResult, stored_metadata
     stored_data = stored_metadata.result_data
     assert_equal 1000, stored_data[:iterations]
     assert_equal 0.5, stored_data[:runtime]
@@ -77,6 +78,7 @@ class SqliteStoreTest < Minitest::Test
     # Verify metadata content
     assert_equal "Test Group", our_entry.group_name
     assert_equal "#method_name", our_entry.report_name
+    assert_equal "test_case", our_entry.test_name
     assert_equal "mri", our_entry.runtime.value
     assert_equal "main", our_entry.branch
     assert_equal "abc123", our_entry.commit_hash
@@ -87,10 +89,11 @@ class SqliteStoreTest < Minitest::Test
     timestamp = Time.now.to_i
 
     # Store result 1
-    metadata1 = Awfy::Result.new(
+    metadata1 = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Query Group",
       report_name: "#method1",
+      test_name: "test1",
       runtime: "mri",
       timestamp: timestamp,
       branch: "main",
@@ -104,10 +107,11 @@ class SqliteStoreTest < Minitest::Test
     @store.save_result(metadata1)
 
     # Store result 2 with different runtime
-    metadata2 = Awfy::Result.new(
+    metadata2 = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Query Group",
       report_name: "#method1",
+      test_name: "test2",
       runtime: "yjit",
       timestamp: timestamp,
       branch: "main",
@@ -121,10 +125,11 @@ class SqliteStoreTest < Minitest::Test
     @store.save_result(metadata2)
 
     # Store result 3 with different group
-    metadata3 = Awfy::Result.new(
+    metadata3 = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Another Group",
       report_name: "#method2",
+      test_name: "test3",
       runtime: "mri",
       timestamp: timestamp,
       branch: "main",
@@ -148,7 +153,7 @@ class SqliteStoreTest < Minitest::Test
     # Query with runtime filter
     results = @store.query_results(type: :ips, runtime: "yjit")
     assert_equal 1, results.length, "Should find 1 result for yjit runtime"
-    assert_instance_of Awfy::Result, results.first
+    assert_instance_of Awfy::IPSResult, results.first
     assert_equal 1500.0, results.first.result_data[:ips], "Should find the correct result"
 
     # Query with combination of filters
@@ -159,7 +164,7 @@ class SqliteStoreTest < Minitest::Test
       runtime: "mri"
     )
     assert_equal 1, results.length, "Should find 1 result matching all criteria"
-    assert_instance_of Awfy::Result, results.first
+    assert_instance_of Awfy::IPSResult, results.first
     assert_equal 1000.0, results.first.result_data[:ips], "Should find the correct result"
 
     # Query with commit filter
@@ -169,10 +174,11 @@ class SqliteStoreTest < Minitest::Test
 
   def test_load_result
     # Store a result to load later
-    metadata = Awfy::Result.new(
+    metadata = Awfy::IPSResult.new(
       type: :ips,
       group_name: "Load Test",
       report_name: "#load_method",
+      test_name: "load_test",
       runtime: "mri",
       timestamp: Time.now.to_i,
       branch: "main",
@@ -190,9 +196,7 @@ class SqliteStoreTest < Minitest::Test
     loaded_result = @store.load_result(result_id)
 
     # Verify loaded result is a Result object
-    assert_instance_of Awfy::Result, loaded_result
-
-    # Verify loaded data matches original
+    assert_instance_of Awfy::IPSResult, loaded_result
     assert_equal 3000, loaded_result.result_data[:ips].to_i
     assert_equal 5000, loaded_result.result_data[:iterations]
 
@@ -202,10 +206,11 @@ class SqliteStoreTest < Minitest::Test
 
   def test_clean_results
     # Store some results
-    metadata_temp = Awfy::Result.new(
-      type: :clean_test,
+    metadata_temp = Awfy::IPSResult.new(
+      type: :ips,
       group_name: "Clean Group",
       report_name: "#temp",
+      test_name: "temp_test_ips",
       runtime: "mri",
       timestamp: Time.now.to_i,
       branch: "main",
@@ -219,10 +224,11 @@ class SqliteStoreTest < Minitest::Test
     @store.save_result(metadata_temp)
 
     # Store additional results
-    metadata_perm = Awfy::Result.new(
-      type: :clean_test,
+    metadata_perm = Awfy::IPSResult.new(
+      type: :ips,
       group_name: "Clean Group",
       report_name: "#perm",
+      test_name: "perm_test_ips",
       runtime: "mri",
       timestamp: Time.now.to_i,
       branch: "main",
@@ -236,14 +242,14 @@ class SqliteStoreTest < Minitest::Test
     @store.save_result(metadata_perm)
 
     # Verify both results exist
-    results = @store.query_results(type: :clean_test)
+    results = @store.query_results(type: :ips)
     assert_equal 2, results.length, "Should have 2 results before cleaning"
 
     # Clean with KeepAll retention policy (should keep everything)
     @store.clean_results
 
     # Verify results after cleaning
-    results = @store.query_results(type: :clean_test)
+    results = @store.query_results(type: :ips)
     # With KeepAll retention policy, all results should be kept
     assert_equal 2, results.length, "Both results should remain with KeepAll retention policy"
 
@@ -255,7 +261,7 @@ class SqliteStoreTest < Minitest::Test
     keep_none_store.clean_results
 
     # Verify no results remain
-    results = keep_none_store.query_results(type: :clean_test)
+    results = keep_none_store.query_results(type: :ips)
     assert_equal 0, results.length, "Should have 0 results after cleaning with KeepNone policy"
   end
 end

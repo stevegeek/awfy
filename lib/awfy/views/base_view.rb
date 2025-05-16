@@ -48,6 +48,10 @@ module Awfy
       end
 
       def say_table(table, options = {})
+        say render_table(table, options)
+      end
+
+      def render_table(table, options = {})
         table_options = {
           title: table.title,
           theme: table.theme,

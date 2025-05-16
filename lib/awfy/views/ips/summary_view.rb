@@ -36,7 +36,7 @@ module Awfy
             rows:
           )
 
-          say say_table(table)
+          say_table(table)
         end
 
         private

@@ -18,7 +18,7 @@ module Awfy
           sorted_results = sort_results(results) do |result, factor|
             memory_size = result.result_data[:allocated_memsize] || 0
             is_baseline = (result == baseline) ? 0 : 1
-            
+
             # For memory, lower is better so invert the factor
             [-is_baseline, factor * memory_size, -result.timestamp.to_i]
           end
@@ -34,7 +34,7 @@ module Awfy
             rows:
           )
 
-          say say_table(table)
+          say_table(table)
         end
 
         private
@@ -81,7 +81,7 @@ module Awfy
             chart = performance_bar(memory_size, max_memory)
             is_baseline = result == baseline
             diff_message = format_result_diff(result, result_diffs[result], is_baseline)
-            
+
             SummaryTable.build_row(result, is_baseline:, diff_message:, chart:)
           end
         end

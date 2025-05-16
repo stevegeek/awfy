@@ -62,7 +62,6 @@ module Awfy
       else
         raise ArgumentError, "Trying to deserialize a result of type #{type} which is unknown"
       end
-
     end
 
     def label

@@ -83,23 +83,33 @@ class TestBaseView < ViewTestCase
   end
 
   def test_format_table
-    title = "Test Table"
-    headings = ["Col1", "Col2", "Col3"]
-    rows = [
-      ["A", 1, 2.5],
-      ["B", 2, 3.5],
-      ["C", 3, 4.5]
-    ]
+    # Create a mock table class for testing
+    mock_table = Struct.new(
+      :rows, :title, :headers, :columns, :theme, :mark, :color_scales, :order_description
+    ).new(
+      [
+        Awfy::Views::Row.new(identifier: "1", columns: {col1: "A", col2: 1, col3: 2.5}),
+        Awfy::Views::Row.new(identifier: "2", columns: {col1: "B", col2: 2, col3: 3.5}),
+        Awfy::Views::Row.new(identifier: "3", columns: {col1: "C", col2: 3, col3: 4.5})
+      ],
+      "Test Table",
+      {col1: "Col1", col2: "Col2", col3: "Col3"},
+      [:col1, :col2, :col3],
+      nil,
+      nil,
+      nil,
+      "Results displayed in ascending order"
+    )
 
-    table_string = @view.format_table(title, headings, rows)
+    table_string = @view.say_table(mock_table)
     assert_instance_of String, table_string
 
     # Check that the table contains the title
-    assert_includes table_string, title
+    assert_includes table_string, "Test Table"
 
     # With table_tennis, the headers might be transformed
     # so check for lowercase variants too
-    (headings + headings.map(&:downcase)).each do |heading|
+    ["Col1", "Col2", "Col3", "col1", "col2", "col3"].each do |heading|
       if table_string.include?(heading)
         assert_includes table_string, heading
       end

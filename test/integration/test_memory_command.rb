@@ -33,7 +33,7 @@ class MemoryCommandTest < Minitest::Test
 
     # With our fallback mode in test, we might get different output formats
     # Either we get nice formatted table_tennis output or the fallback hash format
-    if output.include?("timestamp")
+    if output.match?(/timestamp/i) # Changed from output.include?("timestamp")
       # In test output, we might get completely different output formats
       # Try both possible formats
       if output.include?("allocated_memory")

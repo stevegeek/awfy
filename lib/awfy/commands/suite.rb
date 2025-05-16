@@ -7,7 +7,7 @@ module Awfy
         suite = load_suite!
 
         suite.groups.each do |group|
-          view = Views::ListView.new(session:)
+          view = Views::Suites::ListView.new(session:, group_name: group.name)
           if session.config.list
             view.display_group(group)
           else
