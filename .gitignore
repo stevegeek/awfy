@@ -11,5 +11,8 @@
 benchmarks/tmp
 benchmarks/saved
 Gemfile.lock
+**/.claude/settings.local.json
+*._rb
 .awfy.json
 benchmark_history.db
+.DS_Store

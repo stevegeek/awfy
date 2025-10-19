@@ -6,7 +6,7 @@ module Awfy
       default_command :start
 
       desc "start [GROUP] [REPORT] [TEST]", "Run YJIT stats"
-      def start(group: nil, report: nil, test: nil)
+      def start(group = nil, report = nil, test = nil)
         if config.runtime == "mri"
           shell.say_error_and_exit "Must run with YJIT runtime (if 'both' is selected the command only runs with yjit)"
         end
