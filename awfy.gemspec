@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     files = ls.readlines("\x0", chomp: true)
     files.select do |f|
-      f.start_with?(*%w[lib/ README.md LICENSE CHANGELOG.md])
+      f.start_with?(*%w[lib/ exe/ README.md LICENSE CHANGELOG.md])
     end
   end
   spec.bindir = "exe"
@@ -33,6 +33,7 @@ Gem::Specification.new do |spec|
   # Uncomment to register a new dependency of your gem
   spec.add_dependency "thor", ">= 1.3", "< 2.0"
   spec.add_dependency "literal", ">= 1.0", "< 2.0"
+  spec.add_dependency "sqlite3", "> 2.0", "< 3.0"
   spec.add_dependency "git", ">= 2.3", "< 3.0"
   spec.add_dependency "table_tennis", ">= 0.0.6", "< 1.0"
   spec.add_dependency "benchmark-ips", ">= 2.14", "< 3.0"
