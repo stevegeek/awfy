@@ -61,23 +61,24 @@ module Awfy
           cmd << "--storage-name=#{config.storage_name}" if config.storage_name
           cmd << "--setup-file-path=#{config.setup_file_path}" if config.setup_file_path
           cmd << "--tests-path=#{config.tests_path}" if config.tests_path
+          cmd << "--target-repo-path=#{config.target_repo_path}" if config.target_repo_path
           cmd << "--verbose=#{config.verbose.value}" if config.verbose && config.verbose.value > 0
-          # Disable summary since we're running without a TTY and will display our own summary
-          cmd << "--no-summary"
 
           # Execute the command
           if config.verbose? VerbosityLevel::DEBUG
             say "Executing: #{cmd.join(" ")}"
           end
 
-          # Capture output for debugging if something goes wrong
+          # Capture and display output from spawned process
           require "open3"
           stdout, stderr, status = Open3.capture3(*cmd)
 
+          # Display the output from the spawned process
+          puts stdout unless stdout.empty?
+          puts stderr unless stderr.empty?
+
           unless status.success?
             say_error "Benchmark command failed in spawned process"
-            say_error "STDOUT: #{stdout}" unless stdout.empty?
-            say_error "STDERR: #{stderr}" unless stderr.empty?
             raise "Benchmark command failed in spawned process (exit code: #{status.exitstatus})"
           end
 
@@ -164,9 +165,15 @@ module Awfy
               say "Running benchmarks on commit: #{commit.slice(0, 8)} - #{commit_message}"
             end
 
-            # Create and run the job for this group
+            # Get the job instance to determine the command type
             job = yield group
-            job.call
+
+            # Determine the command type from the job class (e.g., "IPS" -> "ips", "Memory" -> "memory")
+            command_type = job.class.name.split("::").last.downcase
+
+            # Run in a fresh process to ensure code is reloaded from the checked-out commit
+            # This is critical - without it, Ruby will cache the previously loaded code
+            run_in_fresh_process(command_type, group.name)
           end
         end
 
