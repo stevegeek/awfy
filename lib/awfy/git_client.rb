@@ -87,6 +87,30 @@ module Awfy
       log("-1", "--pretty=#{format}", commit).strip
     end
 
+    # Create a Git stash with a message
+    # @param message [String, nil] Optional message for the stash
+    # @return [String] The output of the stash command
+    def stash_save(message = nil)
+      args = ["stash", "save"]
+      args << message if message
+      client_lib.send(:command, *args)
+    end
+
+    # Get the list of stashes
+    # @return [Array<String>] Array of stash entries
+    def stash_list
+      command("stash", "list").split("\n")
+    end
+
+    # Pop the most recent stash
+    # @return [String] The output of the pop command
+    def stash_pop
+      client_lib.send(:command, "stash", "pop")
+    rescue
+      # TODO: Handle this error gracefully
+      raise StandardError, "Failed to pop stash"
+    end
+
     private
 
     def after_initialize
@@ -97,24 +121,6 @@ module Awfy
     # Execute a Git command with arguments
     def command(cmd, *args)
       client_lib.send(:command, cmd, *args)
-    end
-
-    # Create a Git stash with a message
-    def stash_save(message = nil)
-      args = ["stash", "save"]
-      args << message if message
-      client_lib.send(:command, *args)
-    end
-
-    def stash_list
-      command("stash", "list").split("\n")
-    end
-
-    def stash_pop
-      client_lib.send(:command, "stash", "pop")
-    rescue
-      # TODO: Handle this error gracefully
-      raise StandardError, "Failed to pop stash"
     end
 
     attr_reader :client, :client_lib

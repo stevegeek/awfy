@@ -17,40 +17,62 @@ module Awfy
             raise ArgumentError, "No block given to run_group"
           end
 
-          # Parse commit range from config
-          start_commit, end_commit = parse_commit_range(config.commit_range)
-
-          # Get list of commits in the range
-          commit_list = get_commits_in_range(start_commit, end_commit)
-
-          # Set control commit to first commit in range if not specified
-          if config.control_commit.nil? || config.control_commit.empty?
-            @control_commit = commit_list.first
-            if config.verbose? VerbosityLevel::BASIC
-              say "Using first commit as control: #{@control_commit.slice(0, 8)}"
-            end
-          else
-            # Resolve the provided control commit to a full hash
-            @control_commit = git_client.rev_parse(config.control_commit)
-            if config.verbose? VerbosityLevel::BASIC
-              say "Using specified commit as control: #{@control_commit.slice(0, 8)}"
-            end
+          # Save the original HEAD state (works for both branches and detached HEAD)
+          original_head = git_client.rev_parse("HEAD")
+          original_branch = begin
+            git_client.current_branch
+          rescue
+            nil  # We're in detached HEAD state
           end
 
-          # Run the group on each commit
-          commit_list.each do |commit|
-            run_group_on_commit(commit, group, &block)
+          # Check if we have uncommitted changes that need to be stashed
+          stash_count_before = git_client.stash_list.size
+          git_client.stash_save("awfy commit range runner auto stash")
+          stash_count_after = git_client.stash_list.size
+          stashed = stash_count_after > stash_count_before
+
+          begin
+            # Parse commit range from config
+            start_commit, end_commit = parse_commit_range(config.commit_range)
+
+            # Get list of commits in the range
+            commit_list = get_commits_in_range(start_commit, end_commit)
+
+            # Set control commit to first commit in range if not specified
+            if config.control_commit.nil? || config.control_commit.empty?
+              @control_commit = commit_list.first
+              if config.verbose? VerbosityLevel::BASIC
+                say "Using first commit as control: #{@control_commit.slice(0, 8)}"
+              end
+            else
+              # Resolve the provided control commit to a full hash
+              @control_commit = git_client.rev_parse(config.control_commit)
+              if config.verbose? VerbosityLevel::BASIC
+                say "Using specified commit as control: #{@control_commit.slice(0, 8)}"
+              end
+            end
+
+            # Run the group on each commit
+            commit_list.each do |commit|
+              run_group_on_commit(commit, group, &block)
+            end
+          ensure
+            # Restore to the original state
+            if original_branch
+              # We were on a branch, restore to the branch
+              git_client.checkout!(original_branch)
+            else
+              # We were in detached HEAD, restore to the exact commit
+              git_client.checkout!(original_head)
+            end
+
+            # Restore stashed changes if we created a stash
+            git_client.stash_pop if stashed
           end
         end
 
         private
 
-        # Safely checkout a git reference, run a block, and return to the original state
-        # @param ref [String] The git reference (branch, commit, etc.) to checkout
-        # @yield Execute the given block with the reference checked out
-        def safe_checkout(ref, &block)
-          git_client.stashed_checkout(ref, &block)
-        end
 
         # Run a command in a fresh Ruby process
         # @param command_type [String] The command type (ips, memory, etc.)
@@ -171,25 +193,25 @@ module Awfy
         # @param group [Awfy::Suites::Group] The group to run
         # @yield [Awfy::Suites::Group] Yields the group to create a job
         def run_group_on_commit(commit, group, &block)
-          # Checkout the commit and run benchmarks
-          safe_checkout(commit) do
-            # Get commit metadata
-            commit_message = git_client.commit_message(commit)
+          # Checkout the commit
+          git_client.checkout!(commit)
 
-            if config.verbose?
-              say "Running benchmarks on commit: #{commit.slice(0, 8)} - #{commit_message}"
-            end
+          # Get commit metadata
+          commit_message = git_client.commit_message(commit)
 
-            # Get the job instance to determine the command type
-            job = yield group
-
-            # Determine the command type from the job class (e.g., "IPS" -> "ips", "Memory" -> "memory")
-            command_type = job.class.name.split("::").last.downcase
-
-            # Run in a fresh process to ensure code is reloaded from the checked-out commit
-            # This is critical - without it, Ruby will cache the previously loaded code
-            run_in_fresh_process(command_type, group.name)
+          if config.verbose?
+            say "Running benchmarks on commit: #{commit.slice(0, 8)} - #{commit_message}"
           end
+
+          # Get the job instance to determine the command type
+          job = yield group
+
+          # Determine the command type from the job class (e.g., "IPS" -> "ips", "Memory" -> "memory")
+          command_type = job.class.name.split("::").last.downcase
+
+          # Run in a fresh process to ensure code is reloaded from the checked-out commit
+          # This is critical - without it, Ruby will cache the previously loaded code
+          run_in_fresh_process(command_type, group.name)
         end
 
         # Load results from the most recent run
