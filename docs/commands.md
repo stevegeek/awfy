@@ -11,6 +11,7 @@ Commands:
   awfy ips SUBCOMMAND         # IPS-related commands (start)
   awfy memory SUBCOMMAND      # Memory-related commands (start)
   awfy profile SUBCOMMAND     # Profile-related commands (start)
+  awfy results SUBCOMMAND     # Results-related commands (list, show)
   awfy store SUBCOMMAND       # Store-related commands (clean)
   awfy suite SUBCOMMAND       # Suite-related commands (list, debug)
   awfy yjit-stats SUBCOMMAND  # YJIT stats-related commands (start)
@@ -141,9 +142,60 @@ Locations:
 ### Storage Management
 
 ```bash
-# Clean up old results based on retention policy
+# Clean up results based on current retention policy
 bundle exec awfy store clean
+
+# Clean up all results (use keep_none policy)
+bundle exec awfy store clean --retention-policy=keep_none
+
+# Clean up results older than 30 days
+bundle exec awfy store clean --retention-policy=date --retention-days=30
 ```
+
+Available retention policies:
+- `keep` or `keep_all` - Keep all results (default)
+- `date` or `date_based` - Keep results for specified days
+- `none` or `keep_none` - Delete all results
+
+### Results Browsing
+
+View and analyze stored benchmark results without re-running benchmarks.
+
+```bash
+# List all stored benchmark results
+bundle exec awfy results list
+
+# List only IPS results
+bundle exec awfy results list ips
+
+# List only memory results
+bundle exec awfy results list memory
+
+# Show detailed results for a specific group
+bundle exec awfy results show "Array Operations"
+
+# Show results for a specific group and report
+bundle exec awfy results show "Array Operations" "Array#map"
+
+# Show only IPS results for a group/report
+bundle exec awfy results show "Array Operations" "Array#map" ips
+
+# Show only memory results for a group/report
+bundle exec awfy results show "Array Operations" "Array#map" memory
+```
+
+The `results list` command shows:
+- Result type (IPS, MEMORY)
+- Group and report names
+- Number of stored results
+- Latest result timestamp
+- Git branch
+
+The `results show` command displays:
+- Detailed summary tables for the specified group/report
+- All historical results stored in the database
+- Comparison against baseline results
+- Same formatting as running benchmarks with `--summary`
 
 ## Common Options
 

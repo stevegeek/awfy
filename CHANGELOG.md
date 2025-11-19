@@ -14,6 +14,11 @@
 
 ### Fixed
 
+- Commit range runner now properly handles root commits (commits with no parent)
+- Fixed git stash handling to prevent "No stash entries found" errors
+- Fixed VerbosityLevel type conversion when spawning subprocesses
+- Updated table_tennis dependency to 0.0.7 to fix TTY detection issues
+
 
 ## [0.1.0] - 2024-10-28
 

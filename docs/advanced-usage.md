@@ -121,10 +121,10 @@ Benefits:
 
 ### SQLite Storage
 
-Store results in SQLite database:
+Store results in SQLite database (default):
 
 ```bash
-bundle exec awfy ips Arrays --storage-backend=sqlite
+bundle exec awfy ips start --storage-backend=sqlite --storage-name=my_benchmarks
 ```
 
 ### JSON Storage
@@ -132,43 +132,74 @@ bundle exec awfy ips Arrays --storage-backend=sqlite
 Store results as JSON files:
 
 ```bash
-bundle exec awfy ips Arrays --storage-backend=json
+bundle exec awfy ips start --storage-backend=json --storage-name=benchmark_data
 ```
 
 ### Memory Storage
 
-Store results in memory only:
+Store results in memory only (not persisted):
 
 ```bash
-bundle exec awfy ips Arrays --storage-backend=memory
+bundle exec awfy ips start --storage-backend=memory
 ```
+
+### Browsing Stored Results
+
+View previously stored results without re-running benchmarks:
+
+```bash
+# List all stored results
+bundle exec awfy results list
+
+# Show detailed results for a specific group
+bundle exec awfy results show "Array Operations"
+
+# Show results for a specific report
+bundle exec awfy results show "Array Operations" "Array#map"
+```
+
+See [Results Browsing](commands.md#results-browsing) in the command reference for more details.
 
 ## Retention Policies
 
-Each run, the results store is cleaned up based on the retention policy.
+Each run, the results store is cleaned up based on the retention policy. You can also manually clean using `awfy store clean`.
 
-### Keep All
+### Keep All (Default)
 
-Keep all benchmark results:
+Keep all benchmark results indefinitely:
 
 ```bash
-bundle exec awfy ips Arrays --retention-policy=keep_all
+bundle exec awfy ips start --retention-policy=keep_all
+# or use alias
+bundle exec awfy ips start --retention-policy=keep
 ```
+
+This is the default policy.
 
 ### Date Based
 
-Keep results for N days:
+Keep results for N days, delete older ones:
 
 ```bash
-bundle exec awfy ips Arrays --retention-policy=date_based --retention-days=30
+bundle exec awfy ips start --retention-policy=date_based --retention-days=30
+# or use alias
+bundle exec awfy ips start --retention-policy=date --retention-days=30
 ```
 
 ### Keep None
 
-Delete results after running:
+Delete all results (useful for clearing storage or one-time runs):
 
 ```bash
-bundle exec awfy ips Arrays --retention-policy=keep_none
+bundle exec awfy ips start --retention-policy=keep_none
+# or use alias
+bundle exec awfy ips start --retention-policy=none
+```
+
+To manually clean all results from a store:
+
+```bash
+bundle exec awfy store clean --retention-policy=keep_none
 ```
 
 ## Performance Assertions

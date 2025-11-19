@@ -65,5 +65,8 @@ module Awfy
 
     desc "store SUBCOMMAND", "Store-related commands (clean)"
     subcommand "store", CLICommands::Store
+
+    desc "results SUBCOMMAND", "Results-related commands (list, show)"
+    subcommand "results", CLICommands::Results
   end
 end
