@@ -93,12 +93,18 @@ class CommitRangeTest
     RUBY
 
     # Create setup file that loads the library
+    # Use 'load' instead of 'require' to force reload on each run
     setup_file = File.join(benchmarks_dir, "setup.rb")
     File.write(setup_file, <<~RUBY)
       # Benchmark setup file
       # Load the library from the repository
-      $LOAD_PATH.unshift(File.expand_path("../../lib", __FILE__))
-      require "slow_operations"
+      lib_path = File.expand_path("../../lib/slow_operations.rb", __FILE__)
+
+      # Remove the module if it's already defined to force fresh load
+      Object.send(:remove_const, :SlowOperations) if defined?(SlowOperations)
+
+      # Use load instead of require to reload the file each time
+      load lib_path
     RUBY
 
     # Create benchmark test file that uses the library

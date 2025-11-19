@@ -16,11 +16,27 @@ module Awfy
           result_diffs = result_data_with_diffs
 
           sorted_results = sort_results(results) do |result, factor|
-            memory_size = result.result_data[:allocated_memsize] || 0
-            is_baseline = (result == baseline) ? 0 : 1
+            # For memory benchmarks, the sorting depends on the mode:
+            # - "leader" mode: sort by diff ratio (best to worst), where lower is better
+            # - "desc" mode: sort by memory size (highest to lowest)
+            # - "asc" mode: sort by memory size (lowest to highest)
 
-            # For memory, lower is better so invert the factor
-            [-is_baseline, factor * memory_size, -result.timestamp.to_i]
+            if config.summary_order == "leader"
+              # In leader mode, sort by diff ratio where lower multiplier is better
+              diff_data = result_diffs[result]
+              diff_value = diff_data[:diff_times] || Float::INFINITY  # nil diffs last
+
+              # Invert factor: for memory, lower diff values should come first in "leader" mode
+              # This means 0.5x (half memory) comes before 1.0x (baseline) comes before 2.0x (double memory)
+              [-factor * diff_value, -result.timestamp.to_i]
+            else
+              # In desc/asc modes, sort by actual memory size
+              memory_size = result.result_data[:allocated_memsize] || 0
+              is_baseline = (result == baseline) ? 0 : 1
+
+              # For memory, lower is better so invert the factor
+              [-is_baseline, factor * memory_size, -result.timestamp.to_i]
+            end
           end
 
           # Generate table row instances
@@ -50,20 +66,16 @@ module Awfy
             overlaps = false  # Memory doesn't have overlaps like IPS
 
             diff_x = if result == baseline
-              # For the baseline result, use 1.0 as the diff_times for consistency in tests
+              # For the baseline result, use 1.0 as the diff_times for consistency
               1.0
             elsif baseline_memory.to_i == 0 || memory.to_i == 0
               # Handle zero cases - return 0.0 for zero values to match test expectations
               0.0
-            elsif memory > baseline_memory
-              # Normal case - calculate ratio based on which is larger
-              # For memory tests, lower is better, so we invert the ratio
-              # compared to IPS tests where higher is better
-              # More memory usage is worse, so ratio < 1
-              baseline_memory.to_f / memory
             else
-              # Less memory usage is better, so ratio > 1
-              # But we're calculating memory, not IPS, so we report actual ratio
+              # Calculate ratio: memory / baseline
+              # 0.5x means half the memory (better)
+              # 1.0x means same as baseline
+              # 2.0x means double the memory (worse)
               memory.to_f / baseline_memory
             end
 

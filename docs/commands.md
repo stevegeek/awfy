@@ -214,11 +214,14 @@ The `results show` command displays:
 --compare-with-branch=BRANCH     # Compare with another branch
 --compare-control                # Re-run control blocks when comparing (default: false)
 --commit-range=START..END        # Run benchmarks across commit range (requires --runner=commit_range)
+--control-commit=COMMIT          # Commit to use as baseline for comparisons (defaults to first commit in range)
 --target-repo-path=PATH          # Path to git repository for checkouts (defaults to current directory)
 --assert                         # Enable assertions (default: false)
 ```
 
-The `--target-repo-path` option allows you to keep benchmarks in one directory while testing commits from a different repository. This is useful for maintaining stable benchmarks separately from the code being tested.
+**Note on `--control-commit`:** When running benchmarks across a commit range, the first commit is automatically used as the baseline for comparisons. Use this option to specify a different commit as the baseline. All results are compared against this control commit. See [Control Commit for Baseline Comparisons](advanced-usage.md#control-commit-for-baseline-comparisons) for details.
+
+**Note on `--target-repo-path`:** Allows you to keep benchmarks in one directory while testing commits from a different repository. This is useful for maintaining stable benchmarks separately from the code being tested.
 
 ### Output Options
 

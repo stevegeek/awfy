@@ -101,6 +101,12 @@ bundle exec awfy ips
 # Compare with another branch
 bundle exec awfy ips --compare-with=main
 
+# Run across a commit range
+bundle exec awfy ips start --commit-range="HEAD~5..HEAD" --runner=commit_range
+
+# Run across commits with a specific baseline
+bundle exec awfy ips start --commit-range="HEAD~5..HEAD" --runner=commit_range --control-commit=HEAD~5
+
 # Run without YJIT
 bundle exec awfy ips --runtime=mri
 

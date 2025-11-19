@@ -34,6 +34,70 @@ bundle exec awfy ips start --commit-range="abc123..def456" --runner=commit_range
 
 **Note:** The commit range runner requires `--runner=commit_range` to be specified.
 
+### Control Commit for Baseline Comparisons
+
+When running benchmarks across a commit range, the traditional `control` block in your test definitions doesn't make sense because the control code itself changes with each checkout. Instead, you can designate a specific commit as the baseline using the `--control-commit` option.
+
+By default, the **first commit in the range** is automatically used as the control:
+
+```bash
+# First commit (HEAD~5) is automatically used as baseline
+bundle exec awfy ips start --commit-range="HEAD~5..HEAD" --runner=commit_range
+```
+
+All results from the control commit are marked with ✓ in the "Control" column, and all other commits' results are compared against the control commit's results.
+
+#### Specifying a Custom Control Commit
+
+You can specify a different commit as the baseline:
+
+```bash
+# Use a specific commit as the baseline
+bundle exec awfy ips start \
+  --commit-range="HEAD~10..HEAD" \
+  --runner=commit_range \
+  --control-commit=abc1234
+
+# Use the middle commit in a range
+bundle exec awfy ips start \
+  --commit-range="v1.0.0..v2.0.0" \
+  --runner=commit_range \
+  --control-commit=v1.5.0
+```
+
+The control commit doesn't have to be in the commit range - you can compare against any commit:
+
+```bash
+# Compare feature branch commits against main
+bundle exec awfy ips start \
+  --commit-range="feature-branch~5..feature-branch" \
+  --runner=commit_range \
+  --control-commit=main
+```
+
+#### How Results Are Displayed
+
+When using a control commit:
+- Results from the control commit show ✓ in the "Control" column
+- The summary displays: "Chosen test to compare against: [test name] from control commit abc1234"
+- All comparisons (e.g., "2.0x faster", "0.5x slower") are relative to the control commit
+- This applies to both IPS and memory benchmarks
+
+**Example output:**
+```
+> Chosen test to compare against: Array#map/optimized from control commit 3e562740
+
+┌─────────┬───────┬─────────┬─────────┬─────────┬──────────┬──────┬──────────┐
+│ Times...│ Bra...│ Commit  │ Runtime │ Control │ Name     │  IPS │ vs Test  │
+├─────────┼───────┼─────────┼─────────┼─────────┼──────────┼──────┼──────────┤
+│ 2025-...│ HEAD  │ f8850900│ mri     │         │ optimized│ 176  │ 2.0x     │
+│ 2025-...│ HEAD  │ 3e562740│ mri     │ ✓       │ optimized│  91  │ 1.0      │
+│ 2025-...│ HEAD  │ 63b3faab│ mri     │         │ optimized│  46  │ -1.9x    │
+└─────────┴───────┴─────────┴─────────┴─────────┴──────────┴──────┴──────────┘
+```
+
+In this example, commit 3e562740 is the control, and all other commits are compared against it.
+
 ### Benchmarking a Separate Repository
 
 You can keep your benchmarks in one location and test a separate git repository. This is useful when:
