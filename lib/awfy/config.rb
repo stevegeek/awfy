@@ -40,6 +40,8 @@ module Awfy
     prop :setup_file_path, String, default: "./benchmarks/setup"
     # path to the tests files
     prop :tests_path, String, default: "./benchmarks/tests"
+    # path to the git repository for commit checkouts (defaults to current directory)
+    prop :target_repo_path, _Nilable(String)
 
     # Comparison options
 

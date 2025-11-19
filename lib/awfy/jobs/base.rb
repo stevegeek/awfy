@@ -40,6 +40,20 @@ module Awfy
       def marked_as_baseline?(test)
         test.label.include?(BASELINE_MARKER)
       end
+
+      # Get current git commit information for storing with results
+      # @return [Hash] Hash with :branch, :commit_hash, and :commit_message
+      def current_git_info
+        {
+          branch: git_client.current_branch,
+          commit_hash: git_client.rev_parse("HEAD"),
+          commit_message: git_client.commit_message("HEAD")
+        }
+      rescue => e
+        # If git operations fail (e.g., not in a git repo), return nil values
+        say "Warning: Could not get git info: #{e.message}" if verbose?(VerbosityLevel::DEBUG)
+        {branch: nil, commit_hash: nil, commit_message: nil}
+      end
     end
   end
 end

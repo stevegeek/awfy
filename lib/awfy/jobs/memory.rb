@@ -57,10 +57,13 @@ module Awfy
           # Stop the progress bar
           progress_bar.finish
 
+          # Get current git information to store with results
+          git_info = current_git_info
+
           # Save results for each test
           results.each do |result|
             result_data = convert_memory_profile_to_data(result[:data])
-            results_manager.save_new_result(:memory, group, report, runtime, result[:test], result_data)
+            results_manager.save_new_result(:memory, group, report, runtime, result[:test], result_data, **git_info)
           end
         end
 

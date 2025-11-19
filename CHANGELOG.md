@@ -11,6 +11,8 @@
 - Support for storage engines that let you persist results of runs, and then compare across them
 - The ability to run benchmarks across multiple branches and commit ranges
 - Multiple runner types are now supported
+- `--target-repo-path` option to benchmark commits from a separate git repository
+- `awfy results` commands for browsing stored benchmark results without re-running
 
 ### Fixed
 
@@ -18,6 +20,7 @@
 - Fixed git stash handling to prevent "No stash entries found" errors
 - Fixed VerbosityLevel type conversion when spawning subprocesses
 - Updated table_tennis dependency to 0.0.7 to fix TTY detection issues
+- All benchmark results now properly capture and display git commit hash, commit message, and branch information
 
 
 ## [0.1.0] - 2024-10-28

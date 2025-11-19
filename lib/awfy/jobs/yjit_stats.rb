@@ -73,9 +73,12 @@ module Awfy
 
           progress_bar.finish
 
+          # Get current git information to store with results
+          git_info = current_git_info
+
           # Save results
           results.each do |result|
-            results_manager.save_new_result(:yjit_stats, group, report, runtime, result[:test], result[:stats])
+            results_manager.save_new_result(:yjit_stats, group, report, runtime, result[:test], result[:stats], **git_info)
           end
         end
 

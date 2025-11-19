@@ -211,10 +211,14 @@ The `results show` command displays:
 ### Comparison Options
 
 ```bash
---compare-with-branch=BRANCH  # Compare with another branch
---compare-control            # Re-run control blocks when comparing (default: false)
---assert                     # Enable assertions (default: false)
+--compare-with-branch=BRANCH     # Compare with another branch
+--compare-control                # Re-run control blocks when comparing (default: false)
+--commit-range=START..END        # Run benchmarks across commit range (requires --runner=commit_range)
+--target-repo-path=PATH          # Path to git repository for checkouts (defaults to current directory)
+--assert                         # Enable assertions (default: false)
 ```
+
+The `--target-repo-path` option allows you to keep benchmarks in one directory while testing commits from a different repository. This is useful for maintaining stable benchmarks separately from the code being tested.
 
 ### Output Options
 

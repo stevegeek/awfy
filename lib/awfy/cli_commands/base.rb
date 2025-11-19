@@ -20,7 +20,9 @@ module Awfy
 
       def setup_session
         @shell = Awfy::Shell.new(config:)
-        git_client = GitClient.new(path: Dir.pwd)
+        # Use target_repo_path if specified, otherwise use current directory
+        repo_path = config.target_repo_path || Dir.pwd
+        git_client = GitClient.new(path: repo_path)
         results_store = Stores.create(config.storage_backend, config.storage_name, config.current_retention_policy)
         @session = Awfy::Session.new(shell:, config:, git_client:, results_store:)
       end

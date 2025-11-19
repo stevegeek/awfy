@@ -53,11 +53,13 @@ module Awfy
             # we have to look at the label of the Entry cause BM.item does not actually run the BM at that point
             report_result_data = benchmark_job.full_report.entries.map { |entry| map_result_data_to_standard_format(entry) }
 
+            # Get current git information to store with results
+            git_info = current_git_info
+
             # Now join back together with test instances
             report_result_data.each do |result_data|
               test = tests[result_data[:mapping_label]]
-              # FIXME: signature
-              results_manager.save_new_result(:ips, group, report, runtime, test, result_data)
+              results_manager.save_new_result(:ips, group, report, runtime, test, result_data, **git_info)
             end
 
             # Stop the progress bar once benchmarking is complete

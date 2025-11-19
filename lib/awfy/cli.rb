@@ -30,6 +30,7 @@ module Awfy
     # File path options
     class_option :setup_file_path, type: :string, default: "./benchmarks/setup", desc: "Path to the setup file"
     class_option :tests_path, type: :string, default: "./benchmarks/tests", desc: "Path to the tests files"
+    class_option :target_repo_path, type: :string, desc: "Path to the git repository to checkout commits in (defaults to current directory)"
 
     # Storage options
     class_option :storage_backend, type: :string, default: StoreAliases::SQLite.value, desc: "Storage backend for benchmark results ('memory', 'json' or the default, 'sqlite')"

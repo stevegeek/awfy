@@ -34,11 +34,58 @@ bundle exec awfy ips start --commit-range="abc123..def456" --runner=commit_range
 
 **Note:** The commit range runner requires `--runner=commit_range` to be specified.
 
+### Benchmarking a Separate Repository
+
+You can keep your benchmarks in one location and test a separate git repository. This is useful when:
+- Your benchmarks are stable and don't need to be versioned with your code
+- You want to benchmark a library from an external repository
+- You maintain benchmarks separately from the code being tested
+
+```bash
+# Benchmark commits in a different repository
+bundle exec awfy ips start \
+  --commit-range="v1.0.0..v2.0.0" \
+  --runner=commit_range \
+  --target-repo-path=/path/to/your/app
+
+# Your benchmarks stay in the current directory
+# Git checkouts happen in /path/to/your/app
+```
+
+Example directory structure:
+```
+/home/user/my-benchmarks/
+  benchmarks/
+    setup.rb          # Add target repo to load path
+    tests/
+      performance.rb  # Your benchmark tests
+
+/home/user/my-app/    # Separate git repository
+  lib/
+    my_code.rb        # Code being benchmarked
+```
+
+In your `setup.rb`, you can add the target repo to the load path:
+```ruby
+# benchmarks/setup.rb
+target_repo = ENV['AWFY_TARGET_REPO'] || '/path/to/your/app'
+$LOAD_PATH.unshift("#{target_repo}/lib")
+```
+
 Skip specific commits (if needed):
 
 ```bash
 bundle exec awfy ips start --commit-range="HEAD~5..HEAD" --runner=commit_range --ignore-commits="abc123,def456"
 ```
+
+### Commit Tracking in Results
+
+All benchmark results automatically capture and store:
+- **Commit Hash**: The full SHA of the commit where the benchmark was run
+- **Commit Message**: The commit message for easy identification
+- **Branch**: The git branch name
+
+This information is displayed in summary tables (abbreviated to first 8 characters of the hash) and can be used to identify which code version produced each result. This is especially useful when reviewing historical results or comparing performance across commits.
 
 ## Custom Runners
 
