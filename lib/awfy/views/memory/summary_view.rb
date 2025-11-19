@@ -84,7 +84,7 @@ module Awfy
             is_baseline = result == baseline
             diff_message = format_result_diff(result, result_diffs[result], is_baseline)
 
-            SummaryTable.build_row(result, is_baseline:, diff_message:, chart:)
+            SummaryTable.build_row(result, is_baseline:, diff_message:, chart:, control_commit: config.control_commit)
           end
         end
 

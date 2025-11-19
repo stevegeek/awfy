@@ -23,6 +23,20 @@ module Awfy
           # Get list of commits in the range
           commit_list = get_commits_in_range(start_commit, end_commit)
 
+          # Set control commit to first commit in range if not specified
+          if config.control_commit.nil? || config.control_commit.empty?
+            @control_commit = commit_list.first
+            if config.verbose? VerbosityLevel::BASIC
+              say "Using first commit as control: #{@control_commit.slice(0, 8)}"
+            end
+          else
+            # Resolve the provided control commit to a full hash
+            @control_commit = git_client.rev_parse(config.control_commit)
+            if config.verbose? VerbosityLevel::BASIC
+              say "Using specified commit as control: #{@control_commit.slice(0, 8)}"
+            end
+          end
+
           # Run the group on each commit
           commit_list.each do |commit|
             run_group_on_commit(commit, group, &block)
@@ -62,6 +76,7 @@ module Awfy
           cmd << "--setup-file-path=#{config.setup_file_path}" if config.setup_file_path
           cmd << "--tests-path=#{config.tests_path}" if config.tests_path
           cmd << "--target-repo-path=#{config.target_repo_path}" if config.target_repo_path
+          cmd << "--control-commit=#{@control_commit}" if @control_commit
           cmd << "--verbose=#{config.verbose.value}" if config.verbose && config.verbose.value > 0
 
           # Execute the command

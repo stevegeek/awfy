@@ -4,7 +4,17 @@ module Awfy
   module Views
     module IPS
       class SummaryTable < Table
-        def self.build_row(result, is_baseline:, diff_message:, chart:)
+        def self.build_row(result, is_baseline:, diff_message:, chart:, control_commit: nil)
+          # Determine if this result is from the control commit
+          is_control_commit = if control_commit && !control_commit.empty? && result.commit_hash
+            result.commit_hash.start_with?(control_commit[0..7])
+          else
+            false
+          end
+
+          # Show control indicator if: result is from control commit OR result is marked as control test
+          show_control = is_control_commit || result.control?
+
           Row.new(
             identifier: result.result_id,
             highlight: is_baseline,
@@ -13,7 +23,7 @@ module Awfy
               branch: result.branch || "?",
               commit_hash: result.commit_hash ? result.commit_hash[0..7] : "?",
               runtime: result.runtime.value,
-              control_indicator: result.control? ? "✓" : "",
+              control_indicator: show_control ? "✓" : "",
               # baseline_indicator: is_baseline ? "✓" : "",
               test_name: result.label,
               value: result.central_tendency,

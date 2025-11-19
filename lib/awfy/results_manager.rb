@@ -67,6 +67,21 @@ module Awfy
       candidates = results.filter do |r|
         r.runtime == (config.yjit_only? ? Runtimes::YJIT : Runtimes::MRI) # Baseline is mri baseline unless yjit only
       end
+
+      # When using commit range with a control commit, use results from that commit as baseline
+      if config.control_commit && !config.control_commit.empty?
+        # Find results from the control commit
+        control_results = candidates.filter { |r| r.commit_hash&.start_with?(config.control_commit[0..7]) }
+        # Use the most recent result from control commit with baseline? marker (typically the "test" variant)
+        baseline = control_results.sort_by(&:timestamp).reverse.find(&:baseline?)
+
+        if baseline
+          say "> Chosen test to compare against: #{baseline.label} from control commit #{config.control_commit[0..7]}" if verbose?
+          return baseline
+        end
+      end
+
+      # Default behavior: use the most recent baseline test
       baseline = candidates.sort_by(&:timestamp).reverse.find(&:baseline?)
 
       raise Errors::NoBaselineError, "Could not determine the 'test' in #{group_name}/#{report_name}. Are you sure your benchmark group has a 'test' definition?" unless baseline

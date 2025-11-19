@@ -49,6 +49,8 @@ module Awfy
     prop :compare_with_branch, _Nilable(String)
     # commit range to compare (e.g., "HEAD~5..HEAD")
     prop :commit_range, _Nilable(String)
+    # commit to use as control/baseline for comparisons (defaults to first commit in range)
+    prop :control_commit, _Nilable(String)
     # when comparing branches, also re-run control blocks
     prop :compare_control, _Boolean, default: false
     # assert that results are within thresholds

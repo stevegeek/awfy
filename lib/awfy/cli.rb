@@ -11,6 +11,7 @@ module Awfy
     class_option :compare_with_branch, type: :string, desc: "Name of branch to compare with results on current branch"
     class_option :compare_control, type: :boolean, desc: "When comparing branches, also re-run all control blocks too", default: false
     class_option :commit_range, type: :string, desc: "Range of commits to benchmark (e.g., 'main..HEAD' or 'abc123..def456')"
+    class_option :control_commit, type: :string, desc: "Commit to use as control/baseline for comparisons (defaults to first commit in range)"
     class_option :ignore_commits, type: :string, desc: "Comma-separated list of commit hashes to skip"
     class_option :assert, type: :boolean, desc: "Assert that the results are within a certain threshold coded in the tests", default: false
 

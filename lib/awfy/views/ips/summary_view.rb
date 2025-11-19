@@ -68,7 +68,7 @@ module Awfy
             chart = performance_bar(result.central_tendency, max_ips)
             is_baseline = result == baseline
             diff_message = format_result_diff(result, result_diffs[result], result == baseline)
-            SummaryTable.build_row(result, is_baseline:, diff_message:, chart:)
+            SummaryTable.build_row(result, is_baseline:, diff_message:, chart:, control_commit: config.control_commit)
           end
         end
       end
