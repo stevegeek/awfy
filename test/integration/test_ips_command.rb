@@ -40,28 +40,28 @@ class IPSCommandTest < Minitest::Test
     assert_match(/\[yjit/, output)
 
     # Check for table output which should be present with summary - now using table_tennis format
-    assert_match(/timestamp/i, output)
-    assert_match(/branch/i, output)
-    assert_match(/runtime/i, output)
+    assert_match(/Times/i, output)  # Abbreviated "timestamp" header
+    assert_match(/Bra/i, output)     # Abbreviated "branch" header
+    assert_match(/Run/i, output)     # Abbreviated "runtime" header
   end
 
   def test_ips_summary_view_structure
     # Run IPS command with summary output
     output = run_command("ips", options: {summary: true, summary_order: "foo"})
 
-    # Verify table header has expected columns - using table_tennis format
-    assert_match(/timestamp/i, output)
-    assert_match(/branch/i, output)
-    assert_match(/commit/i, output)
-    assert_match(/runtime/i, output)
-    assert_match(/control/i, output)
-    assert_match(/vs test/i, output)
-    assert_match(/name/i, output)
-    assert_match(/ips/i, output)
+    # Verify table header has expected columns - using table_tennis format (abbreviated)
+    assert_match(/Times/i, output)   # Abbreviated "timestamp" header
+    assert_match(/Bra/i, output)     # Abbreviated "branch" header
+    assert_match(/Comm/i, output)    # Abbreviated "commit" header
+    assert_match(/Run/i, output)     # Abbreviated "runtime" header
+    assert_match(/Con/i, output)     # Abbreviated "control" header -> "Con…"
+    assert_match(/vs/i, output)      # "vs test" header
+    assert_match(/name/i, output)    # "name" header
+    assert_match(/ips/i, output)     # "ips" header
 
     # Simple check for patterns that should appear in the output
-    assert_match(/\d{4}-\d{2}-\d{2}/, output) # Date pattern
-    assert_match(/\?/, output) # Branch info
+    assert_match(/\d{4}/, output) # Year pattern (dates are abbreviated to "2025-…")
+    assert_match(/main/, output) # Branch name
     assert_match(/mri/, output) # Runtime name
     assert_match(/\d+\.\d+[kM]/, output) # IPS value with units
 

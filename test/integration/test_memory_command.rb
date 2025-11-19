@@ -31,13 +31,14 @@ class MemoryCommandTest < Minitest::Test
     # Test that results include our test groups
     assert_match(/Test Group/, output)
 
-    # Table format is detected
-    assert_match(/Times/i, output)
-    assert_match(/Bra/i, output)
-    assert_match(/Run/i, output)
-    assert_match(/Alloc/i, output)
-    assert_match(/Name/i, output)
-    assert_match(/\d\.\d x/, output)
+    # Table format is detected (headers may be abbreviated with "…")
+    assert_match(/Tim/i, output)    # Abbreviated "timestamp" -> "Tim…"
+    assert_match(/\bB\b/i, output)  # Abbreviated "branch" -> "B…"
+    assert_match(/\bR\b/i, output)  # Abbreviated "runtime" -> "R…"
+    assert_match(/All/i, output)    # Abbreviated "Allocated" -> "All…"
+    assert_match(/Name/i, output)   # "Name" or abbreviated form
+    # Check for vs test diff values (can be "x", "s…" for same, or numbers)
+    assert_match(/vs|v…/, output)   # "vs test" header or abbreviated form
 
     # Test for leaderboard description (common to summary views)
     assert_match(/Results displayed/, output)

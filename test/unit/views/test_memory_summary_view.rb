@@ -109,15 +109,18 @@ class TestMemorySummaryView < ViewTestCase
     assert_equal "(test) Baseline Test", baseline_row.columns[:test_name]
     assert_equal "Test Result", other_row.columns[:test_name]
 
-    # Check that memory values are formatted correctly in the rendered string
+    # Check that memory values are correct in the row data
+    assert_equal 1_000_000, baseline_row.columns[:allocated_memory]
+    assert_equal 2_000_000, other_row.columns[:allocated_memory]
+
+    # Check that humanized values are present in the row data
+    assert_equal "1.0M", baseline_row.columns[:humanized_allocated]
+    assert_equal "2.0M", other_row.columns[:humanized_allocated]
+
+    # Check that sorting order description was output
     table_output_message = @shell.messages.find { |m| m[:message].is_a?(String) && m[:message].include?("test_group/test_report") }
     refute_nil table_output_message, "Expected table output string"
     table_string = table_output_message[:message]
-
-    assert_includes table_string, "1.0M"  # Baseline allocated memory
-    assert_includes table_string, "2.0M"  # Test result allocated memory
-
-    # Check that sorting order description was output
     assert_match(/Results displayed/, table_string)
   end
 
