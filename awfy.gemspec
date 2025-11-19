@@ -35,7 +35,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "literal", ">= 1.0", "< 2.0"
   spec.add_dependency "sqlite3", "> 2.0", "< 3.0"
   spec.add_dependency "git", ">= 2.3", "< 3.0"
-  spec.add_dependency "table_tennis", ">= 0.0.6", "< 1.0"
+  spec.add_dependency "table_tennis", ">= 0.0.7", "< 1.0"
   spec.add_dependency "benchmark-ips", ">= 2.14", "< 3.0"
   spec.add_dependency "memory_profiler", ">= 1.1", "< 2.0"
   spec.add_dependency "vernier", ">= 1.0", "< 2.0"
