@@ -27,7 +27,16 @@ module Awfy
     def stashed_checkout(ref)
       # Save the current state
       before_branch = client.current_branch
+
+      # Get the stash count before stashing
+      stash_count_before = stash_list.size
+
+      # Try to stash any changes (including untracked files)
       stash_save("awfy auto stash")
+
+      # Check if a stash was actually created
+      stash_count_after = stash_list.size
+      stashed = stash_count_after > stash_count_before
 
       begin
         # Checkout the reference (branch or commit)
@@ -37,8 +46,8 @@ module Awfy
       ensure
         # Return to original branch
         checkout!(before_branch)
-        # Pop stashed changes
-        stash_pop
+        # Pop stashed changes only if we actually created a stash
+        stash_pop if stashed
       end
     end
 
@@ -95,6 +104,10 @@ module Awfy
       args = ["stash", "save"]
       args << message if message
       client_lib.send(:command, *args)
+    end
+
+    def stash_list
+      command("stash", "list").split("\n")
     end
 
     def stash_pop

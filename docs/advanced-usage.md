@@ -18,16 +18,26 @@ bundle exec awfy ips Arrays "#map" --compare-with=main --compare-control
 
 ## Commit Range Analysis
 
-Analyze performance across a range of commits:
+Analyze performance across a range of commits. The commit range runner checks out each commit in the range and runs benchmarks on it.
 
 ```bash
-bundle exec awfy ips Arrays "#map" --commit-range="HEAD~5..HEAD"
+# Run benchmarks across last 5 commits
+bundle exec awfy ips start --commit-range="HEAD~5..HEAD" --runner=commit_range
+
+# Run specific group across commits
+bundle exec awfy ips start "Arrays" --commit-range="HEAD~5..HEAD" --runner=commit_range
+
+# Use branch names or commit hashes
+bundle exec awfy ips start --commit-range="main..feature-branch" --runner=commit_range
+bundle exec awfy ips start --commit-range="abc123..def456" --runner=commit_range
 ```
 
-Skip specific commits:
+**Note:** The commit range runner requires `--runner=commit_range` to be specified.
+
+Skip specific commits (if needed):
 
 ```bash
-bundle exec awfy ips Arrays "#map" --commit-range="HEAD~5..HEAD" --ignore-commits="abc123,def456"
+bundle exec awfy ips start --commit-range="HEAD~5..HEAD" --runner=commit_range --ignore-commits="abc123,def456"
 ```
 
 ## Custom Runners
@@ -78,6 +88,34 @@ bundle exec awfy ips Arrays --runner=immediate
 ```
 
 The default runner.
+
+### Sequential test execution: Commit Range Runner
+
+Run tests across multiple git commits:
+
+```bash
+bundle exec awfy ips start --commit-range="HEAD~5..HEAD" --runner=commit_range
+```
+
+Benefits:
+- Compare performance across commits
+- Track performance regressions
+- Analyze performance trends
+
+See [Commit Range Analysis](#commit-range-analysis) section above for more details.
+
+### Sequential test execution: Branch Comparison Runner
+
+Compare performance between git branches:
+
+```bash
+bundle exec awfy ips start --compare-with-branch=main --runner=branch_comparison
+```
+
+Benefits:
+- Compare feature branch vs main
+- Validate performance before merging
+- Side-by-side branch comparison
 
 ## Storage Backends
 

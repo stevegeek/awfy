@@ -6,38 +6,105 @@ module Awfy
       # CommitRangeRunner runs benchmarks across a range of commits
       # Each commit is checked out and run in a fresh Ruby process for clean results
       class CommitRangeRunner < Awfy::Runners::Base
-        # Run benchmarks across a range of commits
-        # @param start_commit [String] The starting commit of the range
-        # @param end_commit [String] The ending commit of the range (defaults to HEAD)
-        # @param group [String, nil] Optional group name to run
-        # @yield [Hash] Yields the combined results to the block
-        # @return [Hash] Combined results from all commits
-        def run(start_commit, end_commit = "HEAD", group = nil, &block)
+        # Run a specific group across all commits
+        # @param group [Awfy::Suites::Group] The group to run
+        # @yield [Awfy::Suites::Group] Yields the group to create a job
+        def run_group(group, &block)
           # Initialize the environment
           start!
+
+          unless block_given?
+            raise ArgumentError, "No block given to run_group"
+          end
+
+          # Parse commit range from config
+          start_commit, end_commit = parse_commit_range(config.commit_range)
 
           # Get list of commits in the range
           commit_list = get_commits_in_range(start_commit, end_commit)
 
-          # Store results for each commit
-          all_results = {}
-
+          # Run the group on each commit
           commit_list.each do |commit|
-            results = run_on_commit(commit, group)
-
-            # Add results to the combined results
-            combine_results!(all_results, results)
+            run_group_on_commit(commit, group, &block)
           end
-
-          # Call the block with the results if given
-          if block_given?
-            block.call(all_results)
-          end
-
-          all_results
         end
 
         private
+
+        # Safely checkout a git reference, run a block, and return to the original state
+        # @param ref [String] The git reference (branch, commit, etc.) to checkout
+        # @yield Execute the given block with the reference checked out
+        def safe_checkout(ref, &block)
+          git_client.stashed_checkout(ref, &block)
+        end
+
+        # Run a command in a fresh Ruby process
+        # @param command_type [String] The command type (ips, memory, etc.)
+        # @param group_name [String, nil] Optional group name to run
+        # @param report_name [String, nil] Optional report name to run
+        # @param test_name [String, nil] Optional test name to run
+        # @return [Boolean] Whether the command succeeded
+        def run_in_fresh_process(command_type, group_name = nil, report_name = nil, test_name = nil)
+          # Build the command to run the benchmark in a separate process
+          cmd = ["bundle", "exec", "awfy", command_type.to_s, "start"]
+
+          # Add group, report, test if provided
+          cmd << group_name if group_name
+          cmd << report_name if report_name
+          cmd << test_name if test_name
+
+          # Add configuration options
+          cmd << "--runtime=#{config.runtime}" if config.runtime
+          cmd << "--test-time=#{config.test_time}" if config.test_time
+          cmd << "--test-warm-up=#{config.test_warm_up}" if config.test_warm_up
+          cmd << "--storage-backend=#{config.storage_backend}" if config.storage_backend
+          cmd << "--storage-name=#{config.storage_name}" if config.storage_name
+          cmd << "--setup-file-path=#{config.setup_file_path}" if config.setup_file_path
+          cmd << "--tests-path=#{config.tests_path}" if config.tests_path
+          cmd << "--verbose=#{config.verbose.value}" if config.verbose && config.verbose.value > 0
+          # Disable summary since we're running without a TTY and will display our own summary
+          cmd << "--no-summary"
+
+          # Execute the command
+          if config.verbose? VerbosityLevel::DEBUG
+            say "Executing: #{cmd.join(" ")}"
+          end
+
+          # Capture output for debugging if something goes wrong
+          require "open3"
+          stdout, stderr, status = Open3.capture3(*cmd)
+
+          unless status.success?
+            say_error "Benchmark command failed in spawned process"
+            say_error "STDOUT: #{stdout}" unless stdout.empty?
+            say_error "STDERR: #{stderr}" unless stderr.empty?
+            raise "Benchmark command failed in spawned process (exit code: #{status.exitstatus})"
+          end
+
+          true
+        end
+
+        # Parse commit range string into start and end commits
+        # @param range_str [String] Commit range string (e.g., "main..HEAD" or "abc123..def456")
+        # @return [Array<String>] Array with [start_commit, end_commit]
+        def parse_commit_range(range_str)
+          raise ArgumentError, "commit_range option is required for commit_range runner" if range_str.nil? || range_str.empty?
+
+          # Split on .. or ...
+          parts = range_str.split(/\.{2,3}/)
+
+          if parts.length == 1
+            # Single commit provided, use it as both start and end
+            [parts[0], parts[0]]
+          elsif parts.length == 2
+            # Range provided
+            start_commit = parts[0].empty? ? "HEAD" : parts[0]
+            end_commit = parts[1].empty? ? "HEAD" : parts[1]
+            [start_commit, end_commit]
+          else
+            raise ArgumentError, "Invalid commit range format: #{range_str}"
+          end
+        end
 
         # Get the list of commits in the specified range
         # @param start_commit [String] The starting commit of the range
@@ -48,31 +115,47 @@ module Awfy
           start_hash = git_client.rev_parse(start_commit)
           end_hash = git_client.rev_parse(end_commit)
 
-          # Get all commits in the range (inclusive of start and end)
-          commit_range = "#{start_hash}^..#{end_hash}"
-          commits = git_client.rev_list("--reverse", commit_range)
+          # If start and end are the same, return just that commit
+          if start_hash == end_hash
+            return [start_hash]
+          end
 
-          # If start commit wasn't included due to the ^ operator, add it back
-          start_index = commits.index(start_hash)
-          if start_index.nil?
+          # Check if start_hash is a root commit (has no parent)
+          is_root_commit = begin
+            git_client.rev_parse("#{start_hash}^")
+            false
+          rescue
+            true
+          end
+
+          # Get all commits in the range (inclusive of start and end)
+          if is_root_commit
+            # For root commits, we can't use ^, so just use the range directly
+            # and manually include the start commit
+            commit_range = "#{start_hash}..#{end_hash}"
+            commits = git_client.rev_list("--reverse", commit_range)
             commits.unshift(start_hash)
+          else
+            # For non-root commits, use ^ to include the start commit
+            commit_range = "#{start_hash}^..#{end_hash}"
+            commits = git_client.rev_list("--reverse", commit_range)
+
+            # If start commit wasn't included due to the ^ operator, add it back
+            start_index = commits.index(start_hash)
+            if start_index.nil?
+              commits.unshift(start_hash)
+            end
           end
 
           commits
         end
 
-        # Run benchmarks on a specific commit
+        # Run a specific group on a specific commit
         # @param commit [String] The commit hash to run on
-        # @param group [String, nil] Optional group name to run
-        # @param report_name [String, nil] Optional report name to run
-        # @param test_name [String, nil] Optional test name to run
-        # @param command_type [String] The command type (ips, memory, etc.)
-        # @return [Hash] Results from the run
-        def run_on_commit(commit, group = nil, report_name = nil, test_name = nil, command_type = nil)
-          results = nil
-          commit_message = nil
-
-          # Checkout the commit and run benchmarks in a fresh process
+        # @param group [Awfy::Suites::Group] The group to run
+        # @yield [Awfy::Suites::Group] Yields the group to create a job
+        def run_group_on_commit(commit, group, &block)
+          # Checkout the commit and run benchmarks
           safe_checkout(commit) do
             # Get commit metadata
             commit_message = git_client.commit_message(commit)
@@ -81,15 +164,10 @@ module Awfy
               say "Running benchmarks on commit: #{commit.slice(0, 8)} - #{commit_message}"
             end
 
-            # Run the benchmark command in a fresh process
-            cmd_type = command_type || "ips"
-            run_in_fresh_process(cmd_type, group, report_name, test_name)
-
-            # Load the results
-            results = load_results(commit, commit_message)
+            # Create and run the job for this group
+            job = yield group
+            job.call
           end
-
-          results
         end
 
         # Load results from the most recent run

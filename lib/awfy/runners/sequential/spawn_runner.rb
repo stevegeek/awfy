@@ -24,7 +24,8 @@ module Awfy
           command_class = job.class.name.split("::").last.downcase
 
           # Build the command to run the benchmark in a separate process
-          cmd = ["bundle", "exec", "ruby", "-Ilib", "exe/awfy", command_class]
+          # Use bundle exec awfy directly - works both in development and when gem is installed
+          cmd = ["bundle", "exec", "awfy", command_class]
 
           # Add group name
           cmd << group.name
