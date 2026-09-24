@@ -69,7 +69,7 @@ module Awfy
     end
 
     def find_group(name)
-      raise Errors::GroupNotFoundError unless valid_group?(name)
+      raise Errors::GroupNotFoundError.new(name) unless valid_group?(name)
 
       @groups_store[name]
     end

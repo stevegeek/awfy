@@ -20,8 +20,7 @@ module Awfy
 
           progress_bar = Awfy::Views::ProgressBar.new(
             shell: session.shell,
-            total_benchmarks: total_tests,
-            ascii_only: config.ascii_only?
+            total_benchmarks: total_tests
           )
 
           if verbose?(VerbosityLevel::DETAILED)

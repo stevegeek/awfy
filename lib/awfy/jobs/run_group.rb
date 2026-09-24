@@ -17,10 +17,10 @@ module Awfy
           title_with_info = " - Report '#{report.name}' [#{runtime}] #{benchmark_count} tests"
           say title_with_info, :cyan if verbose?(VerbosityLevel::DETAILED)
 
-          progress_bar = Awfy::Views::ProgressBar.new(shell: session.shell, total_benchmarks: benchmark_count, ascii_only: config.ascii_only?)
+          progress_bar = Awfy::Views::ProgressBar.new(shell: session.shell, total_benchmarks: benchmark_count)
 
           benchmarker.run_tests(report, test_name, output: false) do |test, _|
-            test_label = results_manager.generate_test_label(test, runtime)
+            test_label = generate_test_label(test, runtime)
             say "   - #{test_label}", :green if verbose?(VerbosityLevel::DEBUG)
             test.block.call
             progress_bar.increment

@@ -89,11 +89,11 @@ begin
     puts "Running memory benchmarks..."
     puts
     system("bundle", "exec", "awfy", "memory", "start",
-           "--commit_range=#{commit1}..#{commit3}",
-           "--runner=commit_range",
-           "--control-commit=#{commit1}",
-           "--test_time=0.5",
-           "--test_warm_up=0.25")
+      "--commit_range=#{commit1}..#{commit3}",
+      "--runner=commit_range",
+      "--control-commit=#{commit1}",
+      "--test_time=0.5",
+      "--test_warm_up=0.25")
 
     if $?.success?
       puts

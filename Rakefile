@@ -9,4 +9,11 @@ end
 
 require "standard/rake"
 
+# Coverage task
+desc "Run tests with coverage"
+task :coverage do
+  ENV["COVERAGE"] = "1"
+  Rake::Task["test"].invoke
+end
+
 task default: %i[test standard]

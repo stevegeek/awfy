@@ -126,7 +126,7 @@ class CastGenerator
       end
     rescue PTY::ChildExited
       # Command finished
-    rescue Errno::ENOENT => e
+    rescue Errno::ENOENT
       # Command not found
       error_msg = "bash: #{cmd.split.first}: command not found\r\n"
       record_output(error_msg)

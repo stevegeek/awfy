@@ -14,7 +14,7 @@ runner = Awfy::Runners.spawn(config)
 
 puts "Testing spawn runner..."
 puts "Current directory: #{Dir.pwd}"
-puts "awfy executable exists at exe/awfy: #{File.exist?('exe/awfy')}"
+puts "awfy executable exists at exe/awfy: #{File.exist?("exe/awfy")}"
 
 # Try to create a simple benchmark
 Awfy.configure do |c|

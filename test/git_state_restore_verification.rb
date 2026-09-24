@@ -88,11 +88,11 @@ begin
     puts "  Before: branch=#{original_branch}, HEAD=#{original_head[0..7]}"
 
     system("bundle", "exec", "awfy", "ips", "start",
-           "--commit_range=#{commit1}..#{commit3}",
-           "--runner=commit_range",
-           "--test_time=0.5",
-           "--test_warm_up=0.25",
-           "--quiet")
+      "--commit_range=#{commit1}..#{commit3}",
+      "--runner=commit_range",
+      "--test_time=0.5",
+      "--test_warm_up=0.25",
+      "--quiet")
 
     after_branch = `git branch --show-current`.strip
     after_head = `git rev-parse HEAD`.strip
@@ -115,16 +115,16 @@ begin
     puts "  Before: HEAD=#{original_head_detached[0..7]} (detached)"
 
     system("bundle", "exec", "awfy", "ips", "start",
-           "--commit_range=#{commit1}..#{commit3}",
-           "--runner=commit_range",
-           "--test_time=0.5",
-           "--test_warm_up=0.25",
-           "--quiet")
+      "--commit_range=#{commit1}..#{commit3}",
+      "--runner=commit_range",
+      "--test_time=0.5",
+      "--test_warm_up=0.25",
+      "--quiet")
 
     after_head_detached = `git rev-parse HEAD`.strip
     after_branch_detached = `git branch --show-current`.strip
 
-    puts "  After:  HEAD=#{after_head_detached[0..7]}#{after_branch_detached.empty? ? ' (detached)' : ''}"
+    puts "  After:  HEAD=#{after_head_detached[0..7]}#{after_branch_detached.empty? ? " (detached)" : ""}"
 
     if after_head_detached == original_head_detached && after_branch_detached.empty?
       puts "  ✓ Detached HEAD state restored correctly"
@@ -150,11 +150,11 @@ begin
     puts "  Before: uncommitted changes present"
 
     system("bundle", "exec", "awfy", "ips", "start",
-           "--commit_range=#{commit1}..#{commit3}",
-           "--runner=commit_range",
-           "--test_time=0.5",
-           "--test_warm_up=0.25",
-           "--quiet")
+      "--commit_range=#{commit1}..#{commit3}",
+      "--runner=commit_range",
+      "--test_time=0.5",
+      "--test_warm_up=0.25",
+      "--quiet")
 
     after_content = File.read("lib/simple.rb")
     after_branch_final = `git branch --show-current`.strip

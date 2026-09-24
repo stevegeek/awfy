@@ -32,8 +32,8 @@ module Awfy
           type_label = result_type.to_s.upcase
           session.say "#{type_label}: #{group_name}/#{report_name}"
           session.say "  Results: #{count}"
-          session.say "  Latest: #{latest.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
-          session.say "  Branch: #{latest.branch || 'unknown'}"
+          session.say "  Latest: #{latest.timestamp.strftime("%Y-%m-%d %H:%M:%S")}"
+          session.say "  Branch: #{latest.branch || "unknown"}"
           session.say ""
         end
 

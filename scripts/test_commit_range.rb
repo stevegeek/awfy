@@ -242,7 +242,7 @@ class CommitRangeTest
       # Format: │ timestamp │ branch │ commit │ runtime │ ✓ │ name │ ips_display │ ips_value │ ...
       if line =~ /│\s+[\d-]+…\s+│\s+\w+\s+│\s+(\w+)…\s+│\s+\w+\s+│\s+✓\s+│\s+\S+…\s+│\s+[\d,.]+…\s+│\s+([\d,]+)\s+│/
         commit_short = $1
-        ips_value = $2.gsub(',', '').to_f
+        ips_value = $2.delete(",").to_f
 
         # Map to full commits (check if full commit starts with the short hash from table)
         if @commit1.start_with?(commit_short)

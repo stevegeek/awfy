@@ -73,7 +73,6 @@ module Awfy
 
         private
 
-
         # Run a command in a fresh Ruby process
         # @param command_type [String] The command type (ips, memory, etc.)
         # @param group_name [String, nil] Optional group name to run

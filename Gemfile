@@ -11,6 +11,8 @@ gem "minitest", "~> 5.16"
 
 gem "standard", "~> 1.3"
 
+gem "simplecov", "~> 0.22", require: false
+
 # For example benchmarks suite
 gem "monotime"
 
