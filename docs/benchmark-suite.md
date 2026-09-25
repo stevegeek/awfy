@@ -95,11 +95,9 @@ Awfy.group "MyFeature" do
       alt_obj.different_method
     end
 
-    # Optional: Add assertions about performance - NOT IMPLEMENTED YET
-    assert(
-      memory: { total_allocated_memory: { eq: 0.0 } },
-      ips: { within: { times: 2.0, of: "Current Implementation" } }
-    )
+    # Optional: performance assertions, checked by `awfy run` (see Performance Assertions
+    # in advanced-usage.md)
+    assert "memory_profiler.allocated_memsize" => ..1_000_000
   end
 end
 ```

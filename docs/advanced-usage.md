@@ -7,13 +7,13 @@ This guide covers advanced features and usage patterns for Awfy.
 Compare performance between git branches:
 
 ```bash
-bundle exec awfy ips Arrays "#map" --compare-with=main
+bundle exec awfy ips Arrays "#map" --compare-with-branch=main
 ```
 
 Include control blocks in comparison:
 
 ```bash
-bundle exec awfy ips Arrays "#map" --compare-with=main --compare-control
+bundle exec awfy ips Arrays "#map" --compare-with-branch=main --compare-control
 ```
 
 ## Commit Range Analysis
@@ -315,33 +315,38 @@ bundle exec awfy store clean --retention-policy=keep_none
 
 ## Performance Assertions
 
-**NOT IMPLEMENTED YET**
-
-Add assertions to ensure performance meets requirements:
+`awfy run` checks performance assertions after it measures each test. Declare them with
+`assert` in a group or a report:
 
 ```ruby
-Awfy.group "Arrays" do
-  report "#map" do
-    test "New Implementation" do
-      array.map { |x| x * 2 }
-    end
+Awfy.group "Orders" do
+  # Applies to every report of the group
+  assert "sql.queries" => ..5
 
-    # Assert performance requirements
-    assert(
-      # Memory assertions
-      memory: {
-        total_allocated_memory: { lt: 1000.0 },
-        total_retained_memory: { eq: 0.0 }
-      },
-      # Speed assertions
-      ips: {
-        within: { times: 2.0, of: "Current Implementation" },
-        minimum: 1_000_000
-      }
-    )
+  report "#checkout" do
+    # Applies to this report only; replaces the group bound on "sql.queries"
+    assert "sql.queries" => ..8,
+      "memory_profiler.allocated_memsize" => 1_000_000,
+      "timing.wall_s" => 0.01..0.5
+
+    test "checkout" do
+      Order.first.checkout!
+    end
   end
 end
 ```
+
+- A key is a `"<collector>.<metric>"` path into the data a collector stores for a test
+  (`"sidekiq.by_queue.default"` goes one level deeper).
+- A number is an inclusive maximum. A Range must cover the value (`..5`, `5..`, `1..5`).
+- A test that breaks an assertion is listed under `failures`, with the metric, its value and
+  the bound. Its result is still saved. `awfy run` then exits with status 1.
+- An assertion on a collector that did not run is a failure too: add the collector with
+  `--collectors` (for example `--collectors timing,gc,rss,sql,memory_profiler`).
+- A malformed `assert` (a key without a collector, a bound that is not a number or a Range)
+  raises when the suite loads.
+
+The `ips`, `memory` and other older commands do not check assertions.
 
 ## Custom Setup
 

@@ -60,8 +60,7 @@ Command line options always take the highest precedence and will override any se
 ```json
 {
   "compare_with_branch": null,    // Branch to compare with
-  "compare_control": false,       // Re-run control blocks when comparing
-  "assert": false                 // Enable assertions
+  "compare_control": false        // Re-run control blocks when comparing
 }
 ```
 

@@ -23,8 +23,6 @@ Options:
   [--compare-with-branch=COMPARE_WITH_BRANCH]                            # Name of branch to compare with results on current branch
   [--compare-control], [--no-compare-control], [--skip-compare-control]  # When comparing branches, also re-run all control blocks too
                                                                          # Default: false
-  [--assert], [--no-assert], [--skip-assert]                             # Assert that the results are within a certain threshold coded in the tests
-                                                                         # Default: false
   [--summary], [--no-summary], [--skip-summary]                          # Generate a summary of the results
                                                                          # Default: true
   [--summary-order=SUMMARY_ORDER]                                        # Sort order for summary tables: ascending, descending, or leaderboard (command specific, e.g. fastest to slowest for IPS)
@@ -216,7 +214,6 @@ The `results show` command displays:
 --commit-range=START..END        # Run benchmarks across commit range (requires --runner=commit_range)
 --control-commit=COMMIT          # Commit to use as baseline for comparisons (defaults to first commit in range)
 --target-repo-path=PATH          # Path to git repository for checkouts (defaults to current directory)
---assert                         # Enable assertions (default: false)
 ```
 
 **Note on `--control-commit`:** When running benchmarks across a commit range, the first commit is automatically used as the baseline for comparisons. Use this option to specify a different commit as the baseline. All results are compared against this control commit. See [Control Commit for Baseline Comparisons](advanced-usage.md#control-commit-for-baseline-comparisons) for details.
