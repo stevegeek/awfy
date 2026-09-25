@@ -42,11 +42,10 @@ module Awfy
         private
 
         def result_data_with_diffs
-          baseline_data = baseline.result_data
-          baseline_stats = Benchmark::IPS::Stats::SD.new(baseline_data[:samples])
+          baseline_stats = baseline.stats
 
           results.each_with_object({}) do |result, diffs|
-            result_stats = Benchmark::IPS::Stats::SD.new(result.result_data[:samples])
+            result_stats = result.stats
             overlaps = result_stats.overlaps?(baseline_stats)
             diff_x = if baseline_stats.central_tendency > result_stats.central_tendency
               -1.0 * result_stats.speedup(baseline_stats).first
