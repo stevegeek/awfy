@@ -21,33 +21,35 @@ module Awfy
       client.checkout(reference)
     end
 
-    # Checkout a git reference shashing changes, run a block, and return to the original state
-    # @param ref [String] The git reference (branch, commit, etc.) to checkout
+    # Check out a git reference, run the block, and return to the original state.
+    # See #preserving_worktree for what is restored and when it refuses to start.
+    # @param ref [String] The git reference (branch, commit, etc.) to check out
     # @yield Execute the given block with the reference checked out
     def stashed_checkout(ref)
-      # Save the current state
-      before_branch = client.current_branch
-
-      # Get the stash count before stashing
-      stash_count_before = stash_list.size
-
-      # Try to stash any changes (including untracked files)
-      stash_save("awfy auto stash")
-
-      # Check if a stash was actually created
-      stash_count_after = stash_list.size
-      stashed = stash_count_after > stash_count_before
-
-      begin
-        # Checkout the reference (branch or commit)
+      preserving_worktree do
         checkout!(ref)
-        # Run the block with the ref checked out
         yield
+      end
+    end
+
+    # Run a block that may check out other refs, then put the working tree back as it was:
+    # uncommitted changes to tracked files are stashed first, and afterwards the original
+    # branch (or commit, when HEAD is detached) is checked out and the stash is popped. The
+    # restore also runs when the block raises.
+    #
+    # Raises Errors::UnsafeCheckoutError before changing anything when HEAD has no commit, or
+    # when a rebase, merge, cherry-pick, revert or bisect is in progress, or when files are
+    # unmerged. Raises Errors::CheckoutRestoreError when the restore itself fails; the message
+    # names the stash that still holds the changes.
+    # @param stash_message [String] The message for the stash entry
+    # @yield [original_ref] The branch name, or commit sha when detached, to return to
+    def preserving_worktree(stash_message = "awfy auto stash")
+      original_ref = ensure_safe_to_checkout!
+      stash_sha = stash_tracked_changes(stash_message)
+      begin
+        yield original_ref
       ensure
-        # Return to original branch
-        checkout!(before_branch)
-        # Pop stashed changes only if we actually created a stash
-        stash_pop if stashed
+        restore_worktree(original_ref, stash_sha)
       end
     end
 
@@ -87,42 +89,103 @@ module Awfy
       log("-1", "--pretty=#{format}", commit).strip
     end
 
-    # Create a Git stash with a message
-    # @param message [String, nil] Optional message for the stash
-    # @return [String] The output of the stash command
-    def stash_save(message = nil)
-      args = ["stash", "save"]
-      args << message if message
-      client_lib.send(:command, *args)
+    # Branch, HEAD sha and subject, or nil values when git is unusable here (no repository,
+    # no git binary, an unreadable .git). Never raises.
+    # @return [Hash] {branch:, commit_hash:, commit_message:}
+    def info
+      {branch: current_branch, commit_hash: rev_parse("HEAD"), commit_message: commit_message("HEAD")}
+    rescue => e
+      warn "awfy: git information unavailable (#{e.class}: #{e.message})" if ENV["AWFY_DEBUG"]
+      {branch: nil, commit_hash: nil, commit_message: nil}
     end
 
-    # Get the list of stashes
-    # @return [Array<String>] Array of stash entries
-    def stash_list
-      command("stash", "list").split("\n")
-    end
+    # Files in the git directory that mark an operation the user has not finished yet.
+    IN_PROGRESS_MARKERS = {
+      "rebase-merge" => "a rebase",
+      "rebase-apply" => "a rebase or `git am`",
+      "MERGE_HEAD" => "a merge",
+      "CHERRY_PICK_HEAD" => "a cherry-pick",
+      "REVERT_HEAD" => "a revert",
+      "BISECT_LOG" => "a bisect"
+    }.freeze
 
-    # Pop the most recent stash
-    # @return [String] The output of the pop command
-    def stash_pop
-      client_lib.send(:command, "stash", "pop")
-    rescue
-      # TODO: Handle this error gracefully
-      raise StandardError, "Failed to pop stash"
+    # Checks that the working tree can be stashed, switched and put back, and returns the ref
+    # to return to: the branch name, or the commit sha when HEAD is detached.
+    # Raises Errors::UnsafeCheckoutError when it cannot (see #preserving_worktree).
+    def ensure_safe_to_checkout!
+      head_sha = begin
+        rev_parse("HEAD")
+      rescue Git::FailedError
+        raise Errors::UnsafeCheckoutError, "Cannot check out other refs: HEAD has no commit yet, so there is nothing to return to."
+      end
+
+      git_dir = command("rev-parse", "--absolute-git-dir").strip
+      IN_PROGRESS_MARKERS.each do |marker, operation|
+        next unless File.exist?(File.join(git_dir, marker))
+        raise Errors::UnsafeCheckoutError, "Cannot check out other refs while #{operation} is in progress. Finish or abort it first."
+      end
+
+      unless command("diff", "--name-only", "--diff-filter=U").strip.empty?
+        raise Errors::UnsafeCheckoutError, "Cannot check out other refs while there are unmerged files. Resolve them first."
+      end
+
+      branch = command("rev-parse", "--abbrev-ref", "HEAD").strip
+      (branch == "HEAD") ? head_sha : branch
     end
 
     private
 
-    def after_initialize
-      @client = Git.open(path)
-      @client_lib = client.lib
+    # Stashes changes to tracked files (staged and unstaged) and returns the stash commit sha,
+    # or nil when there was nothing to stash. Untracked files stay in place: results stores
+    # often live untracked inside the repository and must survive the checkouts.
+    def stash_tracked_changes(message)
+      return nil if command("status", "--porcelain", "--untracked-files=no").strip.empty?
+
+      command("stash", "push", "--message", message)
+      rev_parse("refs/stash")
+    end
+
+    def restore_worktree(original_ref, stash_sha)
+      begin
+        checkout!(original_ref)
+      rescue Git::FailedError => e
+        kept = stash_sha ? " Your uncommitted changes are kept in stash #{stash_sha} (see `git stash list`)." : ""
+        raise Errors::CheckoutRestoreError, "Could not check out '#{original_ref}' again: #{git_error_detail(e)}.#{kept}"
+      end
+
+      pop_stash(stash_sha) if stash_sha
+    end
+
+    # Pops the stash entry with the given sha, wherever it now sits in the stash list, so that
+    # entries pushed by others in the meantime are left alone.
+    def pop_stash(stash_sha)
+      index = command("stash", "list", "--format=%H").split("\n").index(stash_sha)
+      unless index
+        raise Errors::CheckoutRestoreError, "The stash awfy made (#{stash_sha}) is no longer in the stash list; apply it with `git stash apply #{stash_sha}`."
+      end
+
+      command("stash", "pop", "--index", "stash@{#{index}}")
+    rescue Git::FailedError => e
+      raise Errors::CheckoutRestoreError, "Could not re-apply your uncommitted changes: #{git_error_detail(e)}. They are kept in stash #{stash_sha} (see `git stash list`)."
+    end
+
+    def git_error_detail(error)
+      detail = error.respond_to?(:result) ? error.result.stderr.to_s.strip : ""
+      detail.empty? ? error.message : detail
+    end
+
+    # Opened on first use so that commands which never need git work outside a repository.
+    def client
+      @client ||= Git.open(path)
+    end
+
+    def client_lib
+      @client_lib ||= client.lib
     end
 
     # Execute a Git command with arguments
     def command(cmd, *args)
       client_lib.send(:command, cmd, *args)
     end
-
-    attr_reader :client, :client_lib
   end
 end

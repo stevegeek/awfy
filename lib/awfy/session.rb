@@ -4,7 +4,7 @@ module Awfy
   class Session < Literal::Data
     prop :shell, Awfy::Shell
     prop :config, Awfy::Config
-    prop :git_client, Awfy::GitClient, default: -> { Awfy::GitClient.new(Dir.pwd) }
+    prop :git_client, Awfy::GitClient, default: -> { Awfy::GitClient.new(path: Dir.pwd) }
     prop :results_store, Awfy::Stores::Base
 
     def say(...) = shell.say(...)

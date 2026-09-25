@@ -17,8 +17,9 @@ class TestGitClient < Minitest::Test
   def create_test_git_client
     mock_git = Minitest::Mock.new
     yield mock_git
+    # client_lib is opened lazily now, so tests preset it directly instead of expecting
+    # a `.lib` call on mock_git.
     mock_lib = Minitest::Mock.new
-    mock_git.expect(:lib, mock_lib)
     {mock_git:, mock_lib:}
   end
 
