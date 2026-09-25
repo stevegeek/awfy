@@ -8,6 +8,9 @@ module Awfy
       # as each process has its own Global Interpreter Lock (GIL).
       # Ideal for CPU-bound tasks that can benefit from multiple cores.
       class ForkedRunner < Awfy::Runners::Base
+        SUCCESS = "SUCCESS"
+        ERROR_PREFIX = "ERROR: "
+
         def run_group(group, &block)
           start!
 
@@ -17,20 +20,11 @@ module Awfy
 
           say "Running group '#{group.name}' in forked process" if verbose?
 
-          # Execute the group in a forked process
-          pid, read_pipe = _execute_group_in_fork(group, &block)
+          error = wait_for_child(*_execute_group_in_fork(group, &block))
 
-          # Read result from pipe
-          result = read_pipe.read
-          read_pipe.close
-
-          # Wait for child to finish
-          Process.waitpid(pid)
-
-          # Check result
-          if result.start_with?("ERROR")
+          if error
             say_error "Error in forked process:"
-            say_error result.sub("ERROR: ", "")
+            say_error error
             raise "Benchmark failed in forked process"
           end
 
@@ -47,45 +41,24 @@ module Awfy
             return run_group(group, &block)
           end
 
-          # Run multiple groups in parallel using fork
-          processes = {}
-          pipes = {}
-
-          # Fork a process for each group
-          @suite.groups.each do |group|
+          # Fork a process for each group, then wait for all of them
+          children = @suite.groups.to_h do |group|
             say "Running group '#{group.name}' in forked process" if verbose?
-
-            # Execute the group in a forked process
-            pid, read_pipe = _execute_group_in_fork(group, &block)
-
-            # Store process information
-            processes[group.name] = pid
-            pipes[group.name] = read_pipe
+            [group.name, _execute_group_in_fork(group, &block)]
           end
 
-          # Check results from all processes
           errors = {}
-
-          # Wait for all processes to complete and collect results
-          processes.each do |name, pid|
-            # Read result from the pipe
-            result = pipes[name].read
-            pipes[name].close
-
-            # Wait for the process to finish
-            Process.waitpid(pid)
-
-            # Check for errors
-            if result.start_with?("ERROR")
-              errors[name] = result.sub("ERROR: ", "")
+          children.each do |name, (pid, read_pipe)|
+            error = wait_for_child(pid, read_pipe)
+            if error
+              errors[name] = error
               say_error "Error in forked process for group '#{name}':"
-              say_error errors[name]
+              say_error error
             elsif verbose?
               say "Group '#{name}' completed successfully"
             end
           end
 
-          # Report errors if any
           unless errors.empty?
             raise "Benchmark failed in one or more forked processes"
           end
@@ -110,10 +83,9 @@ module Awfy
               job.call
 
               # Signal success
-              write_pipe.write("SUCCESS")
-            rescue => e
-              # Write error to pipe
-              write_pipe.write("ERROR: #{e.message}\n#{e.backtrace.join("\n")}")
+              write_pipe.write(SUCCESS)
+            rescue Exception => e # rubocop:disable Lint/RescueException -- report every failure to the parent
+              write_pipe.write("#{ERROR_PREFIX}#{e.class}: #{e.message}\n#{e.backtrace&.join("\n")}")
             ensure
               write_pipe.close
               exit!(0) # Make sure child exits without running any cleanup hooks
@@ -123,6 +95,20 @@ module Awfy
           # Parent process
           write_pipe.close
           [pid, read_pipe]
+        end
+
+        # Reads the child's report and reaps it.
+        # @return [String, nil] The error to report, or nil when the job succeeded
+        def wait_for_child(pid, read_pipe)
+          result = read_pipe.read
+          read_pipe.close
+          _, status = Process.waitpid2(pid)
+
+          if result.start_with?(ERROR_PREFIX)
+            result.delete_prefix(ERROR_PREFIX)
+          elsif result != SUCCESS || !status.success?
+            "Forked process exited with exit status #{status.exitstatus.inspect} without reporting a result"
+          end
         end
       end
     end

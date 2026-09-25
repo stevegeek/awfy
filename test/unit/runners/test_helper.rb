@@ -48,8 +48,7 @@ module RunnerTestHelpers
       tests_path: "test/fixtures/benchmarks/tests",
       storage_name: results_dir || "./benchmarks/.awfy_benchmark_results",
       commit_range: nil,
-      color: Awfy::ColorMode::AUTO,
-      assert: false
+      color: Awfy::ColorMode::AUTO
     )
   end
 

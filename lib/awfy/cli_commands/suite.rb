@@ -13,7 +13,7 @@ module Awfy
       desc "debug [GROUPS...]", "Run tests in specified groups (if none provided, runs all)"
       def debug(*group_names)
         Commands::Suite.new(session:, group_names:).run
-      rescue Errors::SuiteError => e
+      rescue Errors::SuiteError, Errors::GitStateError => e
         shell.say_error_and_exit e.message
       end
     end

@@ -32,6 +32,13 @@ module Awfy
       def start!
         @start_time = Time.now.to_i
       end
+
+      # Run a ChildCommand and show its output. Raises when the child fails.
+      def run_in_child_process(command)
+        say "Executing: #{command.argv.join(" ")}" if verbose?(VerbosityLevel::DEBUG)
+        output = command.run!
+        say output unless output.empty?
+      end
     end
   end
 end

@@ -6,27 +6,28 @@ require_relative "test_helper"
 class TestThreadRunner < Minitest::Test
   include RunnerTestHelpers
 
-  def setup
-    @test_dir = Dir.mktmpdir
-    FileUtils.mkdir_p(File.join(@test_dir, "test_bench_output"))
-    FileUtils.mkdir_p(File.join(@test_dir, "test_bench_results"))
+  class BlockJob
+    def initialize(&block)
+      @block = block
+    end
 
+    def call = @block.call
+  end
+
+  def setup
     @suite = create_mock_suite
-    @options = create_test_options(@test_dir)
+    @options = create_test_options(nil)
     @session = create_test_session(@options)
 
     @runner = Awfy::Runners::Parallel::ThreadRunner.new(suite: @suite, session: @session)
   end
 
-  def teardown
-    if defined?(@test_dir) && @test_dir && Dir.exist?(@test_dir)
-      FileUtils.remove_entry(@test_dir)
+  def two_group_suite
+    groups = %w[first second].map do |name|
+      test = Awfy::Suites::Test.new(name: "t", block: proc {})
+      Awfy::Suites::Group.new(name: name, reports: [Awfy::Suites::Report.new(name: "r", tests: [test])])
     end
-  end
-
-  def test_initialization
-    assert_instance_of Awfy::Runners::Parallel::ThreadRunner, @runner
-    assert_equal @suite, @runner.instance_variable_get(:@suite)
+    Awfy::Suite.new(groups)
   end
 
   def test_inherits_from_base
@@ -34,103 +35,76 @@ class TestThreadRunner < Minitest::Test
   end
 
   def test_run_group_raises_without_block
-    group = @suite.find_group("test_group")
-
-    assert_raises(ArgumentError) do
-      @runner.run_group(group)
-    end
+    assert_raises(ArgumentError) { @runner.run_group(@suite.find_group("test_group")) }
   end
 
-  def test_run_group_executes_job_in_thread
-    job_called = false
+  def test_run_group_calls_the_job_in_another_thread_of_this_process
+    seen = {}
 
-    mock_job = Object.new
-    mock_job.define_singleton_method(:call) do
-      job_called = true
+    @runner.run_group(@suite.find_group("test_group")) do
+      BlockJob.new { seen.update(thread: Thread.current, pid: Process.pid) }
     end
 
-    @runner.run_group(@suite.find_group("test_group")) do |group|
-      mock_job
-    end
-
-    # Thread should have completed by the time run_group returns
-    assert true
+    refute_nil seen[:thread], "the job has finished when run_group returns"
+    refute_same Thread.current, seen[:thread]
+    assert_equal Process.pid, seen[:pid]
   end
 
-  def test_run_group_catches_errors_in_thread
-    mock_job = Object.new
-    mock_job.define_singleton_method(:call) do
-      raise "Test error in thread"
+  def test_run_group_raises_and_reports_the_error_from_the_thread
+    _, err = capture_io do
+      error = assert_raises(RuntimeError) do
+        @runner.run_group(@suite.find_group("test_group")) { BlockJob.new { raise "Test error in thread" } }
+      end
+      assert_equal "Benchmark failed in Thread", error.message
     end
 
-    assert_raises(RuntimeError) do
-      @runner.run_group(@suite.find_group("test_group")) do |group|
-        mock_job
+    assert_match(/Test error in thread/, err)
+  end
+
+  def test_run_starts_every_group_before_waiting_for_any
+    runner = Awfy::Runners::Parallel::ThreadRunner.new(suite: two_group_suite, session: @session)
+    started = Queue.new
+    release = Queue.new
+    finished = []
+
+    waiter = Thread.new do
+      # Both jobs must be running at once before either is let go.
+      2.times { started.pop(timeout: 10) || raise("jobs did not run at the same time") }
+      2.times { release << true }
+    end
+
+    runner.run do |group|
+      BlockJob.new do
+        started << group.name
+        release.pop(timeout: 10) || raise("never released")
+        finished << group.name
       end
     end
+    waiter.join
+
+    assert_equal %w[first second], finished.sort
   end
 
-  def test_run_all_groups_in_parallel_threads
-    mutex = Mutex.new
+  def test_run_reports_every_failing_group
+    runner = Awfy::Runners::Parallel::ThreadRunner.new(suite: two_group_suite, session: @session)
 
-    mock_job_class = Class.new do
-      def initialize(mutex, counter_ref)
-        @mutex = mutex
-        @counter_ref = counter_ref
+    _, err = capture_io do
+      error = assert_raises(RuntimeError) do
+        runner.run { |group| BlockJob.new { raise "#{group.name} broke" } }
       end
-
-      def call
-        @mutex.synchronize do
-          @counter_ref[:count] += 1
-        end
-      end
+      assert_equal "Benchmark failed in one or more Threads", error.message
     end
 
-    counter = {count: 0}
-
-    @runner.run do |group|
-      mock_job_class.new(mutex, counter)
-    end
-
-    # All groups should have been run
-    assert_equal @suite.groups.size, counter[:count]
+    assert_match(/group 'first'.*first broke/m, err)
+    assert_match(/group 'second'.*second broke/m, err)
   end
 
-  def test_run_specific_group
-    mock_job = Object.new
-    mock_job.define_singleton_method(:call) { true }
+  def test_run_with_a_group_name_runs_only_that_group
+    runner = Awfy::Runners::Parallel::ThreadRunner.new(suite: two_group_suite, session: @session)
+    ran = []
 
-    groups_seen = []
+    runner.run("second") { |group| BlockJob.new { ran << group.name } }
 
-    @runner.run("test_group") do |group|
-      groups_seen << group.name
-      mock_job
-    end
-
-    assert_equal ["test_group"], groups_seen
-  end
-
-  def test_run_collects_errors_from_multiple_threads
-    # Create a suite with multiple groups
-    test1 = Awfy::Suites::Test.new(name: "test1", block: proc { "result" })
-    test2 = Awfy::Suites::Test.new(name: "test2", block: proc { "result" })
-    report1 = Awfy::Suites::Report.new(name: "report1", tests: [test1])
-    report2 = Awfy::Suites::Report.new(name: "report2", tests: [test2])
-    group1 = Awfy::Suites::Group.new(name: "group1", reports: [report1])
-    group2 = Awfy::Suites::Group.new(name: "group2", reports: [report2])
-    multi_suite = Awfy::Suite.new([group1, group2])
-
-    runner = Awfy::Runners::Parallel::ThreadRunner.new(suite: multi_suite, session: @session)
-
-    error_job = Object.new
-    error_job.define_singleton_method(:call) do
-      raise "Intentional error"
-    end
-
-    assert_raises(RuntimeError) do
-      runner.run do |group|
-        error_job
-      end
-    end
+    assert_equal ["second"], ran
   end
 end

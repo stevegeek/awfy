@@ -2,151 +2,131 @@
 
 require "test_helper"
 require_relative "test_helper"
-require "json"
+require "git_repo_helper"
 
+# Runs CommitRangeRunner against a real repository. Only the child awfy process is replaced:
+# it records which commit was checked out, and what the working tree held, when it ran.
 class TestCommitRangeRunner < Minitest::Test
   include RunnerTestHelpers
-
-  # Skip all tests in this class due to issues with the new architecture
-  # The runners now expect strongly typed Session objects and it's hard
-  # to create mock objects that satisfy these constraints
-  def skipall
-    skip "CommitRangeRunner tests are skipped until they can be properly rewritten"
-  end
+  include GitRepoHelper
 
   def setup
-    skipall # Skip all tests in this class
-    # Create test directory first
-    @test_dir = Dir.mktmpdir
-    FileUtils.mkdir_p(File.join(@test_dir, "test_bench_output"))
-    FileUtils.mkdir_p(File.join(@test_dir, "test_bench_results"))
-
-    # Use Thor::Shell::Basic as the shell
-    @shell = Thor::Shell::Basic.new
-
-    # Setup options
-    @options = create_test_options(@test_dir)
-
-    # Create a suite with mock groups
+    @repo = create_git_repo
+    @first = git(@repo, "rev-parse", "HEAD")
+    @second = commit_file(@repo, "file.txt", "second\n", "Second commit")
+    @third = commit_file(@repo, "file.txt", "third\n", "Third commit")
     @suite = create_mock_suite
-
-    # Create a completely stubbed Git client
-    @git_client = Object.new
-    def @git_client.rev_parse(ref)
-      ref # Just return the ref for testing
-    end
-
-    def @git_client.rev_list(*args)
-      if args.include?("--reverse") && args.last.include?("..")
-        ["commit1", "commit2"]
-      else
-        []
-      end
-    end
-
-    def @git_client.commit_message(commit)
-      "Test commit message for #{commit}"
-    end
-
-    def @git_client.current_branch
-      "main"
-    end
-
-    def @git_client.checkout!(ref)
-      # Do nothing
-    end
-
-    # Create a mock Session class that we can control completely
-    @mock_session = Object.new
-
-    # Add the methods we need
-    def @mock_session.config
-      @config
-    end
-
-    def @mock_session.git_client
-      @git_client
-    end
-
-    def @mock_session.shell
-      @shell
-    end
-
-    def @mock_session.say(msg)
-      @shell&.say(msg)
-    end
-
-    # Set up the mock session with our test objects
-    @mock_session.instance_variable_set(:@config, @options)
-    @mock_session.instance_variable_set(:@git_client, @git_client)
-    @mock_session.instance_variable_set(:@shell, @shell)
-
-    # Create runner instance
-    @runner = Awfy::Runners::Sequential::CommitRangeRunner.new(suite: @suite, session: @mock_session)
+    @group = @suite.find_group("test_group")
   end
+
+  attr_reader :repo
 
   def teardown
-    # Clean up test directory
-    if defined?(@test_dir) && @test_dir && Dir.exist?(@test_dir)
-      FileUtils.remove_entry(@test_dir)
+    FileUtils.remove_entry(@repo) if @repo && Dir.exist?(@repo)
+  end
+
+  def runner_for(commit_range, control_commit: nil, fail_on: nil)
+    config = Awfy::Config.new(commit_range:, control_commit:, storage_backend: Awfy::StoreAliases::Memory)
+    session = Awfy::Session.new(
+      shell: Awfy::Shell.new(config:),
+      config:,
+      git_client: Awfy::GitClient.new(path: @repo),
+      results_store: Awfy::Stores::Memory.new(storage_name: "test", retention_policy: Awfy::RetentionPolicies.keep_all)
+    )
+    runs = []
+    runner = Awfy::Runners::Sequential::CommitRangeRunner.new(suite: @suite, session:)
+    test = self
+    runner.define_singleton_method(:run_in_child_process) do |command|
+      runs << {head: test.git(test.repo, "rev-parse", "HEAD"), file: test.read_file(test.repo, "file.txt"), argv: command.argv}
+      raise "child failed" if runs.last[:head] == fail_on
     end
+    [runner, runs]
   end
 
-  def test_initialization
-    assert_instance_of Awfy::Runners::Sequential::CommitRangeRunner, @runner
-    assert_nil @runner.start_time
-    # We don't check @suite equality since it's not directly accessible in the new API
+  def ips_job
+    config = Awfy::Config.new(storage_backend: Awfy::StoreAliases::Memory)
+    session = create_test_session(config)
+    Awfy::Jobs::IPS.new(session:, group: @group, benchmarker: Awfy::Benchmarker.new(session:),
+      results_manager: Awfy::ResultsManager.new(session:))
   end
 
-  def test_get_commits_in_range
-    start_commit = "abc123"
-    end_commit = "def456"
+  def test_runs_every_commit_in_the_range_oldest_first
+    runner, runs = runner_for("#{@first}..#{@third}")
 
-    # The mocks are already set up in the setup method
-    commits = @runner.send(:get_commits_in_range, start_commit, end_commit)
-    assert_equal ["commit1", "commit2"], commits
+    runner.run("test_group") { ips_job }
+
+    assert_equal [@first, @second, @third], runs.map { |run| run[:head] }
+    assert_equal ["main\n", "second\n", "third\n"], runs.map { |run| run[:file] }
+    assert(runs.all? { |run| run[:argv].include?("--control-commit=#{@first}") })
+    assert_equal %w[ips start test_group], runs.first[:argv][3, 3]
   end
 
-  def test_run_on_commit
-    commit = "abc123"
-    expected_message = "Test commit message for #{commit}"
+  def test_an_explicit_control_commit_is_resolved_to_its_full_sha
+    runner, runs = runner_for("#{@second}..#{@third}", control_commit: @third[0, 7])
 
-    # Let's override the load_results method for testing
-    def @runner.load_results(commit, commit_message)
-      {
-        "test_group" => [
-          {"name" => "test1", "commit" => commit, "commit_message" => commit_message, "value" => 100}
-        ]
-      }
-    end
+    runner.run("test_group") { ips_job }
 
-    # Run on a specific commit
-    results = @runner.send(:run_on_commit, commit)
-
-    # Verify results were loaded and tagged with commit info
-    refute_empty results
-    results.each do |_, values|
-      values.each do |result|
-        assert_equal commit, result["commit"]
-        assert_equal expected_message, result["commit_message"]
-      end
-    end
+    assert_equal [@second, @third], runs.map { |run| run[:head] }
+    assert_includes runs.first[:argv], "--control-commit=#{@third}"
   end
 
-  def test_combine_results_adds_new_results
-    # Test that combine_results! correctly adds new results
-    all_results = {
-      "group1" => [{"name" => "test1", "commit" => "abc123", "value" => 100}]
-    }
-    commit_results = {
-      "group1" => [{"name" => "test1", "commit" => "def456", "value" => 110}]
-    }
+  def test_a_single_commit_runs_once
+    runner, runs = runner_for(@second)
 
-    @runner.send(:combine_results!, all_results, commit_results)
+    runner.run("test_group") { ips_job }
 
-    # Verify the results were combined correctly
-    assert_equal 2, all_results["group1"].size
-    assert_includes all_results["group1"].map { |r| r["commit"] }, "abc123"
-    assert_includes all_results["group1"].map { |r| r["commit"] }, "def456"
+    assert_equal [@second], runs.map { |run| run[:head] }
+  end
+
+  def test_returns_to_the_branch_and_restores_uncommitted_changes
+    File.write(File.join(@repo, "file.txt"), "work in progress\n")
+    runner, runs = runner_for("#{@first}..#{@second}")
+
+    runner.run("test_group") { ips_job }
+
+    assert_equal ["main\n", "second\n"], runs.map { |run| run[:file] }
+    assert_equal "main", head_ref(@repo)
+    assert_equal "work in progress\n", read_file(@repo, "file.txt")
+    assert_equal 0, stash_count(@repo)
+  end
+
+  def test_restores_the_working_tree_when_a_commit_fails
+    File.write(File.join(@repo, "file.txt"), "work in progress\n")
+    runner, runs = runner_for("#{@first}..#{@third}", fail_on: @second)
+
+    assert_raises(RuntimeError) { runner.run("test_group") { ips_job } }
+
+    assert_equal [@first, @second], runs.map { |run| run[:head] }
+    assert_equal "main", head_ref(@repo)
+    assert_equal "work in progress\n", read_file(@repo, "file.txt")
+    assert_equal 0, stash_count(@repo)
+  end
+
+  def test_returns_to_a_detached_head
+    git(@repo, "checkout", "-q", "--detach", @second)
+    runner, _runs = runner_for("#{@first}..#{@third}")
+
+    runner.run("test_group") { ips_job }
+
+    assert_equal @second, head_ref(@repo)
+  end
+
+  def test_refuses_to_start_while_a_merge_is_in_progress
+    git(@repo, "checkout", "-q", "-b", "side", @second)
+    commit_file(@repo, "file.txt", "side\n", "Side change")
+    git(@repo, "checkout", "-q", "main")
+    Open3.capture3("git", "-C", @repo, "merge", "side")
+    runner, runs = runner_for("#{@first}..#{@third}")
+
+    assert_raises(Awfy::Errors::UnsafeCheckoutError) { runner.run("test_group") { ips_job } }
+
+    assert_empty runs
+  end
+
+  def test_rejects_an_invalid_range
+    runner, runs = runner_for("a..b..c")
+
+    assert_raises(ArgumentError) { runner.run("test_group") { ips_job } }
+    assert_empty runs
   end
 end
