@@ -13,7 +13,6 @@ module Awfy
     class_option :commit_range, type: :string, desc: "Range of commits to benchmark (e.g., 'main..HEAD' or 'abc123..def456')"
     class_option :control_commit, type: :string, desc: "Commit to use as control/baseline for comparisons (defaults to first commit in range)"
     class_option :ignore_commits, type: :string, desc: "Comma-separated list of commit hashes to skip"
-    class_option :assert, type: :boolean, desc: "Assert that the results are within a certain threshold coded in the tests", default: false
 
     # Output/display options
     class_option :summary, type: :boolean, desc: "Generate a summary of the results", default: true
@@ -70,5 +69,12 @@ module Awfy
 
     desc "results SUBCOMMAND", "Results-related commands (list, show)"
     subcommand "results", CLICommands::Results
+
+    desc "measure SUITE_PATH", "Measure one suite file with collectors (alias: run)"
+    subcommand "measure", CLICommands::Measure
+    map "run" => "measure"
+
+    desc "compare", "Compare the latest :measure results of two labels (JSON, Markdown or table)"
+    subcommand "compare", CLICommands::Compare
   end
 end

@@ -111,6 +111,16 @@ module Awfy
       assert_equal 5, result.test_time, "Expected test_time from current config"
     end
 
+    def test_load_with_precedence_ignores_the_removed_assert_option
+      # `awfy config save` wrote every option, so saved files can still name `assert`.
+      create_config_file(File.join(@home_dir, ".awfy.json"), {runtime: "mri", assert: false})
+
+      result = @config_loader.load_with_precedence
+
+      assert_equal "mri", result.runtime
+      refute_includes result.to_h.keys, :assert
+    end
+
     def test_load_with_precedence_and_thor_options
       # Create config files in all locations
       home_config = {runtime: "both", verbose: VerbosityLevel::BASIC.value}

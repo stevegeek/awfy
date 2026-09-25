@@ -27,7 +27,6 @@ module Awfy
       assert_nil config.commit_range
       assert_nil config.control_commit
       assert_equal false, config.compare_control
-      assert_equal false, config.assert
 
       # Runtime options defaults
       assert_equal "both", config.runtime
@@ -139,14 +138,6 @@ module Awfy
       assert config.verbose?(1) # BASIC level
       assert config.verbose?(2) # DETAILED level
       refute config.verbose?(3) # DEBUG level
-    end
-
-    def test_assert_predicate
-      config = Config.new(assert: true)
-      assert config.assert?
-
-      config = Config.new(assert: false)
-      refute config.assert?
     end
 
     def test_compare_control_predicate

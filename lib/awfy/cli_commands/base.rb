@@ -41,7 +41,22 @@ module Awfy
         # FIXME: This should be set to be the options set on the CLI by the
         # user not considering the defaults... but still need to work out how to
         # do that.
+        # Command-specific options (run/compare) are not Config props. --store names the
+        # store file itself; the SQLite store appends ".db" to storage_name. Explicit, so
+        # no .awfy.json can redirect it.
+        store = thor_opts[:store]
+        # Fully qualified: this file is nested under CLICommands, which also has a Config
+        # (Thor) class, so a bare `Config` here would resolve to that class instead.
+        thor_opts = thor_opts.slice(*Awfy::Config.literal_properties.map(&:name))
         explicit_opts = {}
+        if store
+          sqlite = thor_opts[:storage_backend].to_s == StoreAliases::SQLite.value
+          explicit_opts[:storage_name] = sqlite ? store.delete_suffix(".db") : store
+          # storage_name above is only correct for the backend named here; an .awfy.json
+          # that redirected storage_backend alone would then pair the wrong backend with a
+          # storage_name computed for the other one. Explicit, so it wins too.
+          explicit_opts[:storage_backend] = thor_opts[:storage_backend]
+        end
         # Create ConfigLoader with appropriate options
         tests_path = thor_opts[:tests_path] || "./benchmarks/tests"
         setup_file_path = thor_opts[:setup_file_path] || "./benchmarks/setup"

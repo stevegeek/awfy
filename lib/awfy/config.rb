@@ -53,8 +53,6 @@ module Awfy
     prop :control_commit, _Nilable(String)
     # when comparing branches, also re-run control blocks
     prop :compare_control, _Boolean, default: false
-    # assert that results are within thresholds
-    prop :assert, _Boolean, default: false
 
     # Runtime options
 
@@ -104,8 +102,6 @@ module Awfy
       level_enum = VerbosityLevel[level] || level
       verbose.value >= level_enum.value
     end
-
-    def assert? = assert
 
     def compare_control? = compare_control
 

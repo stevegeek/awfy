@@ -8,7 +8,7 @@ module Awfy
         return unless verbose?
 
         say
-        say "| on branch '#{git_client.current_branch}', and #{config.compare_with_branch ? "compare with branch: '#{config.compare_with_branch}', and " : ""}Runtime: #{config.humanized_runtime} and assertions: #{config.assert? || "skip"}", :cyan
+        say "| on branch '#{git_client.current_branch}', and #{"compare with branch: '#{config.compare_with_branch}', and " if config.compare_with_branch}Runtime: #{config.humanized_runtime}", :cyan
         say "| Timestamp #{Time.now}", :cyan
 
         # Get terminal info from shell

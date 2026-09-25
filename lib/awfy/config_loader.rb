@@ -7,6 +7,9 @@ module Awfy
   # Responsible for loading configuration from files with precedence hierarchy
   class ConfigLoader
     CONFIG_FILENAME = ".awfy.json"
+    # Options awfy no longer has. `awfy config save` writes every option, so saved files can
+    # still name them; they are dropped on load instead of failing Config.new.
+    REMOVED_OPTIONS = %i[assert].freeze
 
     attr_reader :tests_path, :setup_file_path, :test_specific_path
 
@@ -134,7 +137,7 @@ module Awfy
       return nil unless File.exist?(File.expand_path(path))
       log_config_load(path) if @shell
       begin
-        JSON.parse(File.read(path)).transform_keys(&:to_sym)
+        JSON.parse(File.read(path)).transform_keys(&:to_sym).except(*REMOVED_OPTIONS)
       rescue JSON::ParserError => e
         warn "Error parsing config file #{path}: #{e.message}"
         nil
