@@ -22,6 +22,7 @@ module Awfy
           branch TEXT,
           commit_hash TEXT,
           commit_message TEXT,
+          label TEXT,
           ruby_version TEXT,
           result_data TEXT
         );
@@ -39,13 +40,13 @@ module Awfy
         result.result_id
       end
 
-      def query_results(type: nil, group_name: nil, report_name: nil, test_name: nil, runtime: nil, commit_hash: nil)
+      def query_results(type: nil, group_name: nil, report_name: nil, test_name: nil, runtime: nil, commit_hash: nil, label: nil)
         results = []
 
         with_database_connection do |db|
           db.results_as_hash = true
 
-          sql, params = build_query_sql(type, group_name, report_name, test_name, runtime, commit_hash)
+          sql, params = build_query_sql(type, group_name, report_name, test_name, runtime, commit_hash, label)
           db.execute(sql, params) do |row|
             results << create_result_from_row(row)
           end
@@ -114,7 +115,15 @@ module Awfy
         with_database_connection do |db|
           db.execute(CREATE_RESULTS_TABLE_SCHEMA)
           create_indexes(db)
+          ensure_label_column(db)
         end
+      end
+
+      # Stores created before `label` existed get the column; their rows read as nil.
+      def ensure_label_column(db)
+        columns = db.execute("PRAGMA table_info(results)").map { it[1] }
+        db.execute("ALTER TABLE results ADD COLUMN label TEXT") unless columns.include?("label")
+        db.execute "CREATE INDEX IF NOT EXISTS idx_results_label ON results (label);"
       end
 
       def create_indexes(db)
@@ -132,8 +141,8 @@ module Awfy
 
         db.execute(
           "INSERT INTO results (result_id, type, control, baseline, group_name, report_name, test_name, runtime,
-            timestamp, branch, commit_hash, commit_message, ruby_version, result_data)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            timestamp, branch, commit_hash, commit_message, label, ruby_version, result_data)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             result.result_id,
             result.type.to_s,
@@ -147,13 +156,14 @@ module Awfy
             result.branch,
             result.commit_hash,
             result.commit_message,
+            result.run_label,
             result.ruby_version,
             result_data_json
           ]
         )
       end
 
-      def build_query_sql(type, group_name, report_name, test_name, runtime, commit)
+      def build_query_sql(type, group_name, report_name, test_name, runtime, commit, label = nil)
         sql = "SELECT * FROM results WHERE 1=1"
         params = []
 
@@ -182,6 +192,11 @@ module Awfy
           params << commit
         end
 
+        if label
+          sql += " AND label = ?"
+          params << label
+        end
+
         if runtime.is_a?(String)
           sql += " AND runtime = ?"
           params << runtime
@@ -198,10 +213,9 @@ module Awfy
 
       def create_result_from_row(row)
         result_data = JSON.parse(row["result_data"]) if row["result_data"]
-        Result.deserialize(
-          **row.transform_keys(&:to_sym),
-          result_data: result_data
-        )
+        hash = row.transform_keys(&:to_sym)
+        hash[:run_label] = hash.delete(:label)
+        Result.deserialize(**hash, result_data: result_data)
       end
     end
   end

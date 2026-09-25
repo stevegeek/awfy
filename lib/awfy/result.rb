@@ -25,6 +25,10 @@ module Awfy
     prop :commit_hash, _Nilable(String)
     prop :commit_message, _Nilable(String)
 
+    # The run label (`awfy run --label`, e.g. "master@435e4eb4"). Stored in the `label` column.
+    # Not called `label`: #label is the display label the IPS/memory views use.
+    prop :run_label, _Nilable(String)
+
     prop :result_id, _Nilable(String)
     prop :result_data, _Nilable(Hash)
 
@@ -59,6 +63,8 @@ module Awfy
         IPSResult
       when :memory
         MemoryResult
+      when :measure
+        MeasureResult
       else
         raise ArgumentError, "Trying to deserialize a result of type #{type} which is unknown"
       end

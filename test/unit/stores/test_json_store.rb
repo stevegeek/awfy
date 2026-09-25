@@ -166,36 +166,46 @@ class JsonStoreTest < Minitest::Test
 
     @store.save_result(result3)
 
-    # Query for all ips results
-    results = @store.query_results(type: :ips)
-    assert results.length > 0, "Should find ips results"
+    assert_equal %w[test-3 test-4 test-5], @store.query_results(type: :ips).map(&:result_id).sort
+    assert_empty @store.query_results(type: :memory)
 
-    # Note: The Json store may sometimes have issues with exact file search in tests
-    # due to filesystem and encoding issues, so we're making these tests more lenient
+    assert_equal %w[test-3 test-4], @store.query_results(type: :ips, group_name: "Query Group").map(&:result_id).sort
 
-    # Query with group filter
-    @store.query_results(type: :ips, group_name: "Query Group")
-
-    # Query with runtime filter
     runtime_results = @store.query_results(type: :ips, runtime: "yjit")
+    assert_equal ["test-4"], runtime_results.map(&:result_id)
+    assert_equal 1500.0, runtime_results.first.result_data[:ips]
 
-    # If we got yjit results, check the value
-    if runtime_results.length > 0
-      assert_equal 1500.0, runtime_results.first.result_data[:ips], "Should find the correct result"
-    end
+    combo_results = @store.query_results(type: :ips, group_name: "Query Group", report_name: "#method1", runtime: "mri")
+    assert_equal ["test-3"], combo_results.map(&:result_id)
+    assert_equal 1000.0, combo_results.first.result_data[:ips]
+  end
 
-    # Query with combination of filters
-    combo_results = @store.query_results(
-      type: :ips,
-      group_name: "Query Group",
-      report_name: "#method1",
-      runtime: "mri"
-    )
+  def test_save_and_query_measure_results_by_label
+    base = measure_result("base-1", label: "base", wall_s: 1.0)
+    candidate = measure_result("candidate-1", label: "candidate", wall_s: 2.0)
+    [base, candidate].each { @store.save_result(it) }
 
-    # If we got combo results, check the value
-    if combo_results.length > 0
-      assert_equal 1000.0, combo_results.first.result_data[:ips], "Should find the correct result"
-    end
+    found = @store.query_results(type: :measure, label: "candidate")
+    assert_equal ["candidate-1"], found.map(&:result_id)
+    assert_instance_of Awfy::MeasureResult, found.first
+    assert_equal "candidate", found.first.run_label
+    assert_equal({"wall_s" => 2.0}, found.first.result_data[:collectors]["timing"])
+
+    assert_equal %w[base-1 candidate-1], @store.query_results(type: :measure).map(&:result_id).sort
+    assert_equal ["base-1"], @store.query_results(type: :measure, label: "base", test_name: "t").map(&:result_id)
+    assert_empty @store.query_results(type: :measure, label: "missing")
+    assert_empty @store.query_results(type: :ips, label: "base")
+  end
+
+  def test_save_result_refuses_a_duplicate_result_id
+    @store.save_result(measure_result("dup-1", label: "base", wall_s: 1.0))
+    assert_raises(RuntimeError) { @store.save_result(measure_result("dup-1", label: "base", wall_s: 1.0)) }
+  end
+
+  def measure_result(result_id, label:, wall_s:)
+    Awfy::MeasureResult.new(type: :measure, group_name: "G", report_name: "R", test_name: "t",
+      runtime: "mri", timestamp: Time.now, result_id: result_id, run_label: label,
+      result_data: {collectors: {"timing" => {"wall_s" => wall_s}}})
   end
 
   def test_load_result
