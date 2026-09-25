@@ -17,6 +17,10 @@ module Awfy
       prop :warmup_time, Float
       prop :test_time, Float
       prop :title, String, default: "Running"
+      # Returns the current time in seconds; tests inject a fake clock.
+      prop :clock, _Callable, default: -> { -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) } }
+      # Seconds between progress redraws.
+      prop :refresh_interval, Float, default: 0.5
 
       def after_initialize
         @start_time = nil
@@ -26,11 +30,13 @@ module Awfy
         @percent_complete = 0
       end
 
+      attr_reader :percent_complete
+
       def say(...) = @shell.say(...)
 
       # Start the progress bar
       def start
-        @start_time = Time.now
+        @start_time = @clock.call
 
         # Set progress marks based on terminal capabilities
         progress_mark = @shell.unicode_supported? ? "█" : "#"
@@ -51,7 +57,7 @@ module Awfy
         @thread = Thread.new do
           while @running
             update_progress
-            sleep 0.5  # Update every half second
+            sleep @refresh_interval
           end
         end
       end
@@ -84,7 +90,7 @@ module Awfy
         return unless @start_time && @progressbar
 
         total_time = estimated_total_time
-        elapsed = Time.now - @start_time
+        elapsed = @clock.call - @start_time
         @percent_complete = [(elapsed / total_time * 100).to_i, 100].min
 
         # Only update if progress increased

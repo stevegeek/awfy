@@ -42,7 +42,7 @@ module Awfy
 
       # Show detailed results for a specific group/report
       def show
-        unless group_names && group_names.any?
+        unless group_names&.any?
           session.say_error "Error: GROUP name is required"
           session.say "Usage: awfy results show GROUP [REPORT]"
           return
@@ -58,7 +58,7 @@ module Awfy
         results = results_store.query_results(**query_params)
 
         if results.empty?
-          session.say "No results found for #{group_name}#{report_name ? "/#{report_name}" : ""}"
+          session.say "No results found for #{group_name}#{"/#{report_name}" if report_name}"
           return
         end
 

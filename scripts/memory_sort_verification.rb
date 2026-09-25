@@ -95,12 +95,11 @@ begin
       "--test_time=0.5",
       "--test_warm_up=0.25")
 
+    puts
     if $?.success?
-      puts
       puts "✓ Test completed successfully!"
       puts "  Check the table above - commit 2 (0.5x) should appear BEFORE commit 3 (2.0x)"
     else
-      puts
       puts "✗ Test failed"
       exit 1
     end

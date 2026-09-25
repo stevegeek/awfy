@@ -99,7 +99,7 @@ class CastGenerator
   end
 
   def execute_command(cmd)
-    output_buffer = String.new
+    output_buffer = String.new(encoding: Encoding::BINARY)
 
     begin
       PTY.spawn({"TERM" => "xterm-256color"}, cmd) do |stdout, stdin, pid|

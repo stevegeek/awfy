@@ -29,7 +29,7 @@ module Awfy
           end
 
           benchmarker.run_tests(report, test_name, output: false) do |test, iterations|
-            filename = "report-#{group.name}-#{report.name}-#{test.name}".gsub(/[^A-Za-z0-9_\-]/, "_")
+            filename = "report-#{group.name}-#{report.name}-#{test.name}".gsub(/[^A-Za-z0-9_-]/, "_")
 
             if verbose?(VerbosityLevel::DEBUG)
               say "# ***"

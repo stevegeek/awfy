@@ -26,7 +26,7 @@ module Awfy
       BASELINE_MARKER = "[b]"
 
       def generate_test_label(test, runtime)
-        "[#{runtime}] #{test.control? ? CONTROL_MARKER : TEST_MARKER}#{test.baseline? ? BASELINE_MARKER : ""} #{test.name}"
+        "[#{runtime}] #{test.control? ? CONTROL_MARKER : TEST_MARKER}#{BASELINE_MARKER if test.baseline?} #{test.name}"
       end
 
       def marked_as_control?(test)

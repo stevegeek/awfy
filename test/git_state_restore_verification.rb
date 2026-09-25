@@ -124,7 +124,7 @@ begin
     after_head_detached = `git rev-parse HEAD`.strip
     after_branch_detached = `git branch --show-current`.strip
 
-    puts "  After:  HEAD=#{after_head_detached[0..7]}#{after_branch_detached.empty? ? " (detached)" : ""}"
+    puts "  After:  HEAD=#{after_head_detached[0..7]}#{" (detached)" if after_branch_detached.empty?}"
 
     if after_head_detached == original_head_detached && after_branch_detached.empty?
       puts "  ✓ Detached HEAD state restored correctly"

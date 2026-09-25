@@ -175,6 +175,32 @@ module Awfy
         end
       end
 
+      def test_string_counts_are_integers
+        retained = []
+        baseline = Suites::BaselineTest.new(
+          name: "baseline",
+          block: proc { 3.times { |i| retained << "kept #{i}" } }
+        )
+        report = Suites::Report.new(name: "test_report", tests: [baseline])
+        group = Suites::Group.new(name: "test_group", reports: [report])
+
+        Memory.new(
+          session: @session,
+          benchmarker: @benchmarker,
+          results_manager: @results_manager,
+          group: group,
+          report_name: nil,
+          test_name: nil
+        ).call
+
+        @results_manager.each_report(:memory) do |results, _baseline|
+          data = results.first.result_data
+          assert_kind_of Integer, data[:retained_strings], "retained_strings should be a count, like allocated_strings"
+          assert_kind_of Integer, data[:allocated_strings]
+          assert_operator data[:retained_strings], :>, 0
+        end
+      end
+
       def test_call_with_specific_report
         baseline1 = Suites::BaselineTest.new(name: "b1", block: proc { [1] })
         baseline2 = Suites::BaselineTest.new(name: "b2", block: proc { [2] })

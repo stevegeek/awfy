@@ -61,7 +61,7 @@ module Awfy
 
       # ControlTest tests
       def test_control_test_initialize
-        test = ControlTest.new(name: "control", block: proc { nil })
+        test = ControlTest.new(name: "control", block: proc {})
 
         assert_instance_of ControlTest, test
       end

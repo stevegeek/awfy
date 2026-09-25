@@ -64,7 +64,6 @@ module JobTestHelpers
       storage_name: "./benchmarks/.awfy_benchmark_results",
       commit_range: nil,
       color: Awfy::ColorMode::OFF,
-      assert: false,
       summary: false
     )
   end
@@ -165,6 +164,6 @@ class MockResultsManager < Literal::Object
   end
 
   def generate_test_label(test, runtime)
-    "[#{runtime}] #{test.control? ? "[c]" : "[*]"}#{test.baseline? ? "[b]" : ""} #{test.name}"
+    "[#{runtime}] #{test.control? ? "[c]" : "[*]"}#{"[b]" if test.baseline?} #{test.name}"
   end
 end

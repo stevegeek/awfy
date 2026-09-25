@@ -78,8 +78,9 @@ module Awfy
           allocated_objects: result.total_allocated || 0,
           retained_memsize: result.total_retained_memsize || 0,
           retained_objects: result.total_retained || 0,
-          retained_strings: result.strings_retained || 0,
-          allocated_strings: result.strings_allocated&.size || 0,
+          # Counts of distinct strings, as in the memory_profiler collector
+          retained_strings: Array(result.strings_retained).size,
+          allocated_strings: Array(result.strings_allocated).size,
           # Individual results, arrays of objects {count: numeric, data: string}
           allocated_memory_by_gem: result.allocated_memory_by_gem,
           retained_memory_by_gem: result.retained_memory_by_gem,
