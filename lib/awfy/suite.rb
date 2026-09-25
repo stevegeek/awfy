@@ -21,7 +21,10 @@ module Awfy
 
     def report(name, &)
       current_group! << Suites::Report.new(name:, tests: [])
+      @in_report = true
       instance_eval(&)
+    ensure
+      @in_report = false
     end
 
     # TODO: check name is unique for runtime, report combo
@@ -43,9 +46,35 @@ module Awfy
       current_report! << Suites::Test.new(name:, block:)
     end
 
-    # Assert that results match conditions
-    def assert(**configuration)
-      # NOP for now...
+    # Hooks. Inside a report block they apply to that report, otherwise to the group.
+    def setup(&block)
+      current_hooks!.setup = block
+    end
+
+    def before_each(&block)
+      current_hooks!.before_each = block
+    end
+
+    def after_each(&block)
+      current_hooks!.after_each = block
+    end
+
+    def isolate(name)
+      unless Isolation::NAMES.include?(name)
+        raise ArgumentError, "isolate must be one of #{Isolation::NAMES.map(&:inspect).join(", ")}, got #{name.inspect}"
+      end
+      current_hooks!.isolate = name
+    end
+
+    # Performance assertions, checked by `awfy run` after it measures each test. Keys are
+    # "<collector>.<metric>" paths into the collected data, values a maximum or a Range:
+    #   assert "sql.queries" => ..5, "memory_profiler.allocated_memsize" => 1_000_000
+    # Inside a report block they apply to that report, otherwise to every report of the group;
+    # a report assertion replaces a group assertion on the same metric.
+    def assert(bounds)
+      raise ArgumentError, "assert takes a Hash of metric => bound, got #{bounds.inspect}" unless bounds.is_a?(Hash)
+      assertions = @in_report ? current_report!.assertions : current_group!.assertions
+      bounds.each { |metric, bound| assertions << Suites::Assertion.build(metric, bound) }
     end
 
     def groups?
@@ -53,11 +82,7 @@ module Awfy
     end
 
     def tests?
-      @groups_store.any? do |_, group|
-        group.reports? do |report|
-          report.tests?
-        end
-      end
+      groups.any?(&:tests?)
     end
 
     def filter(group_names)
@@ -99,6 +124,10 @@ module Awfy
       @current_group.reports.last.tap do |report|
         raise "Not in report" unless report
       end
+    end
+
+    def current_hooks!
+      @in_report ? current_report!.hooks : current_group!.hooks
     end
   end
 end

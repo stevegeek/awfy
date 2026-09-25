@@ -120,10 +120,17 @@ module Awfy
         assert_equal 0, report.size
       end
 
-      # Note: without_control_tests has a bug in the implementation
-      # It calls self.class.new(@tests.reject(&:control?)) which passes
-      # only the tests array without the name keyword argument.
-      # Skipping tests for this method until the implementation is fixed.
+      def test_without_control_tests_keeps_the_other_tests_and_the_name
+        report = Report.new(name: "report", tests: [@control_test, @test1, @test2])
+        report.hooks.isolate = :none
+
+        filtered = report.without_control_tests
+
+        assert_equal "report", filtered.name
+        assert_equal [@test1, @test2], filtered.tests
+        assert_same report.hooks, filtered.hooks
+        assert_equal 3, report.size, "the original report is unchanged"
+      end
 
       def test_tests_sorted_by_type_without_filter
         report = Report.new(name: "report", tests: [@test1, @control_test, @test2])

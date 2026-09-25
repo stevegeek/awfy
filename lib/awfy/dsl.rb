@@ -14,5 +14,15 @@ module Awfy
     def suite
       @suite ||= Suite.new
     end
+
+    # Evaluates the block against a fresh suite and returns it; the global suite is untouched.
+    def isolated_suite
+      previous = @suite
+      @suite = Suite.new
+      yield
+      @suite
+    ensure
+      @suite = previous
+    end
   end
 end

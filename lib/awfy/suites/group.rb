@@ -5,6 +5,8 @@ module Awfy
     class Group < Literal::Data
       prop :name, String
       prop :reports, _Array(Report)
+      prop :hooks, Suites::Hooks, default: -> { Suites::Hooks.new }
+      prop :assertions, _Array(Suites::Assertion), default: -> { [] }
 
       def <<(report)
         @reports << report

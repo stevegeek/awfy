@@ -178,10 +178,16 @@ module Awfy
         end
       end
 
-      # Note: the tests? method has a bug in its implementation
-      # It uses reports? incorrectly (passing a block instead of checking each report)
-      # This test documents current behavior
-      assert @suite.tests? || true # Skip assertion due to bug
+      assert @suite.tests?
+    end
+
+    def test_tests_predicate_is_false_when_reports_have_no_tests
+      @suite.group("my_group") do
+        report("empty_report") {}
+      end
+
+      assert @suite.groups?
+      refute @suite.tests?
     end
 
     def test_full_dsl_usage

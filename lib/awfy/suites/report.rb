@@ -5,6 +5,8 @@ module Awfy
     class Report < Literal::Data
       prop :name, String
       prop :tests, _Array(Test)
+      prop :hooks, Suites::Hooks, default: -> { Suites::Hooks.new }
+      prop :assertions, _Array(Suites::Assertion), default: -> { [] }
 
       def <<(test)
         @tests << test
@@ -19,7 +21,14 @@ module Awfy
       end
 
       def without_control_tests
-        self.class.new(@tests.reject(&:control?))
+        self.class.new(**to_h, tests: @tests.reject(&:control?))
+      end
+
+      # The assertions that apply to this report: its own, and those of its group whose metric
+      # it does not assert itself.
+      def assertions_within(group)
+        own_metrics = @assertions.map(&:metric)
+        group.assertions.reject { own_metrics.include?(it.metric) } + @assertions
       end
 
       def tests_sorted_by_type(test_name: nil)
