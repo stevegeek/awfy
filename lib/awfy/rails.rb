@@ -18,6 +18,7 @@ require_relative "rails/collectors/sql"
 require_relative "rails/collectors/instantiation"
 require_relative "rails/collectors/cache"
 require_relative "rails/collectors/sidekiq"
+require_relative "rails/collectors/elasticsearch"
 require_relative "rails/transaction_isolation"
 require_relative "rails/helpers"
 
@@ -62,7 +63,8 @@ end
   Awfy::Rails::Collectors::Sql,
   Awfy::Rails::Collectors::Instantiation,
   Awfy::Rails::Collectors::Cache,
-  Awfy::Rails::Collectors::Sidekiq
+  Awfy::Rails::Collectors::Sidekiq,
+  Awfy::Rails::Collectors::Elasticsearch
 ].each { Awfy::Collectors.register(it) }
 
 Awfy::Isolation.register(:transaction, Awfy::Rails::TransactionIsolation)

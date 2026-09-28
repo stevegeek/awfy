@@ -11,6 +11,7 @@
 - `awfy run` stores the run meta (Ruby, YJIT, awfy version, Rails env/version, jemalloc) with each measure result.
 - `awfy compare` reports per-test `warnings` when isolation, runtime or run meta differ between the two labels, and lists collectors recorded under only one label in `collectors_missing`.
 - The Rails `cache` collector counts compare-and-set calls (`cas`) and IdentityCache fetch, hit/miss, write, delete and hydration events (`identity_cache_*`). The keys appear only when those events occur; awfy does not depend on IdentityCache.
+- The Rails `elasticsearch` collector counts requests made through elastic-transport, by method and normalized path. awfy does not depend on the elasticsearch gems.
 
 ### Changed
 

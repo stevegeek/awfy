@@ -221,6 +221,7 @@ Rails; call `Awfy::Rails.boot!(app_root)` to require `config/environment`.
 | `instantiation` | no | records instantiated per class |
 | `cache` | no | cache reads, hits, misses, writes; `cas` (keys touched by compare-and-set) and, with IdentityCache, `identity_cache_fetches`, `_keys`, `_memo_hits`, `_hits`, `_misses`, `_resolve_miss_ms`, `_writes`, `_deletes`, `_hydrations` (these keys appear only when such events occur) |
 | `sidekiq` | no | jobs enqueued by class and queue, scheduled |
+| `elasticsearch` | no | requests through elastic-transport's `Client#perform_request`, total and by method and normalized path (`GET /<index>/_search`, `POST /_bulk`); `transport` is false when the gem is not loaded |
 
 The `identity_cache_*` counts are IdentityCache's own view of its fetches. The store calls it
 makes to serve them are also in `reads`/`writes`/`cas`, so do not add the two together.
@@ -228,6 +229,11 @@ makes to serve them are also in `reads`/`writes`/`cas`, so do not add the two to
 `sql` gets its own heavy pass: per-query caller capture and backtrace cleaning is expensive
 enough that running it in the light pass biased the `timing`/`gc` numbers. Its frame finder
 skips this gem's own `lib/` frames so N+1 candidates attribute to the first app frame.
+
+The `elasticsearch` collector prepends a module to `Elastic::Transport::Client#perform_request`
+the first time it starts, and counts only the requests of its own thread. It also sees raw
+client calls that fire no notification. An index keeps its name or alias; a run of six or more
+digits (a timestamped index) becomes `*`.
 
 Helpers in suite and test blocks: `perform_job(klass, *args, **kwargs)` (outcome: the `sidekiq`
 summary; warns once to stderr if the `sidekiq` collector is not active), `request(verb, path,

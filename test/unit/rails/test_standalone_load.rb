@@ -14,6 +14,7 @@ class RailsStandaloneLoadTest < Minitest::Test
     assert status.success?, out
     assert_includes out.lines[-2], "sql"
     assert_includes out.lines[-2], "sidekiq"
+    assert_includes out.lines[-2], "elasticsearch"
     assert_equal "nil", out.lines.last.strip
   end
 end
