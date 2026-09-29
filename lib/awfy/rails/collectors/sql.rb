@@ -56,6 +56,7 @@ module Awfy
           @cached = 0
           @ms = 0.0
           @by_sql = Hash.new { |hash, sql| hash[sql] = Hash.new(0) }
+          @ms_by_sql = Hash.new(0.0)
           @subscriber = ::ActiveSupport::Notifications.subscribe("sql.active_record") { |event| record(event) }
         end
 
@@ -64,7 +65,7 @@ module Awfy
           @subscriber = nil
           threshold = self.class.threshold
           fingerprints = @by_sql.to_h do |sql, frames|
-            [sql, {"count" => frames.values.sum, "frame" => frames.max_by { |_, count| count }&.first}]
+            [sql, {"count" => frames.values.sum, "ms" => @ms_by_sql[sql].round(3), "frame" => frames.max_by { |_, count| count }&.first}]
           end
           n_plus_one = @by_sql.flat_map do |sql, frames|
             frames.filter_map { |frame, count| {"sql" => sql, "frame" => frame, "count" => count} if frame && count >= threshold }
@@ -87,7 +88,9 @@ module Awfy
 
           @queries += 1
           @ms += event.duration
-          @by_sql[SqlNormalizer.normalize(payload[:sql])][self.class.frame_finder.call(caller)] += 1
+          sql = SqlNormalizer.normalize(payload[:sql])
+          @ms_by_sql[sql] += event.duration
+          @by_sql[sql][self.class.frame_finder.call(caller)] += 1
         end
       end
     end

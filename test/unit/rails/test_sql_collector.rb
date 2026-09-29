@@ -35,6 +35,20 @@ class SqlCollectorTest < Minitest::Test
     assert_equal 1, data["n_plus_one"].size
   end
 
+  def test_fingerprints_carry_total_time_per_sql
+    collector = start_collector
+    instrument_sql("SELECT 1 FROM t WHERE id = 1", duration_ms: 2.0)
+    instrument_sql("SELECT 1 FROM t WHERE id = 2", duration_ms: 3.0)
+    instrument_sql("SELECT 2 FROM u", duration_ms: 1.0)
+    data = collector.stop(nil)
+
+    by_sql = data["fingerprints"]
+    assert_equal 2, by_sql.size
+    same = by_sql.values.find { it["count"] == 2 }
+    assert_in_delta 5.0, same["ms"], 0.01
+    assert_in_delta data["sql_ms"], by_sql.values.sum { it["ms"] }, 0.01
+  end
+
   def test_unsubscribes_at_stop
     collector = Awfy::Rails::Collectors::Sql.new
     data = collect(collector) { AwfyWidget.first }
@@ -101,6 +115,21 @@ class SqlCollectorTest < Minitest::Test
   end
 
   private
+
+  def start_collector
+    collector = Awfy::Rails::Collectors::Sql.new
+    collector.start(context)
+    collector
+  end
+
+  # Publishes a real sql.active_record event with a chosen duration, the way Rails'
+  # instrumentation does internally (ActiveSupport::Notifications::Event, then
+  # publish_event so single-argument `|event|` subscribers, like this collector's, run).
+  def instrument_sql(sql, duration_ms:)
+    start = Time.now
+    event = ActiveSupport::Notifications::Event.new("sql.active_record", start, start + (duration_ms / 1000.0), "id", {sql: sql, name: "Load"})
+    ActiveSupport::Notifications.publish_event(event)
+  end
 
   # A minimal stand-in for the host app's ::Rails, restored/undefined afterward.
   def with_stub_rails(cleaner:, root:)

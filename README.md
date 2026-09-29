@@ -217,7 +217,7 @@ Rails; call `Awfy::Rails.boot!(app_root)` to require `config/environment`.
 
 | Key | Heavy | Records |
 |---|---|---|
-| `sql` | yes | queries (excluding `SCHEMA`, `TRANSACTION`, cached), cached, `sql_ms`, fingerprints, N+1 candidates (same fingerprint >= `AWFY_N_PLUS_ONE_THRESHOLD`, default 5, from one app frame) |
+| `sql` | yes | queries (excluding `SCHEMA`, `TRANSACTION`, cached), cached, `sql_ms`, fingerprints (count, total `ms`, first app frame), N+1 candidates (same fingerprint >= `AWFY_N_PLUS_ONE_THRESHOLD`, default 5, from one app frame) |
 | `instantiation` | no | records instantiated per class |
 | `cache` | no | cache reads, hits, misses, writes; `cas` (keys touched by compare-and-set) and, with IdentityCache, `identity_cache_fetches`, `_keys`, `_memo_hits`, `_hits`, `_misses`, `_resolve_miss_ms`, `_writes`, `_deletes`, `_hydrations` (these keys appear only when such events occur) |
 | `sidekiq` | no | jobs enqueued by class and queue, scheduled |
