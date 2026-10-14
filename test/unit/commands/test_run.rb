@@ -37,14 +37,14 @@ class RunCommandTest < Minitest::Test
         report "R" do
           test("t") do
             Awfy::Checks.record("holds", true)
-            Awfy::Checks.record("budget used", false, "91%")
+            Awfy::Checks.record("every row imported", false, "91 of 100")
             Awfy::Checks.record("no detail", false)
           end
         end
       end
     RUBY
     doc = run_command(path)
-    assert_equal ["Check failed: budget used: 91%", "Check failed: no detail"], doc["failures"].map { it["error"] }
+    assert_equal ["Check failed: every row imported: 91 of 100", "Check failed: no detail"], doc["failures"].map { it["error"] }
     saved = @store.query_results(type: :measure, label: "l").first
     assert_equal 3, saved.result_data[:checks].size
   end

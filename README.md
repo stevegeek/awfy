@@ -183,10 +183,10 @@ raise), in the test block or in an `Awfy::Outcome.record` block, from the measur
 `awfy compare` carries both labels' checks in its JSON output (`results[].checks`).
 
 ```ruby
-test("cycle") do
-  result = simulate
-  Awfy::Checks.record("budget used >= 95%", result.used_pct >= 95, "#{result.used_pct}%")
-  Awfy::Outcome.record(result.summary)
+test("import") do
+  result = Importer.new(rows).call
+  Awfy::Checks.record("every row imported", result.imported == rows.size, "#{result.imported} of #{rows.size}")
+  Awfy::Outcome.record({"imported" => result.imported})
 end
 ```
 

@@ -7,7 +7,7 @@ module Awfy
   # Outcome.record block (which runs after the collectors stop, still inside the isolation).
   # Outside `awfy run` (ips, profiling and memory jobs call test blocks directly) a check is ignored.
   #
-  #   Awfy::Checks.record("budget used >= 95%", used >= 95, "#{used}%")
+  #   Awfy::Checks.record("every row imported", imported == rows.size, "#{imported} of #{rows.size}")
   module Checks
     KEY = :awfy_checks
 
