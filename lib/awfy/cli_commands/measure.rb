@@ -14,6 +14,8 @@ module Awfy
       method_option :store, type: :string, desc: "Store path (SQLite file, or JSON directory)"
       method_option :collectors, type: :string, default: "timing,gc,rss", desc: "Comma-separated collector keys"
       method_option :vernier, type: :boolean, default: false, desc: "Add the vernier collector (own pass)"
+      method_option :warmup, type: :boolean, default: true,
+        desc: "Run the untimed warm-up call first (--no-warmup with light collectors only: one call per test)"
       method_option :group, type: :string, desc: "Only this group"
       method_option :report, type: :string, desc: "Only this report"
       method_option :artefacts, type: :string, desc: "Directory for collector artefacts"
@@ -24,7 +26,7 @@ module Awfy
         keys << "vernier" if options[:vernier]
         doc = Commands::Run.new(
           session:, suite_path:, label: options[:label], collector_keys: keys, artefacts_dir: options[:artefacts],
-          group_names: options[:group] ? [options[:group]] : nil, report_name: options[:report]
+          group_names: options[:group] ? [options[:group]] : nil, report_name: options[:report], warmup: options[:warmup]
         ).run
         text = (options[:format] == "json") ? JSON.pretty_generate(doc) : Views::MeasureTable.render(doc)
         OutputWriter.write(text, output: options[:output])

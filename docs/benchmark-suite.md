@@ -116,6 +116,9 @@ Benchmarks an existing implementation that won't change. Use this for:
 - Third-party gems
 - Current implementation (when working on an alternative)
 
+Because a control must not change, `awfy compare` treats a control whose outcome differs between
+the two labels as a failure (listed under `failures`, exit 1), not just a difference to look at.
+
 #### `test(name, &block)`
 Benchmarks your main implementation under test. This is typically:
 - Your new implementation

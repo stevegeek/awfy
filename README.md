@@ -146,7 +146,9 @@ awfy compare --store tmp/awfy.db --baseline master@435e4eb4 --against fix@2facc5
 
 Passes per test: one untimed warm-up call, pass 1 with every light collector, then one pass per
 heavy collector (`memory_profiler`, `vernier`), so heavy collectors never distort the light ones.
-Measured calls start after 3x `GC.start`.
+Measured calls start after 3x `GC.start`. `--no-warmup` skips the warm-up call: with light
+collectors only (e.g. `--collectors timing --no-warmup`) each test runs exactly once, for slow
+tests whose outcome and checks matter more than their timing.
 
 | Key | Heavy | Records |
 |---|---|---|
@@ -172,7 +174,23 @@ end
 
 A test block may return an object responding to `awfy_outcome`; compare reports
 `outcome_differs` when two labels' outcomes differ, and (when neither label recorded one)
-`outcome_recorded: false`. Custom collectors subclass `Awfy::Collector` (`.key`, optional
+`outcome_recorded: false`. A `control` checks something the change must not affect, so when a
+control's outcome differs `awfy compare` lists it under `failures` and exits 1.
+
+Checks are named pass/fail expectations about a result. Every check is recorded (unlike a
+raise), in the test block or in an `Awfy::Outcome.record` block, from the measured pass (pass 1).
+`awfy run` stores them at `checks`, lists each failed one under `failures` and exits 1;
+`awfy compare` carries both labels' checks in its JSON output (`results[].checks`).
+
+```ruby
+test("cycle") do
+  result = simulate
+  Awfy::Checks.record("budget used >= 95%", result.used_pct >= 95, "#{result.used_pct}%")
+  Awfy::Outcome.record(result.summary)
+end
+```
+
+Custom collectors subclass `Awfy::Collector` (`.key`, optional
 `.heavy?`, `.order`, `.metrics`, `.extras`; instance `#around`, `#start`, `#stop` returning a
 string-keyed Hash) and register with `Awfy::Collectors.register(klass)`. `awfy compare` does
 not load the setup file, so a custom collector registered only there is unknown to it: its

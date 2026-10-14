@@ -11,12 +11,48 @@ class ComparisonTest < Minitest::Test
   META = {"ruby" => "ruby 3.4.1", "yjit" => false, "awfy" => "1.0.0"}.freeze
 
   def save(label, group_name: "G", test_name: "t", timestamp: 1_000, wall: 1.0, outcome: {"n" => 1}, extra: {},
-    isolation: "transaction", runtime: "mri", meta: META)
+    isolation: "transaction", runtime: "mri", meta: META, control: false, checks: nil)
     result_data = {isolation:, outcome:, collectors: {"timing" => {"wall_s" => wall, "cpu_s" => 0.5}}.merge(extra)}
     result_data[:meta] = meta if meta
+    result_data[:checks] = checks if checks
     @store.save_result(Awfy::MeasureResult.new(
-      type: :measure, group_name:, report_name: "R", test_name:, runtime:, timestamp:, run_label: label, result_data:
+      type: :measure, group_name:, report_name: "R", test_name:, runtime:, timestamp:, run_label: label, result_data:, control:
     ))
+  end
+
+  def test_a_control_whose_outcome_changed_is_a_failure
+    save("a", outcome: {"n" => 1}, control: true)
+    save("b", outcome: {"n" => 2}, control: true)
+    doc = compare
+    assert doc["results"].first["control"]
+    assert_equal [{"group" => "G", "report" => "R", "test" => "t", "error" => "Control outcome changed"}], doc["failures"]
+  end
+
+  def test_a_test_whose_outcome_changed_is_not_a_failure
+    save("a", outcome: {"n" => 1})
+    save("b", outcome: {"n" => 2})
+    doc = compare
+    refute doc["results"].first["control"]
+    assert_equal [], doc["failures"]
+  end
+
+  def test_a_control_with_the_same_outcome_is_not_a_failure
+    save("a", control: true)
+    save("b", control: true)
+    assert_equal [], compare["failures"]
+  end
+
+  def test_checks_of_both_labels_are_carried_when_either_recorded_some
+    check = {"name" => "x", "pass" => false, "detail" => nil}
+    save("a")
+    save("b", checks: [check])
+    assert_equal({"baseline" => nil, "against" => [check]}, compare["results"].first["checks"])
+  end
+
+  def test_no_checks_key_when_neither_label_recorded_any
+    save("a")
+    save("b")
+    refute compare["results"].first.key?("checks")
   end
 
   def compare(group_names: nil) = Awfy::Comparison.new(store: @store, baseline: "a", against: "b", group_names:).call

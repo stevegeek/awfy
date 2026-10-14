@@ -32,6 +32,20 @@ class CompareViewsTest < Minitest::Test
     assert_match(%r{outcome differs: G/R/t}, text)
   end
 
+  CONTROL_DOC = DOC.merge("results" => [DOC["results"].first.merge("control" => true)]).freeze
+
+  def test_markdown_says_a_control_changed
+    md = Awfy::Views::CompareMarkdown.render(CONTROL_DOC)
+    assert_includes md, "**Control outcome changed** (a control must not change)"
+    refute_includes md, "**Outcome differs**"
+  end
+
+  def test_table_says_a_control_changed
+    text = Awfy::Views::CompareTable.render(CONTROL_DOC)
+    assert_match(%r{control outcome changed: G/R/t}, text)
+    refute_match(/outcome differs/, text)
+  end
+
   NONE_RECORDED_DOC = {
     "baseline" => "a", "against" => "b",
     "results" => [{

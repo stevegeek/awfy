@@ -7,13 +7,15 @@ module Awfy
   module Commands
     # `awfy run`: loads the setup file and one suite file, measures every selected test with
     # the pass runner, saves one :measure result per test with the run meta, checks the
-    # suite's performance assertions against it and returns the document. A test that raises
-    # or fails an assertion is listed under "failures"; a failed assertion still saves the result.
+    # suite's performance assertions against it and returns the document. A test that raises,
+    # fails an assertion or records a failed check is listed under "failures"; a failed
+    # assertion or check still saves the result.
     class Run < Base
       prop :suite_path, String, reader: :private
       prop :label, _Nilable(String), reader: :private
       prop :collector_keys, _Array(String), reader: :private
       prop :artefacts_dir, _Nilable(String), reader: :private
+      prop :warmup, _Boolean, default: true, reader: :private
 
       def run
         suite = Suites::Loader.new(session:, group_names:, suite_path:).load
@@ -24,7 +26,7 @@ module Awfy
         started_at = Time.now
         meta = result_meta
         runner = PassRunner.new(collectors:, label: run_label,
-          artefacts_dir: artefacts_dir || File.join(Dir.tmpdir, "awfy-artefacts"))
+          artefacts_dir: artefacts_dir || File.join(Dir.tmpdir, "awfy-artefacts"), warmup:)
 
         results = []
         failures = []
@@ -34,6 +36,9 @@ module Awfy
           results << measurement.to_json_hash
           broken = report.assertions_within(group).filter_map { it.failure(measurement.collectors) }
           failures << failure(group, report, test, "Assertion failed: #{broken.join("; ")}") if broken.any?
+          measurement.failed_checks.each do |check|
+            failures << failure(group, report, test, ["Check failed: #{check["name"]}", check["detail"]].compact.join(": "))
+          end
         rescue => e
           failures << failure(group, report, test, "#{e.class}: #{e.message}")
         end

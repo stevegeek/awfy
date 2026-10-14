@@ -88,7 +88,7 @@ class PassRunnerTest < Minitest::Test
     Awfy::Isolation.register(:probe, Probe)
   end
 
-  def runner(*collectors) = Awfy::PassRunner.new(collectors:, label: "l", artefacts_dir: Dir.tmpdir)
+  def runner(*collectors, warmup: true) = Awfy::PassRunner.new(collectors:, label: "l", artefacts_dir: Dir.tmpdir, warmup:)
 
   def first_test(suite)
     group = suite.groups.first
@@ -154,6 +154,54 @@ class PassRunnerTest < Minitest::Test
   def test_outcome_comes_from_the_light_pass
     group, report, test = build { report("R") { test("t") { Awfy::Outcome.record { |c| c.keys } } } }
     assert_equal ["light"], runner(Light, Heavy).measure(group, report, test).outcome
+  end
+
+  def test_without_warm_up_light_collectors_call_the_test_once
+    calls = 0
+    group, report, test = build { report("R") { test("t") { calls += 1 } } }
+    measurement = runner(Light, warmup: false).measure(group, report, test)
+    assert_equal 1, calls
+    assert_equal({"light" => {"n" => 1}}, measurement.collectors)
+  end
+
+  def test_without_warm_up_heavy_collectors_still_get_their_own_pass
+    calls = 0
+    group, report, test = build { report("R") { test("t") { calls += 1 } } }
+    runner(Light, Heavy, warmup: false).measure(group, report, test)
+    assert_equal 2, calls
+  end
+
+  def test_checks_come_from_the_light_pass_including_the_outcome_block
+    group, report, test = build do
+      report("R") do
+        test("t") do
+          Awfy::Checks.record("in the test", true)
+          Awfy::Outcome.record { |collected| Awfy::Checks.record("in the outcome", collected.key?("light"), collected.keys.join(",")) }
+        end
+      end
+    end
+    measurement = runner(Light, Heavy).measure(group, report, test)
+    assert_equal [
+      {"name" => "in the test", "pass" => true, "detail" => nil},
+      {"name" => "in the outcome", "pass" => true, "detail" => "light"}
+    ], measurement.checks
+    assert_equal [], measurement.failed_checks
+  end
+
+  def test_checks_from_hooks_are_not_the_measured_calls_and_none_outlive_the_measure
+    group, report, test = build do
+      before_each { Awfy::Checks.record("before_each", false) }
+      after_each { Awfy::Checks.record("after_each", false) }
+      report("R") { test("t") { Awfy::Checks.record("in the test", true) } }
+    end
+    measurement = runner(Light).measure(group, report, test)
+    assert_equal ["in the test"], measurement.checks.map { it["name"] }
+    assert_equal [], Awfy::Checks.recorded
+  end
+
+  def test_no_checks_leave_the_result_data_unchanged
+    group, report, test = build { report("R") { test("t") {} } }
+    refute runner(Light).measure(group, report, test).result_data.key?("checks")
   end
 
   def test_error_still_runs_after_each_and_stops_collectors

@@ -26,10 +26,19 @@ module Awfy
           missing << {"group" => key[0], "report" => key[1], "test" => key[2], "only_in" => base[key] ? baseline : against}
         end
       end
-      {"awfy" => VERSION, "baseline" => baseline, "against" => against, "results" => results, "missing" => missing}
+      {"awfy" => VERSION, "baseline" => baseline, "against" => against, "results" => results, "missing" => missing,
+       "failures" => control_failures(results)}
     end
 
     private
+
+    # A control checks something the change must not affect, so a different outcome is a failure,
+    # not just a difference to look at
+    def control_failures(results)
+      results.select { it["control"] && it["outcome_differs"] }.map do |result|
+        {"group" => result["group"], "report" => result["report"], "test" => result["test"], "error" => "Control outcome changed"}
+      end
+    end
 
     # group_names, when given, restricts both labels to those groups before the diff: a test in
     # a group outside the list must not appear as missing. A single-element list is the
@@ -58,8 +67,9 @@ module Awfy
       collectors_missing = only_one.sort.to_h do |name|
         [name, base_collectors.key?(name) ? baseline : against]
       end
-      {
+      result = {
         "group" => key[0], "report" => key[1], "test" => key[2],
+        "control" => base_result.control? || other_result.control?,
         "isolation" => {"baseline" => base[:isolation], "against" => other[:isolation]},
         "outcome_differs" => base[:outcome] != other[:outcome],
         # False when neither label recorded an outcome (no awfy_outcome, no test.rb helper call):
@@ -70,6 +80,8 @@ module Awfy
         "collectors" => collectors,
         "collectors_missing" => collectors_missing
       }
+      result["checks"] = {"baseline" => base[:checks], "against" => other[:checks]} if base[:checks] || other[:checks]
+      result
     end
 
     # Results saved before run meta was stored have no :meta; their meta fields are not compared.

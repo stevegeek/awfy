@@ -57,6 +57,37 @@ class RunAndCompareTest < Minitest::Test
     assert_match(/label 'other'/, err)
   end
 
+  def run_control(label, items, *extra)
+    ENV["AWFY_FIXTURE_ITEMS"] = items.to_s
+    awfy("run", "measure/control_suite.rb", "--setup-file-path", "./measure/setup", "--label", label, "--store", @store,
+      "--storage-backend", "sqlite", "--collectors", "timing", "--format", "json", "--output", "out/#{label}.json",
+      "--color", "off", *extra)
+  end
+
+  def test_compare_writes_its_output_then_exits_when_a_control_changed
+    run_control("base", 1_000)
+    run_control("other", 4_000)
+    _, err = capture_io { assert_raises(SystemExit) { compare("json") } }
+    assert_match(/1 control outcome\(s\) changed/, err)
+    doc = JSON.parse(File.read(File.join(@test_dir, "out/compare.json")))
+    assert_equal [{"group" => "Fixture Control", "report" => "#build", "test" => "unchanged", "error" => "Control outcome changed"}], doc["failures"]
+  end
+
+  def test_compare_of_an_unchanged_control_succeeds
+    run_control("base", 1_000)
+    run_control("other", 1_000)
+    assert_equal [], JSON.parse(compare("json"))["failures"]
+  end
+
+  def test_run_without_warm_up_calls_each_test_once
+    calls = File.join(@test_dir, "calls.log")
+    ENV["AWFY_FIXTURE_CALLS"] = calls
+    run_control("base", 1_000, "--no-warmup")
+    assert_equal 1, File.readlines(calls).size
+  ensure
+    ENV.delete("AWFY_FIXTURE_CALLS")
+  end
+
   def test_compare_with_an_unknown_option_exits_with_a_message
     run_label("base", 1_000)
     _, err = capture_io do

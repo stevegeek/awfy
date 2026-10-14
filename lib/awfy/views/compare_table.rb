@@ -17,7 +17,9 @@ module Awfy
         end
         text = rows.empty? ? +"no common tests\n" : "#{TableTennis.new(rows, title: "#{doc["baseline"]} vs #{doc["against"]}")}\n"
         doc["results"].select { it["outcome_recorded"] == false }.each { text << "Outcome: none recorded: #{it["group"]}/#{it["report"]}/#{it["test"]}\n" }
-        doc["results"].select { it["outcome_differs"] }.each { text << "outcome differs: #{it["group"]}/#{it["report"]}/#{it["test"]}\n" }
+        doc["results"].select { it["outcome_differs"] }.each do |result|
+          text << "#{result["control"] ? "control outcome changed" : "outcome differs"}: #{result["group"]}/#{result["report"]}/#{result["test"]}\n"
+        end
         doc["results"].each do |result|
           test = "#{result["group"]}/#{result["report"]}/#{result["test"]}"
           (result["warnings"] || []).each do |warning|

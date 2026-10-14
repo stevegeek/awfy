@@ -26,8 +26,40 @@ class RunCommandTest < Minitest::Test
     path
   end
 
-  def run_command(path, keys: ["timing"], label: "l")
-    Awfy::Commands::Run.new(session:, suite_path: path, label:, collector_keys: keys, artefacts_dir: File.join(@dir, "art")).run
+  def run_command(path, keys: ["timing"], label: "l", warmup: true)
+    Awfy::Commands::Run.new(session:, suite_path: path, label:, collector_keys: keys, artefacts_dir: File.join(@dir, "art"), warmup:).run
+  end
+
+  def test_failed_checks_list_the_test_under_failures_and_keep_the_result
+    path = write_suite(<<~RUBY)
+      Awfy.group "G" do
+        isolate :none
+        report "R" do
+          test("t") do
+            Awfy::Checks.record("holds", true)
+            Awfy::Checks.record("budget used", false, "91%")
+            Awfy::Checks.record("no detail", false)
+          end
+        end
+      end
+    RUBY
+    doc = run_command(path)
+    assert_equal ["Check failed: budget used: 91%", "Check failed: no detail"], doc["failures"].map { it["error"] }
+    saved = @store.query_results(type: :measure, label: "l").first
+    assert_equal 3, saved.result_data[:checks].size
+  end
+
+  def test_without_warm_up_each_test_runs_once
+    counter = File.join(@dir, "calls")
+    path = write_suite(<<~RUBY)
+      Awfy.group "G" do
+        isolate :none
+        report("R") { test("t") { File.write(#{counter.inspect}, File.read(#{counter.inspect}).to_i + 1) } }
+      end
+    RUBY
+    File.write(counter, "0")
+    run_command(path, warmup: false)
+    assert_equal "1", File.read(counter)
   end
 
   def test_failing_test_is_listed_and_others_are_saved

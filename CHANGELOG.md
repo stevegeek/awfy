@@ -13,6 +13,9 @@
 - The Rails `cache` collector counts compare-and-set calls (`cas`) and IdentityCache fetch, hit/miss, write, delete and hydration events (`identity_cache_*`). The keys appear only when those events occur; awfy does not depend on IdentityCache.
 - The Rails `elasticsearch` collector counts requests made through elastic-transport, by method and normalized path. awfy does not depend on the elasticsearch gems.
 - The Rails `sql` collector records the total time per fingerprint (`ms`).
+- `awfy run --no-warmup` skips the untimed warm-up call; with light collectors only, each test runs once.
+- `Awfy::Checks.record(name, pass, detail)` records named pass/fail checks on a test's result. `awfy run` stores them with the result, lists failed checks under `failures` and exits 1; `awfy compare` carries both labels' checks in its JSON output (`results[].checks`).
+- `awfy compare` treats a `control` test whose outcome differs between the two labels as a failure: it is listed under `failures` and the command exits 1 (before, a changed control was only reported).
 
 ### Changed
 

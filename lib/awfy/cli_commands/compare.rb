@@ -24,6 +24,7 @@ module Awfy
         else Views::CompareTable.render(doc)
         end
         OutputWriter.write(text, output: options[:output])
+        shell.say_error_and_exit "#{doc["failures"].size} control outcome(s) changed" unless doc["failures"].empty?
       rescue Errors::LabelNotFoundError => e
         shell.say_error_and_exit e.message
       end

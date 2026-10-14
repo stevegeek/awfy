@@ -4,7 +4,8 @@ module Awfy
   # Runs one test through its passes: pass 0 is the untimed warm-up, pass 1 runs
   # every light collector, and each heavy collector gets a pass of its own. The isolation
   # wrapper and before_each/after_each run around every call, warm-up included. Measured
-  # calls start after 3x GC.start.
+  # calls start after 3x GC.start. Without the warm-up (warmup: false) and with only light
+  # collectors, a test runs exactly once: for slow tests whose result matters more than timing.
   class PassRunner < Literal::Object
     GC_RUNS_BEFORE_MEASURE = 3
     ACTIVE_RUN_KEY = :awfy_active_pass_runner
@@ -12,6 +13,7 @@ module Awfy
     prop :collectors, _Array(Class), reader: :private
     prop :label, String, reader: :private
     prop :artefacts_dir, String, reader: :private
+    prop :warmup, _Boolean, default: true, reader: :private
 
     class << self
       # The PassRunner currently executing a #measure call on this thread, or nil outside one.
@@ -54,16 +56,18 @@ module Awfy
           label:, pass:, artefacts_dir:)
       }
 
-      call(test, strategy, hooks, [], context.call(0))
+      call(test, strategy, hooks, [], context.call(0)) if warmup
       light, heavy = collectors.partition { !it.heavy? }
-      collected, outcome = call(test, strategy, hooks, light.map(&:new), context.call(1))
+      collected, outcome, checks = call(test, strategy, hooks, light.map(&:new), context.call(1))
       heavy.each.with_index(2) do |klass, pass|
         collected = collected.merge(call(test, strategy, hooks, [klass.new], context.call(pass)).first)
       end
 
       Measurement.new(group_name: group.name, report_name: report.name, test_name: test.name,
-        isolation: isolation.to_s, outcome:, collectors: collected)
+        isolation: isolation.to_s, outcome:, checks:, collectors: collected)
     ensure
+      Outcome.reset!
+      Checks.reset!
       Thread.current[ACTIVE_RUN_KEY] = previous_run
     end
 
@@ -93,6 +97,7 @@ module Awfy
 
     def measured(test, instances, context)
       Outcome.reset!
+      Checks.reset!
       GC_RUNS_BEFORE_MEASURE.times { ::GC.start } if context.pass.positive?
       started = []
       value = begin
@@ -108,7 +113,9 @@ module Awfy
         raise error
       end
       collected = stop_all(instances, context)
-      [collected, Outcome.resolve(value, collected)]
+      outcome = Outcome.resolve(value, collected)
+      # A copy: after_each runs after this and must not add to the measured call's checks
+      [collected, outcome, Checks.recorded.dup.freeze]
     end
 
     # Every collector must get its #stop call, ascending .order, even if an earlier one raises:

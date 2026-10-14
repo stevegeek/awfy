@@ -47,7 +47,8 @@ module Awfy
         return "Outcome: none recorded\n\n" if result["outcome_recorded"] == false
         return "Outcome: same\n\n" unless result["outcome_differs"]
 
-        "**Outcome differs**: `#{JSON.generate(result["outcome"]["baseline"])}` vs `#{JSON.generate(result["outcome"]["against"])}`\n\n"
+        title = result["control"] ? "**Control outcome changed** (a control must not change)" : "**Outcome differs**"
+        "#{title}: `#{JSON.generate(result["outcome"]["baseline"])}` vs `#{JSON.generate(result["outcome"]["against"])}`\n\n"
       end
 
       def warnings_list(result)
