@@ -16,3 +16,4 @@ Gemfile.lock
 .awfy.json
 benchmark_history.db
 .DS_Store
+/CLAUDE.md
