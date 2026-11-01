@@ -25,7 +25,7 @@ module Awfy
 
       # Built on first use so Zeitwerk loads each core collector lazily.
       def registry
-        @registry ||= [Timing, Gc, Rss, MemoryProfiler, Vernier].to_h { [it.key, it] }
+        @registry ||= [Timing, Gc, Rss, MemoryProfiler, Vernier].to_h { |collector| [collector.key, collector] }
       end
     end
   end

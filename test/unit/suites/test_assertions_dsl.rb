@@ -9,7 +9,7 @@ class AssertionsDslTest < Minitest::Test
     suite.groups.first
   end
 
-  def bounds(assertions) = assertions.to_h { [it.metric, it.bound] }
+  def bounds(assertions) = assertions.to_h { |assertion| [assertion.metric, assertion.bound] }
 
   def test_group_and_report_level_assertions
     group = build do

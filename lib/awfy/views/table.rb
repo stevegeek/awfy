@@ -51,7 +51,7 @@ module Awfy
 
       def mark
         # Mark the baseline is the default
-        -> { it.highlight? }
+        ->(row) { row.highlight? }
       end
 
       def color_scales

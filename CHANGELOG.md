@@ -31,6 +31,7 @@
 
 ### Fixed
 
+- awfy loads on Ruby 3.1 to 3.3 again; the code no longer uses the Ruby 3.4 `it` block parameter.
 - Support benchmark-ips 2.15, whose `Stats::SD` constructor takes the measured time and iteration count. awfy works with benchmark-ips 2.14 and 2.15. Under 2.15, the IPS summary uses benchmark-ips's own mean (iterations per second over the whole run) instead of the mean of the per-cycle samples.
 - `--compare-with-branch` works again: the branch comparison runner now implements the runner interface that the commands call.
 - Branch and commit-range runs always restore the original branch or commit and your uncommitted changes, also when a run fails, and refuse to start in an unsafe git state (rebase, merge, cherry-pick, revert or bisect in progress, unmerged files, or no commit).

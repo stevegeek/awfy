@@ -56,7 +56,7 @@ class CoreCollectorsTest < Minitest::Test
   end
 
   def test_memory_profiler_extras_list_the_baseline_top_sites
-    base = {"allocated_memory_by_location" => (1..20).map { {"data" => "f.rb:#{it}", "count" => 100 - it} }}
+    base = {"allocated_memory_by_location" => (1..20).map { |i| {"data" => "f.rb:#{i}", "count" => 100 - i} }}
     other = {"allocated_memory_by_location" => [{"data" => "f.rb:1", "count" => 7}]}
     sites = Awfy::Collectors::MemoryProfiler.extras(base, other)["allocation_sites"]
     assert_equal 15, sites.size

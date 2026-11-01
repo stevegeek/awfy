@@ -16,8 +16,8 @@ module Awfy
 
       def render
         out = "# awfy compare: `#{@doc["baseline"]}` vs `#{@doc["against"]}`\n\n"
-        @doc["results"].each { out << section(it) }
-        @doc["missing"].each { out << "Only under `#{it["only_in"]}`: #{it["group"]} / #{it["report"]} / #{it["test"]}\n" }
+        @doc["results"].each { |result| out << section(result) }
+        @doc["missing"].each { |missing| out << "Only under `#{missing["only_in"]}`: #{missing["group"]} / #{missing["report"]} / #{missing["test"]}\n" }
         out
       end
 
@@ -56,7 +56,7 @@ module Awfy
         return "" if warnings.empty?
 
         out = +"**Environment differs**:\n\n"
-        warnings.each { out << "- #{it["field"]}: `#{value(it["baseline"])}` vs `#{value(it["against"])}`\n" }
+        warnings.each { |warning| out << "- #{warning["field"]}: `#{value(warning["baseline"])}` vs `#{value(warning["against"])}`\n" }
         out << "\n"
       end
 
@@ -74,7 +74,7 @@ module Awfy
 
         headers = rows.flat_map(&:keys).uniq
         out = "### #{title}\n\n| #{headers.join(" | ")} |\n|#{"---|" * headers.size}\n"
-        rows.each { |row| out << "| #{headers.map { cell(row[it]) }.join(" | ")} |\n" }
+        rows.each { |row| out << "| #{headers.map { |header| cell(row[header]) }.join(" | ")} |\n" }
         out << "\n"
       end
 

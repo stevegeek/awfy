@@ -16,8 +16,8 @@ module Awfy
           end
         end
         text = rows.empty? ? +"no common tests\n" : "#{TableTennis.new(rows, title: "#{doc["baseline"]} vs #{doc["against"]}")}\n"
-        doc["results"].select { it["outcome_recorded"] == false }.each { text << "Outcome: none recorded: #{it["group"]}/#{it["report"]}/#{it["test"]}\n" }
-        doc["results"].select { it["outcome_differs"] }.each do |result|
+        doc["results"].select { |result| result["outcome_recorded"] == false }.each { |result| text << "Outcome: none recorded: #{result["group"]}/#{result["report"]}/#{result["test"]}\n" }
+        doc["results"].select { |result| result["outcome_differs"] }.each do |result|
           text << "#{result["control"] ? "control outcome changed" : "outcome differs"}: #{result["group"]}/#{result["report"]}/#{result["test"]}\n"
         end
         doc["results"].each do |result|
@@ -27,7 +27,7 @@ module Awfy
           end
           (result["collectors_missing"] || {}).each { |key, label| text << "collector #{key} only under #{label}: #{test}\n" }
         end
-        doc["missing"].each { text << "only under #{it["only_in"]}: #{it["group"]}/#{it["report"]}/#{it["test"]}\n" }
+        doc["missing"].each { |missing| text << "only under #{missing["only_in"]}: #{missing["group"]}/#{missing["report"]}/#{missing["test"]}\n" }
         text
       end
 

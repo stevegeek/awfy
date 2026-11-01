@@ -109,7 +109,7 @@ class PassRunnerTest < Minitest::Test
     group, report, test = build { report("R") { test("t") { calls += 1 } } }
     measurement = runner(Light, Heavy).measure(group, report, test)
     assert_equal 3, calls
-    assert_equal [[:light_start, 1], [:light_stop, 1], [:heavy_around, 2]], LOG.reject { it == :wrap }
+    assert_equal [[:light_start, 1], [:light_stop, 1], [:heavy_around, 2]], LOG.reject { |entry| entry == :wrap }
     assert_equal({"light" => {"n" => 1}, "heavy" => {"h" => 2}}, measurement.collectors)
     assert_equal "probe", measurement.isolation
   end
@@ -148,7 +148,7 @@ class PassRunnerTest < Minitest::Test
   def test_rss_like_collectors_stop_last
     group, report, test = build { report("R") { test("t") {} } }
     runner(Late, Light).measure(group, report, test)
-    assert_equal :late_stop, LOG.reject { it == :wrap }.last
+    assert_equal :late_stop, LOG.reject { |entry| entry == :wrap }.last
   end
 
   def test_outcome_comes_from_the_light_pass
@@ -195,7 +195,7 @@ class PassRunnerTest < Minitest::Test
       report("R") { test("t") { Awfy::Checks.record("in the test", true) } }
     end
     measurement = runner(Light).measure(group, report, test)
-    assert_equal ["in the test"], measurement.checks.map { it["name"] }
+    assert_equal ["in the test"], measurement.checks.map { |check| check["name"] }
     assert_equal [], Awfy::Checks.recorded
   end
 
@@ -216,7 +216,7 @@ class PassRunnerTest < Minitest::Test
     calls = 0
     test2 = Awfy::Suites::BaselineTest.new(name: "t2", block: -> { ((calls += 1) > 1) ? raise("boom") : nil })
     assert_raises(RuntimeError) { runner(Light).measure(group, report, test2) }
-    assert_equal [[:light_start, 1], [:light_stop, 1]], LOG.reject { it == :wrap }, "started collectors are stopped"
+    assert_equal [[:light_start, 1], [:light_stop, 1]], LOG.reject { |entry| entry == :wrap }, "started collectors are stopped"
   end
 
   def test_a_failing_setup_fails_every_test_of_the_group_with_that_error
@@ -244,7 +244,7 @@ class PassRunnerTest < Minitest::Test
     calls = 0
     test = Awfy::Suites::BaselineTest.new(name: "t", block: -> { ((calls += 1) > 1) ? raise("boom") : nil })
     assert_raises(RuntimeError) { runner(LowOrder, HighOrder).measure(group, report, test) }
-    assert_equal [[:stop, :low], [:stop, :high]], LOG.reject { it == :wrap },
+    assert_equal [[:stop, :low], [:stop, :high]], LOG.reject { |entry| entry == :wrap },
       "stop in ascending .order, the reverse of the descending start order"
   end
 
@@ -261,7 +261,7 @@ class PassRunnerTest < Minitest::Test
     group, report, test = build { report("R") { test("t") {} } }
     error = assert_raises(RuntimeError) { runner(RaisingStop, LowOrder, HighOrder).measure(group, report, test) }
     assert_equal "stop boom", error.message
-    assert_equal [[:stop, :raising], [:stop, :low], [:stop, :high]], LOG.reject { it == :wrap },
+    assert_equal [[:stop, :raising], [:stop, :low], [:stop, :high]], LOG.reject { |entry| entry == :wrap },
       "every collector is stopped, ascending .order, even after an earlier #stop raises"
   end
 end
