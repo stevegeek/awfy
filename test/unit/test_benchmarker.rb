@@ -122,11 +122,6 @@ module Awfy
     end
 
     def test_run_group_without_control
-      # Note: without_control_tests has a known bug in the implementation
-      # It passes the tests array without keyword arguments to Report.new
-      # Skip this test until the bug is fixed
-      skip "without_control_tests has a known bug - see TEST_COVERAGE_SESSION_SUMMARY.md"
-
       control = Suites::ControlTest.new(name: "control", block: proc { "control" })
       test1 = Suites::Test.new(name: "test1", block: proc { "result" })
       report = Suites::Report.new(name: "test_report", tests: [control, test1])
