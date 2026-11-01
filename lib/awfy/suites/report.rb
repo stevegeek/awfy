@@ -33,7 +33,7 @@ module Awfy
 
       def tests_sorted_by_type(test_name: nil)
         filtered_tests = test_name ? tests.select { |t| t.name == test_name } : tests
-        filtered_tests.sort { it.control? ? -1 : 1 }
+        filtered_tests.partition(&:control?).flatten(1)
       end
     end
   end

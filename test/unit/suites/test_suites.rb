@@ -141,6 +141,15 @@ module Awfy
         assert sorted_tests.first.control?
       end
 
+      def test_tests_sorted_by_type_puts_controls_first_and_keeps_order_within_each_group
+        controls = Array.new(3) { |i| ControlTest.new(name: "control#{i}", block: proc {}) }
+        others = Array.new(20) { |i| Test.new(name: "test#{i}", block: proc {}) }
+        mixed = others.each_slice(7).zip(controls).flatten.compact
+        report = Report.new(name: "report", tests: mixed)
+
+        assert_equal controls + others, report.tests_sorted_by_type
+      end
+
       def test_tests_sorted_by_type_with_name_filter
         test3 = Test.new(name: "test1", block: proc {})
         report = Report.new(name: "report", tests: [@test1, @test2, test3])
