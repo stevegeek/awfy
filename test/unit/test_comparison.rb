@@ -111,7 +111,7 @@ class ComparisonTest < Minitest::Test
     save("b", group_name: "G1")
     save("a", group_name: "G2", test_name: "only_g2")
     result = compare(group_names: ["G1", "G3"])
-    assert_equal ["G1"], result["results"].map { |result| result["group"] }
+    assert_equal ["G1"], result["results"].map { |entry| entry["group"] }
     assert_empty result["missing"], "G2, outside the group filter, must not be listed as missing"
   end
 
@@ -121,7 +121,7 @@ class ComparisonTest < Minitest::Test
     save("a", group_name: "G2")
     save("a", group_name: "G2", test_name: "only_a")
     result = compare(group_names: ["G1"])
-    assert_equal ["G1"], result["results"].map { |result| result["group"] }
+    assert_equal ["G1"], result["results"].map { |entry| entry["group"] }
     assert_empty result["missing"]
   end
 

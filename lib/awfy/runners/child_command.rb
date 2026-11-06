@@ -36,6 +36,7 @@ module Awfy
       # Raises when the command exits with an error.
       def run!
         output, status = Open3.capture2e(*argv)
+        output.force_encoding(Encoding::UTF_8)
         return output if status.success?
 
         raise "awfy #{subcommand.join(" ")} '#{group_name}' failed in a separate process " \
