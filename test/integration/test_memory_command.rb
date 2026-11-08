@@ -45,7 +45,7 @@ class MemoryCommandTest < Minitest::Test
 
     # Test that different runtimes are included (common to summary views)
     assert_match(/\[mri/, output)
-    assert_match(/\[yjit/, output)
+    assert_match(/\[yjit/, output) if yjit_available?
   end
 
   def test_memory_command_stores_results

@@ -132,6 +132,8 @@ module IntegrationTestHelper
     thor_options[:storage_backend] = "sqlite"
     thor_options[:storage_name] = @test_db_path
 
+    thor_options[:runtime] ||= "mri" unless yjit_available?
+
     # Set color mode for tests
     thor_options[:color] = "off"
 
@@ -139,6 +141,10 @@ module IntegrationTestHelper
     capture_command_output do
       Awfy::CLI.new.invoke(command, args, thor_options)
     end
+  end
+
+  def yjit_available?
+    defined?(RubyVM::YJIT) && RubyVM::YJIT.respond_to?(:enable)
   end
 
   # Check if a result file exists

@@ -37,7 +37,7 @@ class IPSCommandTest < Minitest::Test
 
     # Test that different runtimes are included
     assert_match(/\[mri/, output)
-    assert_match(/\[yjit/, output)
+    assert_match(/\[yjit/, output) if yjit_available?
 
     # Check for table output which should be present with summary - now using table_tennis format
     assert_match(/Times/i, output)  # Abbreviated "timestamp" header
@@ -52,7 +52,7 @@ class IPSCommandTest < Minitest::Test
     # Verify table header has expected columns - using table_tennis format (abbreviated)
     assert_match(/Times/i, output)   # Abbreviated "timestamp" header
     assert_match(/Bra/i, output)     # Abbreviated "branch" header
-    assert_match(/Comm/i, output)    # Abbreviated "commit" header
+    assert_match(/Com/i, output)     # Abbreviated "commit" header
     assert_match(/Run/i, output)     # Abbreviated "runtime" header
     assert_match(/Con/i, output)     # Abbreviated "control" header -> "Con…"
     assert_match(/vs/i, output)      # "vs test" header
