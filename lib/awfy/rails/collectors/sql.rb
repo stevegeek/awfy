@@ -40,11 +40,11 @@ module Awfy
 
           # Keyed on SQL + frame file without the line, so code that moved is not reported.
           def extras(base, other)
-            base_keys = base.fetch("n_plus_one", []).map { candidate_key(it) }
-            other_keys = other.fetch("n_plus_one", []).map { candidate_key(it) }
+            base_keys = base.fetch("n_plus_one", []).map { |candidate| candidate_key(candidate) }
+            other_keys = other.fetch("n_plus_one", []).map { |candidate| candidate_key(candidate) }
             {
-              "n_plus_one_gone" => base.fetch("n_plus_one", []).reject { other_keys.include?(candidate_key(it)) },
-              "n_plus_one_new" => other.fetch("n_plus_one", []).reject { base_keys.include?(candidate_key(it)) }
+              "n_plus_one_gone" => base.fetch("n_plus_one", []).reject { |candidate| other_keys.include?(candidate_key(candidate)) },
+              "n_plus_one_new" => other.fetch("n_plus_one", []).reject { |candidate| base_keys.include?(candidate_key(candidate)) }
             }
           end
 
@@ -72,7 +72,7 @@ module Awfy
           end
           {
             "queries" => @queries, "cached" => @cached, "sql_ms" => @ms.round(3),
-            "fingerprints" => fingerprints, "n_plus_one" => n_plus_one.sort_by { -it["count"] }
+            "fingerprints" => fingerprints, "n_plus_one" => n_plus_one.sort_by { |candidate| -candidate["count"] }
           }
         end
 

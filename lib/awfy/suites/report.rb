@@ -28,12 +28,12 @@ module Awfy
       # it does not assert itself.
       def assertions_within(group)
         own_metrics = @assertions.map(&:metric)
-        group.assertions.reject { own_metrics.include?(it.metric) } + @assertions
+        group.assertions.reject { |assertion| own_metrics.include?(assertion.metric) } + @assertions
       end
 
       def tests_sorted_by_type(test_name: nil)
         filtered_tests = test_name ? tests.select { |t| t.name == test_name } : tests
-        filtered_tests.sort { it.control? ? -1 : 1 }
+        filtered_tests.sort { |test| test.control? ? -1 : 1 }
       end
     end
   end

@@ -35,7 +35,7 @@ module Awfy
     # A control checks something the change must not affect, so a different outcome is a failure,
     # not just a difference to look at
     def control_failures(results)
-      results.select { it["control"] && it["outcome_differs"] }.map do |result|
+      results.select { |candidate| candidate["control"] && candidate["outcome_differs"] }.map do |result|
         {"group" => result["group"], "report" => result["report"], "test" => result["test"], "error" => "Control outcome changed"}
       end
     end
@@ -48,8 +48,8 @@ module Awfy
       found = found.select { |result| group_names.include?(result.group_name) } if group_names
       raise Errors::LabelNotFoundError.new(label) if found.empty?
 
-      found.group_by { [it.group_name, it.report_name, it.test_name] }
-        .transform_values { |results| results.max_by { it.timestamp.to_i } }
+      found.group_by { |found_result| [found_result.group_name, found_result.report_name, found_result.test_name] }
+        .transform_values { |results| results.max_by { |found_result| found_result.timestamp.to_i } }
     end
 
     def compare_pair(key, base_result, other_result)

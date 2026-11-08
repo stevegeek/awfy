@@ -44,7 +44,7 @@ class RunCommandTest < Minitest::Test
       end
     RUBY
     doc = run_command(path)
-    assert_equal ["Check failed: every row imported: 91 of 100", "Check failed: no detail"], doc["failures"].map { it["error"] }
+    assert_equal ["Check failed: every row imported: 91 of 100", "Check failed: no detail"], doc["failures"].map { |failure| failure["error"] }
     saved = @store.query_results(type: :measure, label: "l").first
     assert_equal 3, saved.result_data[:checks].size
   end
@@ -73,7 +73,7 @@ class RunCommandTest < Minitest::Test
       end
     RUBY
     doc = run_command(path)
-    assert_equal ["ok"], doc["results"].map { it["test"] }
+    assert_equal ["ok"], doc["results"].map { |result| result["test"] }
     assert_equal [{"group" => "G", "report" => "R", "test" => "bad", "error" => "ArgumentError: nope"}], doc["failures"]
     saved = @store.query_results(type: :measure, label: "l")
     assert_equal ["ok"], saved.map(&:test_name)
@@ -128,7 +128,7 @@ class RunCommandTest < Minitest::Test
     # keeps this test's leftover out of the real global suite.
     Awfy.isolated_suite do
       Awfy.group("Global Leftover") { report("R") { test("t") {} } }
-      2.times { assert_equal ["Only Here"], run_command(path)["results"].map { it["group"] }.uniq }
+      2.times { assert_equal ["Only Here"], run_command(path)["results"].map { |result| result["group"] }.uniq }
     end
   end
 
@@ -145,7 +145,7 @@ class RunCommandTest < Minitest::Test
       end
     RUBY
     doc = run_command(path)
-    assert_equal ["slow", "fast"], doc["results"].map { it["test"] }
+    assert_equal ["slow", "fast"], doc["results"].map { |result| result["test"] }
     assert_equal 1, doc["failures"].size
     failure = doc["failures"].first
     assert_equal ["G", "R", "slow"], failure.values_at("group", "report", "test")

@@ -24,7 +24,7 @@ module Awfy
 
       # The baseline's top 15 allocation locations and their value under the other label.
       def self.extras(base, other)
-        other_sites = other.fetch("allocated_memory_by_location", []).to_h { [it["data"], it["count"]] }
+        other_sites = other.fetch("allocated_memory_by_location", []).to_h { |site| [site["data"], site["count"]] }
         sites = base.fetch("allocated_memory_by_location", []).first(SITES).map do |site|
           {"location" => site["data"], "baseline" => site["count"], "against" => other_sites[site["data"]]}
         end
@@ -54,7 +54,7 @@ module Awfy
 
       private
 
-      def rows(list) = Array(list).first(TOP).map { {"data" => it[:data], "count" => it[:count]} }
+      def rows(list) = Array(list).first(TOP).map { |site| {"data" => site[:data], "count" => site[:count]} }
     end
   end
 end

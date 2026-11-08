@@ -17,8 +17,8 @@ module Awfy
     prop :test_name, String
 
     prop :runtime, Awfy::Runtimes, default: Awfy::Runtimes::MRI, &Awfy::Runtimes
-    prop :timestamp, Time do
-      Time.at(it)
+    prop :timestamp, Time do |value|
+      Time.at(value)
     end
 
     prop :branch, _Nilable(String)

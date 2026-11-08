@@ -40,6 +40,7 @@
 - The memory job stored `retained_strings` as memory_profiler's raw array; it now stores a count, like `allocated_strings`.
 - `--store` with an `.awfy.json` that sets another `storage_backend` no longer pairs the store name with the wrong backend.
 - The repository is now clean under standardrb.
+- awfy loads on Ruby 3.3; it no longer uses the Ruby 3.4 `it` block parameter.
 
 ## [1.0.0] - ?
 

@@ -31,7 +31,7 @@ module Awfy
 
     # True if a collector with this .key is configured for this run, independent of which pass
     # (if any) currently has it instantiated.
-    def collector_key?(key) = collectors.any? { it.key == key }
+    def collector_key?(key) = collectors.any? { |collector| collector.key == key }
 
     # Warns once per run (a fresh PassRunner starts unwarned), not once per process: a later,
     # separately run misconfigured suite still gets its own warning instead of being silently
@@ -57,7 +57,7 @@ module Awfy
       }
 
       call(test, strategy, hooks, [], context.call(0)) if warmup
-      light, heavy = collectors.partition { !it.heavy? }
+      light, heavy = collectors.partition { |collector| !collector.heavy? }
       collected, outcome, checks = call(test, strategy, hooks, light.map(&:new), context.call(1))
       heavy.each.with_index(2) do |klass, pass|
         collected = collected.merge(call(test, strategy, hooks, [klass.new], context.call(pass)).first)
@@ -102,7 +102,7 @@ module Awfy
       started = []
       value = begin
         with_arounds(instances, context) do
-          instances.sort_by { -it.class.order }.each do |collector|
+          instances.sort_by { |instance| -instance.class.order }.each do |collector|
             collector.start(context)
             started << collector
           end
@@ -124,7 +124,7 @@ module Awfy
     def stop_all(instances, context)
       collected = {}
       errors = []
-      instances.sort_by { it.class.order }.each do |collector|
+      instances.sort_by { |instance| instance.class.order }.each do |collector|
         collected[collector.class.key] = Collectors.normalize(collector.stop(context))
       rescue => error
         errors << error

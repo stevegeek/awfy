@@ -45,7 +45,7 @@ class RunCommandIntegrationTest < Minitest::Test
     refute File.exist?(@store), "the json backend must not write a SQLite file"
     stored = Awfy::Stores.json(store, Awfy::RetentionPolicies.keep_all)
     found = stored.query_results(type: :measure, label: "base")
-    assert_equal [["Fixture Measure", "#build", "strings"]], found.map { [it.group_name, it.report_name, it.test_name] }
+    assert_equal [["Fixture Measure", "#build", "strings"]], found.map { |result| [result.group_name, result.report_name, result.test_name] }
     assert_empty stored.query_results(type: :measure, label: "other")
   end
 

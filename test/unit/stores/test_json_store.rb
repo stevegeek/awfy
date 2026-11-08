@@ -183,7 +183,7 @@ class JsonStoreTest < Minitest::Test
   def test_save_and_query_measure_results_by_label
     base = measure_result("base-1", label: "base", wall_s: 1.0)
     candidate = measure_result("candidate-1", label: "candidate", wall_s: 2.0)
-    [base, candidate].each { @store.save_result(it) }
+    [base, candidate].each { |result| @store.save_result(result) }
 
     found = @store.query_results(type: :measure, label: "candidate")
     assert_equal ["candidate-1"], found.map(&:result_id)

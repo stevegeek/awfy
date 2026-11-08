@@ -9,8 +9,8 @@ class SqlCollectorTest < Minitest::Test
   def setup
     RailsTestHelper.connect!
     AwfyWidget.delete_all
-    3.times { AwfyWidget.create!(name: "w#{it}") }
-    Awfy::Rails::Collectors::Sql.frame_finder = ->(stack) { stack.find { it.include?("test_sql_collector.rb") }&.sub(/\A.*\/test\//, "test/") }
+    3.times { |index| AwfyWidget.create!(name: "w#{index}") }
+    Awfy::Rails::Collectors::Sql.frame_finder = ->(stack) { stack.find { |frame| frame.include?("test_sql_collector.rb") }&.sub(/\A.*\/test\//, "test/") }
   end
 
   def teardown
@@ -44,9 +44,9 @@ class SqlCollectorTest < Minitest::Test
 
     by_sql = data["fingerprints"]
     assert_equal 2, by_sql.size
-    same = by_sql.values.find { it["count"] == 2 }
+    same = by_sql.values.find { |entry| entry["count"] == 2 }
     assert_in_delta 5.0, same["ms"], 0.01
-    assert_in_delta data["sql_ms"], by_sql.values.sum { it["ms"] }, 0.01
+    assert_in_delta data["sql_ms"], by_sql.values.sum { |entry| entry["ms"] }, 0.01
   end
 
   def test_unsubscribes_at_stop
@@ -61,7 +61,7 @@ class SqlCollectorTest < Minitest::Test
     base = {"n_plus_one" => [{"sql" => "S", "frame" => "app/jobs/x.rb:11:in 'perform'", "count" => 9}, {"sql" => "T", "frame" => "app/y.rb:1", "count" => 5}]}
     other = {"n_plus_one" => [{"sql" => "S", "frame" => "app/jobs/x.rb:14:in 'perform'", "count" => 9}]}
     extras = Awfy::Rails::Collectors::Sql.extras(base, other)
-    assert_equal ["T"], extras["n_plus_one_gone"].map { it["sql"] }
+    assert_equal ["T"], extras["n_plus_one_gone"].map { |candidate| candidate["sql"] }
     assert_empty extras["n_plus_one_new"]
   end
 
