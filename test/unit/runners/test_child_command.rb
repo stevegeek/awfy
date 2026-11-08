@@ -104,6 +104,19 @@ class TestChildCommand < Minitest::Test
     assert_includes output, "err"
   end
 
+  def test_run_returns_utf8_output_whatever_the_default_external_encoding
+    command = with_argv("ruby", "-e", "$stdout.binmode; print [0xE2, 0x80, 0xA6].pack(%q(C*))")
+    original = Encoding.default_external
+    Encoding.default_external = Encoding::US_ASCII
+
+    output = command.run!
+
+    assert_equal Encoding::UTF_8, output.encoding
+    assert_equal "\u2026", output
+  ensure
+    Encoding.default_external = original
+  end
+
   def test_run_raises_with_the_exit_status_and_output_of_a_failed_command
     command = with_argv("ruby", "-e", "warn %q(boom); exit 3")
 

@@ -41,6 +41,7 @@
 - `--store` with an `.awfy.json` that sets another `storage_backend` no longer pairs the store name with the wrong backend.
 - The repository is now clean under standardrb.
 - awfy loads on Ruby 3.3; it no longer uses the Ruby 3.4 `it` block parameter.
+- The spawn and branch comparison runners no longer fail on UTF-8 child output when the locale is not UTF-8.
 
 ## [1.0.0] - ?
 
