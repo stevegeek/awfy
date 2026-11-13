@@ -40,6 +40,7 @@
 - The memory job stored `retained_strings` as memory_profiler's raw array; it now stores a count, like `allocated_strings`.
 - `--store` with an `.awfy.json` that sets another `storage_backend` no longer pairs the store name with the wrong backend.
 - The repository is now clean under standardrb.
+- Control tests run first and all other tests keep their order as defined in the suite.
 
 ## [1.0.0] - ?
 
