@@ -8,7 +8,7 @@ class ArCollectorsTest < Minitest::Test
   def setup
     RailsTestHelper.connect!
     AwfyWidget.delete_all
-    3.times { AwfyWidget.create!(name: "w#{it}") }
+    3.times { |i| AwfyWidget.create!(name: "w#{i}") }
   end
 
   def test_instantiation_by_class

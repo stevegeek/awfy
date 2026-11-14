@@ -43,7 +43,7 @@ module Awfy
         return @result.samples.size if @result.respond_to?(:samples)
         # Forward-compat: a possible future vernier version reporting per-thread sample arrays
         # instead of a flat #samples array; sum them the same way.
-        return @result.threads.values.sum { Array(it[:samples]).size } if @result.respond_to?(:threads)
+        return @result.threads.values.sum { |thread| Array(thread[:samples]).size } if @result.respond_to?(:threads)
 
         nil
       end

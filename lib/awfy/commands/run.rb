@@ -19,7 +19,7 @@ module Awfy
 
       def run
         suite = Suites::Loader.new(session:, group_names:, suite_path:).load
-        collectors = collector_keys.uniq.map { Collectors.fetch(it) }
+        collectors = collector_keys.uniq.map { |key| Collectors.fetch(key) }
         resolve_isolations!(suite)
         git_info = git_client.info
         run_label = label || git_info[:branch] || "unlabelled"
@@ -34,7 +34,7 @@ module Awfy
           measurement = runner.measure(group, report, test)
           save(measurement, test, run_label, started_at, git_info, meta)
           results << measurement.to_json_hash
-          broken = report.assertions_within(group).filter_map { it.failure(measurement.collectors) }
+          broken = report.assertions_within(group).filter_map { |assertion| assertion.failure(measurement.collectors) }
           failures << failure(group, report, test, "Assertion failed: #{broken.join("; ")}") if broken.any?
           measurement.failed_checks.each do |check|
             failures << failure(group, report, test, ["Check failed: #{check["name"]}", check["detail"]].compact.join(": "))
@@ -65,7 +65,7 @@ module Awfy
 
       def each_test(suite)
         suite.groups.each do |group|
-          reports = report_name ? group.reports.select { it.name == report_name } : group.reports
+          reports = report_name ? group.reports.select { |candidate| candidate.name == report_name } : group.reports
           reports.each do |report|
             report.tests_sorted_by_type(test_name:).each { |test| yield group, report, test }
           end

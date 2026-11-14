@@ -8,7 +8,7 @@ class CollectorRegistryTest < Minitest::Test
   end
 
   def test_core_keys_are_registered
-    %w[timing gc rss memory_profiler].each { assert_includes Awfy::Collectors.keys, it }
+    %w[timing gc rss memory_profiler].each { |key| assert_includes Awfy::Collectors.keys, key }
     assert_equal Awfy::Collectors::Timing, Awfy::Collectors.fetch("timing")
   end
 

@@ -65,7 +65,7 @@ end
   Awfy::Rails::Collectors::Cache,
   Awfy::Rails::Collectors::Sidekiq,
   Awfy::Rails::Collectors::Elasticsearch
-].each { Awfy::Collectors.register(it) }
+].each { |collector| Awfy::Collectors.register(collector) }
 
 Awfy::Isolation.register(:transaction, Awfy::Rails::TransactionIsolation)
 Awfy::Suite.include(Awfy::Rails::Helpers)

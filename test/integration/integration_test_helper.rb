@@ -127,6 +127,7 @@ module IntegrationTestHelper
     thor_options[:test_time] ||= ENV.fetch("AWFY_TEST_TIME", "0.01").to_f
     thor_options[:test_warm_up] ||= ENV.fetch("AWFY_TEST_WARM_UP", "0.01").to_f
     thor_options[:test_iterations] ||= ENV.fetch("AWFY_TEST_ITERATIONS", "1").to_i
+    thor_options[:runtime] ||= "mri" unless yjit_available?
 
     # Use SQLite store with a unique database name for this test run
     thor_options[:storage_backend] = "sqlite"
@@ -139,6 +140,16 @@ module IntegrationTestHelper
     capture_command_output do
       Awfy::CLI.new.invoke(command, args, thor_options)
     end
+  end
+
+  def yjit_available?
+    defined?(RubyVM::YJIT) && RubyVM::YJIT.respond_to?(:enable)
+  end
+
+  def assert_yjit_runtime_reported(output)
+    skip "this Ruby was built without YJIT" unless yjit_available?
+
+    assert_match(/\[yjit/, output)
   end
 
   # Check if a result file exists

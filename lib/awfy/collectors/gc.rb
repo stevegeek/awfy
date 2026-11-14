@@ -16,7 +16,7 @@ module Awfy
       # Counter deltas, plus malloc_increase_bytes as it stands at stop (it is a gauge).
       def stop(_context)
         after = ::GC.stat
-        COUNTERS.to_h { [it.to_s, after[it] - @before[it]] }
+        COUNTERS.to_h { |counter| [counter.to_s, after[counter] - @before[counter]] }
           .merge("malloc_increase_bytes" => after[:malloc_increase_bytes])
       end
     end

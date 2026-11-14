@@ -15,7 +15,7 @@ module Awfy
           row
         end
         text = rows.empty? ? +"no results\n" : "#{TableTennis.new(rows, title: "awfy run: #{doc["label"]}")}\n"
-        doc["failures"].each { text << "FAILED #{it["group"]}/#{it["report"]}/#{it["test"]}: #{it["error"]}\n" }
+        doc["failures"].each { |failure| text << "FAILED #{failure["group"]}/#{failure["report"]}/#{failure["test"]}: #{failure["error"]}\n" }
         text
       end
     end

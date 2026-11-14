@@ -12,7 +12,7 @@ module Awfy
     prop :pass, Integer
     prop :artefacts_dir, String
 
-    def slug = [group_name, report_name, test_name].map { it.gsub(/[^A-Za-z0-9_.]+/, "_") }.join("-")
+    def slug = [group_name, report_name, test_name].map { |part| part.gsub(/[^A-Za-z0-9_.]+/, "_") }.join("-")
 
     def artefact_path(suffix)
       FileUtils.mkdir_p(artefacts_dir)

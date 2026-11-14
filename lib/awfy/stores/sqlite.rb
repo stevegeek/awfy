@@ -121,7 +121,7 @@ module Awfy
 
       # Stores created before `label` existed get the column; their rows read as nil.
       def ensure_label_column(db)
-        columns = db.execute("PRAGMA table_info(results)").map { it[1] }
+        columns = db.execute("PRAGMA table_info(results)").map { |column| column[1] }
         db.execute("ALTER TABLE results ADD COLUMN label TEXT") unless columns.include?("label")
         db.execute "CREATE INDEX IF NOT EXISTS idx_results_label ON results (label);"
       end

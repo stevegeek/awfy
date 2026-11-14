@@ -28,7 +28,7 @@ module Awfy
       # it does not assert itself.
       def assertions_within(group)
         own_metrics = @assertions.map(&:metric)
-        group.assertions.reject { own_metrics.include?(it.metric) } + @assertions
+        group.assertions.reject { |assertion| own_metrics.include?(assertion.metric) } + @assertions
       end
 
       def tests_sorted_by_type(test_name: nil)

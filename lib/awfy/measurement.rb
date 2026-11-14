@@ -16,7 +16,7 @@ module Awfy
       checks.empty? ? data : data.merge("checks" => checks)
     end
 
-    def failed_checks = checks.reject { it["pass"] }
+    def failed_checks = checks.reject { |check| check["pass"] }
 
     def to_json_hash = {"group" => group_name, "report" => report_name, "test" => test_name}.merge(result_data)
   end

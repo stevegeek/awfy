@@ -19,7 +19,7 @@ class VernierCollectorTest < Minitest::Test
       assert_equal :done, value
       assert Awfy::Collectors::Vernier.heavy?
       assert data["path"].end_with?("G-R-t.vernier.json.gz")
-      Zlib::GzipReader.open(data["path"]) { |gz| assert JSON.parse(gz.read).key?("meta") }
+      Zlib::GzipReader.open(data["path"], external_encoding: Encoding::UTF_8) { |gz| assert JSON.parse(gz.read).key?("meta") }
       assert data.key?("samples")
       assert_equal Awfy::Collectors::Vernier, Awfy::Collectors.fetch("vernier")
     end
