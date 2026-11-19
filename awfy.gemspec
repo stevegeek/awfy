@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description = "awfy is a benchmarking tool that allows you to define groups of benchmarks and compare against runtimes, branches etc."
   spec.homepage = "https://github.com/stevegeek/awfy"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.1.0"
+  spec.required_ruby_version = ">= 3.3.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage

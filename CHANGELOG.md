@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Changed
+
+- Ruby 3.3 is now the minimum (3.2 is end-of-life).
+
 ### Added
 
 - `awfy run <suite file>` measures each test of one suite file in-process and stores one `:measure` result per test under a label (`--label`, default the git branch or `unlabelled`). `--collectors` picks what to record, `--store` names the result store, and `--format json` / `--output` write the run document.
