@@ -3,9 +3,9 @@
 lockfile_version = 3
 
 [[tools.ruby]]
-version = "4.0.9"
+version = "4.0.10"
 backend = "core:ruby"
-specifiers = ["4.0.9"]
+specifiers = ["4.0.10"]
 
 [tools.ruby.options]
 compile = "false"
@@ -14,6 +14,6 @@ ruby_build_repo = "https://github.com/rbenv/ruby-build.git"
 ruby_install = "false"
 
 [tools.ruby."platforms.linux-x64"]
-checksum = "sha256:7e74db7ddb8f44f534fa4937d98b6d1691e053c5c190af6d130464b0467e87c4"
-url = "https://github.com/jdx/ruby/releases/download/4.0.9-1/ruby-4.0.9.x86_64_linux.tar.gz"
+checksum = "sha256:ca54d2d9204f9f9724f7aa1620b30538723da3a9365d9195951b82fa6765fd4e"
+url = "https://github.com/jdx/ruby/releases/download/4.0.10-1/ruby-4.0.10.x86_64_linux.tar.gz"
 provenance = "github-attestations"
